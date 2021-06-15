@@ -4,6 +4,7 @@ from models import db, Build
 import json
 
 app = Bottle()
+app.install(ErrorsRestPlugin())
 
 @app.hook('before_request')
 def before():
@@ -31,5 +32,5 @@ def player(player):
         builds.append({'player': row.player, 'role': row.role, 'god': row.god})
     return json.dumps(builds)
 
-app.install(ErrorsRestPlugin())
-app.run(host='localhost', port=8080, reloader=True, debug=True)
+if __name__ == '__main__':
+    app.run(host='localhost', port=8080, reloader=True, debug=True)
