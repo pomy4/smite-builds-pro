@@ -1,53 +1,11 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <title>Geb Geb Geb</title>
-  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
-</head>
-<body>
-  <div id="app">
-    <label for="players">Choose a player:</label>
-    <select v-on:change="choose_player" id="players">
-      <option v-for="player in players" :value="player">
-        {{ player }}
-      </option>
-    </select>
-    <ul>
-      <li v-for="build in builds">
-        {{ build.player }} {{ build.role }} {{ build.god }}
-      </li>
-    </ul>
-  </div>
-
-  <script>
-    var app = new Vue
-    ({
-      el: '#app',
-      data:
-      {
-        players: [],
-        builds: []
-      },
-      methods:
-      {
-        choose_player: function(event)
-        {
-          this.message = event.target.value;
-          fetch(`http://localhost:8080/player/${event.target.value}`)
-            .then(response => response.json())
-            .then(json => this.builds = json)
-            .catch(error => console.log(error));
-        },
-        populate_select: function(event)
-        {
-          fetch('http://localhost:8080/players')
-            .then(response => response.json())
-            .then(json => this.players = json)
-            .catch(error => console.log(error));
-        }
-      }
-    });
-    app.populate_select();
-  </script>
-</body>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Geb Geb Geb</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script src="./index.js"></script>
+  </body>
 </html>
