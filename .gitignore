@@ -1,0 +1,6 @@
+.vscode/
+__pycache__
+smite/
+geckodriver.log
+geckodriver.exe
+*.code-workspace
