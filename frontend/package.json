@@ -1,20 +1,16 @@
 {
-  "name": "frontend",
-  "version": "1.0.0",
-  "description": "",
-  "private": true,
+  "version": "0.0.0",
   "scripts": {
-    "dev": "parcel index.html",
-    "build": "parcel build index.html"
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
   },
-  "author": "",
-  "license": "",
   "dependencies": {
-    "vue": "^3.1.1"
+    "vue": "^3.0.5"
   },
   "devDependencies": {
-    "@parcel/transformer-vue": "^2.0.0-beta.2",
-    "@vue/compiler-sfc": "^3.1.1",
-    "parcel": "^2.0.0-beta.2"
+    "@vitejs/plugin-vue": "^1.2.3",
+    "@vue/compiler-sfc": "^3.0.5",
+    "vite": "^2.3.7"
   }
 }
