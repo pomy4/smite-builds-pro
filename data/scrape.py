@@ -4,6 +4,13 @@ from time import sleep
 import pickle
 # maybe dataclass for new_build
 
+month_to_i = {
+    'January': 1, 'February': 2, 'March': 3,
+    'April': 4, 'May': 5, 'June': 6,
+    'July': 7, 'August': 8, 'September': 9,
+    'October': 10, 'November': 11, 'December': 12
+    }
+
 def text(elem):
     # textContent to remove all caps styling.
     text = elem.get_attribute('textContent')
@@ -11,11 +18,10 @@ def text(elem):
         raise Exception('Error: text')
     return text
 
-def number(elem):
-    number = elem.text
-    if not number.isdigit():
+def number(number):
+    if not number.isdigit(): # Also checks if is positive.
         raise Exception('Error: number')
-    return number
+    return int(number)
 
 def item(elem):
     url = elem.get_attribute('src')
@@ -42,19 +48,20 @@ for phase in phases[:1]:
     phase.click()
     phase = text(phase)
     days = driver.find_elements_by_class_name('day')
-    for day in days[:1]:
-        date = text(day.find_element_by_class_name('date'))
-        matches = day.find_elements_by_class_name('icon-calendar')
+    for day_elem in days[:1]:
+        date = text(day_elem.find_element_by_class_name('date'))
+        _, month, day = date.split(' ')
+        month = month_to_i[month]
+        day = number(day)
+        matches = day_elem.find_elements_by_class_name('icon-calendar')
         for match in matches[:1]:
             match.click()
             games = driver.find_elements_by_class_name('game-btn')
             url = driver.current_url.split('/')
-            match_id = url[-1]
-            if (not match_id.isdigit()):
-                raise Exception('Error: match id')
+            match_id = number(url[-1])
             if '/'.join(url[:-1]) != 'https://www.smiteproleague.com/matches':
                 raise Exception('Error: match url')
-            for game_i, game in enumerate(games[:1]):
+            for game_i, game in enumerate(games[:1], 1):
                 game.click()
                 # Find out teams, game length & which team won.
                 tmp = driver.find_elements_by_class_name('content-wrapper')[1]
@@ -62,6 +69,8 @@ for phase in phases[:1]:
                 team1 = text(teams[0])
                 team2 = text(teams[1])
                 game_length = text(tmp.find_element_by_class_name('game-duration'))
+                minutes, seconds = game_length.split(':')
+                minutes, seconds = number(minutes), number(seconds)
                 win_or_loss = tmp.find_element_by_class_name('team-score').text
                 if win_or_loss == 'W':
                     first_team_won = True
@@ -79,13 +88,16 @@ for phase in phases[:1]:
                 new_builds = []
                 for player_i in range(10):
                     print(player_i)
-                    player, role, god, kills, deaths, assists, gpm, relics, build = stats[player_i * 9 : (player_i + 1) * 9]
-                    player, role, god, kills, deaths, assists = text(player), text(role), text(god), number(kills), number(deaths), number(assists)
-                    relics, build = [item(x) for x in relics.find_elements_by_tag_name('img')], [item(x) for x in build.find_elements_by_tag_name('img')]
+                    player, role, god, kills, deaths, assists, gpm, relics, items = stats[player_i * 9 : (player_i + 1) * 9]
+                    player, role, god, kills, deaths, assists = text(player), text(role), text(god), \
+                        number(kills.text), number(deaths.text), number(assists.text)
+                    relics = [item(x) for x in relics.find_elements_by_tag_name('img')]
+                    items = [item(x) for x in items.find_elements_by_tag_name('img')]
                     win, team = (first_team_won, team1) if player_i < 5 else (not first_team_won, team2)
-                    new_build = {'league': 'SPL', 'phase': phase, 'date': date, 'game_i': game_i+1, 'match_id': match_id,
-                        'win' : win, 'game_length': game_length, 'kills': kills, 'deaths': deaths, 'assists': assists, 'role': role,
-                        'player1': player,  'god1': god, 'team1': team, 'relics': relics, 'build': build}
+                    new_build = {'season': 8, 'league': 'SPL', 'phase': phase, 'month': month, 'day': day, 'game_i': game_i,
+                        'match_id': match_id, 'win' : win, 'minutes': minutes, 'seconds': seconds,
+                        'kills': kills, 'deaths': deaths, 'assists': assists, 'role': role,
+                        'player1': player,  'god1': god, 'team1': team, 'relics': relics, 'items': items}
                     if role not in roles:
                         if player_i >= 5:
                             raise Exception('Error: role (1)')
@@ -99,6 +111,6 @@ for phase in phases[:1]:
                     new_builds.append(new_build)
                 builds.extend(new_builds)
             driver.back()
-            pickle.dump(builds, open('test2.p', 'wb'))
+            pickle.dump(builds, open('../backend/test.p', 'wb'))
 sleep(3)
 driver.close()
