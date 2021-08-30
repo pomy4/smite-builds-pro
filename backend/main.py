@@ -19,8 +19,8 @@ def after():
 @app.get('/players')
 def players():
     players = []
-    for row in Build.select(Build.player).distinct().order_by(Build.player):
-        players.append(row.player)
+    for row in Build.select(Build.player1).distinct().order_by(Build.player1):
+        players.append(row.player1)
     return json.dumps(players)
 
 @app.get('/player/<player>')
@@ -28,8 +28,8 @@ def player(player):
     if not (1 <= len(player) <= 30):
         return HTTPError(400, 'Input too long')
     builds = []
-    for row in Build.select().where(Build.player == player):
-        builds.append({'player': row.player, 'role': row.role, 'god': row.god})
+    for row in Build.select().where(Build.player1 == player):
+        builds.append({'player': row.player1, 'role': row.role, 'god': row.god1})
     return json.dumps(builds)
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ class Build(Base):
     game_i = SmallIntegerField()
     match_id = IntegerField()
     win = BooleanField()
-    game_length = TimeField(30)
+    game_length = TimeField()
     kills = SmallIntegerField()
     deaths = SmallIntegerField()
     assists = SmallIntegerField()
