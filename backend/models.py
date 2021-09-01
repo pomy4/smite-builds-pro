@@ -1,7 +1,7 @@
 from peewee import *
 import datetime
 
-db = SqliteDatabase('test.db')
+db = SqliteDatabase('backend.db')
 
 class Base(Model):
     class Meta:
@@ -39,6 +39,10 @@ class Build(Base):
     item4 = ForeignKeyField(Item, null=True)
     item5 = ForeignKeyField(Item, null=True)
     item6 = ForeignKeyField(Item, null=True)
+
+def get_last_match_id(phase):
+    query = Build.select(fn.MAX(Build.match_id)).where(Build.phase == phase)
+    return query.scalar()
 
 def add_builds(builds_request):
     # Uniquerize items based upon short.

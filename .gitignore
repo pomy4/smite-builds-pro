@@ -1,10 +1,11 @@
 .vscode/
 __pycache__
-smite/
-geckodriver.log
-geckodriver.exe
 *.code-workspace
-frontend/node_modules
-frontend/dist
+backend/backend.db
+updater/logs/*.log
+updater/geckodriver.exe
+updater/geckodriver.log
 frontend/.parcel-cache
+frontend/dist
+frontend/node_modules
 frontend/package-lock.json
