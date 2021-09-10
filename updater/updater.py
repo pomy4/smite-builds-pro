@@ -153,6 +153,6 @@ if __name__ == '__main__':
             builds_resp = requests.post(f'{backend_url}/builds', json=builds)
             builds_resp.raise_for_status()
 
-    except Exception as e:
+    except BaseException as e:
         logging.exception(e)
         raise e
