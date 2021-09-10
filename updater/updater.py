@@ -153,5 +153,5 @@ if __name__ == '__main__':
             builds_resp.raise_for_status()
 
     except Exception as e:
-        logging.error(e)
+        logging.exception(e)
         raise e
