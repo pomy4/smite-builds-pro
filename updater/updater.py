@@ -106,7 +106,8 @@ def scrape_match(driver, phase, month, day, match_url, match_id):
                 opp['player2'], opp['god2'], opp['team2'] = player, god, team
                 new_build['player2'], new_build['god2'], new_build['team2'] = opp['player1'], opp['god1'], opp['team1']
             builds_one_game.append(new_build)
-            logging.info(f'Build scraped|{new_build}')
+        for x in builds_one_game:
+            logging.info(f'Build scraped|{x}')
         builds_all_games.extend(builds_one_game)
         click_delay(start)
     return builds_all_games
