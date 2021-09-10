@@ -1,11 +1,17 @@
+# Environment specific (should be in a global gitignore).
+.venv/
 .vscode/
-__pycache__
 *.code-workspace
-backend/backend.db
-updater/logs/*.log
+
+# Something in the middle.
 updater/geckodriver.exe
 updater/geckodriver.log
+
+# Project specific.
+__pycache__/
+backend/backend.db
 frontend/.parcel-cache
-frontend/dist
-frontend/node_modules
+frontend/dist/
+frontend/node_modules/
 frontend/package-lock.json
+updater/logs/*.log
