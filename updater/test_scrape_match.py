@@ -1,5 +1,6 @@
 import sys
 import pprint
+import os
 
 from selenium import webdriver
 
@@ -8,7 +9,8 @@ import updater
 phase = 'just a phase'
 month = 9
 day = 9
-match_id = sys.argv[1] if len(sys.argv) > 1 else 2455
+if not (match_id := sys.argv[1:2]) and not (match_id := os.environ.get('SYSARG')):
+    match_id = 2455
 match_url = f'{updater.spl_matches_url}/{match_id}'
 builds = []
 with webdriver.Firefox() as driver:

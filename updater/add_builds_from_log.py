@@ -1,16 +1,17 @@
 import sys
 import json
+import os
 
 import requests
 
 import updater
 
-if len(sys.argv) < 2:
+if not (input := sys.argv[1:2]) and not (input := os.environ.get('SYSARG')):
   print('Supply filepath of a log please.')
   sys.exit(0)
 
 builds = []
-with open(sys.argv[1], 'r', encoding='utf-8') as f:
+with open(input, 'r', encoding='utf-8') as f:
   for line in f.readlines():
     line_split = line.split('|')
     if len(line_split) < 3 or line_split[1] != 'Build scraped':
