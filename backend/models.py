@@ -39,6 +39,8 @@ class Build(Base):
     item4 = ForeignKeyField(Item, null=True)
     item5 = ForeignKeyField(Item, null=True)
     item6 = ForeignKeyField(Item, null=True)
+    class Meta:
+        primary_key = CompositeKey('match_id', 'game_i', 'player1')
 
 def get_last_match_id(phase):
     query = Build.select(fn.MAX(Build.match_id)).where(Build.phase == phase)
@@ -76,7 +78,12 @@ def add_builds(builds_request):
             for i, (short, _) in enumerate(build['items'], 1):
                 build[f'item{i}'] = items_db[short]
             del build['relics'], build['items']
-        Build.insert_many(builds_request).execute()
+        try:
+            Build.insert_many(builds_request).execute()
+            return True
+        except IntegrityError:
+            return False
+
 
 if __name__ == '__main__':
     tables = [Item, Build]

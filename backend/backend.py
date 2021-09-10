@@ -37,8 +37,10 @@ def builds():
         builds = json.loads(builds_str)
     except (UnicodeDecodeError, json.JSONDecodeError):
         return HTTPResponse(400, 'Request body should be an utf-8 encoded json.')
-    add_builds(builds) # TODO input checking + what if input already is in db.
-    return HTTPResponse(status=200)
+    if add_builds(builds): # TODO input checking.
+        return HTTPResponse(status=201)
+    else:
+        return HTTPResponse(status=400, body='At least one of the builds already exists.')
 
 @app.get('/players')
 def players():
