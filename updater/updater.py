@@ -45,6 +45,9 @@ def item(elem):
     if not 1 <= len(short) <= 30 or not 1 <= len(long) <= 30 \
             or url != 'https://webcdn.hirezstudios.com/smite/item-icons':
         raise Exception('Error: item (2)')
+    short_evolved, long_evolved  = 'evolved-', 'Evolved '
+    if short.startswith(short_evolved) and long.startswith(long_evolved):
+        short, long = short[len(short_evolved):], long[len(long_evolved):]
     return short, long
 
 def click_delay(start):
