@@ -3,6 +3,7 @@ import datetime
 import itertools
 import logging
 import time
+import json
 
 import requests
 from selenium import webdriver
@@ -107,7 +108,7 @@ def scrape_match(driver, phase, month, day, match_url, match_id):
                 new_build['player2'], new_build['god2'], new_build['team2'] = opp['player1'], opp['god1'], opp['team1']
             builds_one_game.append(new_build)
         for x in builds_one_game:
-            logging.info(f'Build scraped|{x}')
+            logging.info(f'Build scraped|{json.dumps(x)}')
         builds_all_games.extend(builds_one_game)
         click_delay(start)
     return builds_all_games
