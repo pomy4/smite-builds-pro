@@ -44,8 +44,9 @@ def item(elem):
         raise Exception('Error: item (2)')
     return short, long
 
-def scrape_match():
+def scrape_match(driver, phase, month, day, match_url, match_id):
     driver.get(match_url)
+    builds_all_games = []
     games = driver.find_elements_by_class_name('game-btn')
     for game_i, game in enumerate(games, 1):
         game.click()
@@ -71,7 +72,7 @@ def scrape_match():
         # Remove P&Bs and totals.
         stats = stats[:45] + stats[54:99]
         roles = {}
-        new_builds = []
+        builds_one_game = []
         for player_i in range(10):
             player, role, god, kills, deaths, assists, gpm, relics, items = stats[player_i * 9 : (player_i + 1) * 9]
             player, role, god, kills, deaths, assists = text(player), text(role), text(god), \
@@ -91,12 +92,13 @@ def scrape_match():
             else:
                 if player_i < 5:
                     raise Exception('Error role (2)')
-                opp = new_builds[roles[role]]
+                opp = builds_one_game[roles[role]]
                 opp['player2'], opp['god2'], opp['team2'] = player, god, team
                 new_build['player2'], new_build['god2'], new_build['team2'] = opp['player1'], opp['god1'], opp['team1']
-            new_builds.append(new_build)
+            builds_one_game.append(new_build)
             logging.info(f'Build scraped|{new_build}')
-        builds.extend(new_builds)
+        builds_all_games.extend(builds_one_game)
+    return builds_all_games
 
 if __name__ == '__main__':
     # Set up logging.
@@ -150,7 +152,8 @@ if __name__ == '__main__':
             builds = []
             for phase, month, day, match_url, match_id in tqdm.tqdm(to_scrape):
                 logging.info(f'Scraping|{phase}|{match_id}')
-                scrape_match()
+                new_builds = scrape_match(driver, phase, month, day, match_url, match_id)
+                builds.extend(new_builds)
 
             # Some more backend stuff.
             builds_resp = requests.post(f'{backend_url}/builds', json=builds)
