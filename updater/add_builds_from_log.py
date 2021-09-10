@@ -3,6 +3,8 @@ import json
 
 import requests
 
+import updater
+
 if len(sys.argv) < 2:
   print('Supply filepath of a log please.')
   sys.exit(0)
@@ -16,6 +18,5 @@ with open(sys.argv[1], 'r', encoding='utf-8') as f:
     build_json = json.loads(line_split[2])
     builds.append(build_json)
 
-backend_url = 'http://localhost:8080'
-builds_resp = requests.post(f'{backend_url}/builds', json=builds)
+builds_resp = requests.post(f'{updater.backend_url}/builds', json=builds)
 builds_resp.raise_for_status()
