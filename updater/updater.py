@@ -74,7 +74,8 @@ def scrape_match():
             relics = [item(x) for x in relics.find_elements_by_tag_name('img')]
             items = [item(x) for x in items.find_elements_by_tag_name('img')]
             win, team = (first_team_won, team1) if player_i < 5 else (not first_team_won, team2)
-            new_build = {'season': 8, 'league': 'SPL', 'phase': phase, 'month': month, 'day': day, 'game_i': game_i,
+            # Optional values: year, season.
+            new_build = {'league': 'SPL', 'phase': phase, 'month': month, 'day': day, 'game_i': game_i,
                 'match_id': match_id, 'win' : win, 'minutes': minutes, 'seconds': seconds,
                 'kills': kills, 'deaths': deaths, 'assists': assists, 'role': role,
                 'player1': player,  'god1': god, 'team1': team, 'relics': relics, 'items': items}

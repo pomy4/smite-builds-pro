@@ -46,6 +46,7 @@ def get_last_match_id(phase):
 
 def add_builds(builds_request):
     # Uniquerize items based upon short.
+    today = datetime.date.today()
     items_request = dict()
     for build in builds_request:
         for short, long in build['relics']:
@@ -62,7 +63,12 @@ def add_builds(builds_request):
         for build in builds_request:
             build['game_length'] = datetime.time(minute=build['minutes'], second=build['seconds'])
             if 'year' not in build:
-                build['year'] = datetime.date.today().year
+                build['year'] = today.year
+            if 'season' not in build:
+                season = today.year - 2013
+                if today.month <= 2:
+                    season -= 1
+                build['season'] = max(season, 0)
             build['date'] = datetime.date(year=build['year'], month=build['month'], day=build['day'])
             del build['minutes'], build['seconds'], build['year'], build['month'], build['day']
             for i, (short, _) in enumerate(build['relics'], 1):
