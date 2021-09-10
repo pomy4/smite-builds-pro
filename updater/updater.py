@@ -104,7 +104,8 @@ if __name__ == '__main__':
         log_path = log_folder / f'{today}{suffix}.log'
         if not log_path.is_file():
             break
-    logging.basicConfig(filename=log_path, level=logging.INFO)
+    # https://hg.python.org/cpython/file/5c4ca109af1c/Lib/logging/__init__.py#l399
+    logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s|%(message)s')
 
     try:
         # Scraping stuff.
