@@ -5,6 +5,7 @@ import logging
 
 import requests
 from selenium import webdriver
+import tqdm
 
 month_to_i = {
     'January': 1, 'February': 2, 'March': 3,
@@ -145,7 +146,7 @@ if __name__ == '__main__':
                             logging.info(f'Skipping|{phase}|{match_id}')
 
             builds = []
-            for phase, month, day, match_url, match_id in to_scrape:
+            for phase, month, day, match_url, match_id in tqdm.tqdm(to_scrape):
                 logging.info(f'Scraping|{phase}|{match_id}')
                 scrape_match()
 
