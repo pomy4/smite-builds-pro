@@ -2,6 +2,7 @@ import pathlib
 import datetime
 import itertools
 import logging
+import time
 
 import requests
 from selenium import webdriver
@@ -10,6 +11,7 @@ import tqdm
 backend_url = 'http://localhost:8080'
 spl_schedule_url = 'https://www.smiteproleague.com/schedule'
 spl_matches_url = 'https://www.smiteproleague.com/matches'
+min_click_delay = 0.333
 
 month_to_i = {
     'January': 1, 'February': 2, 'March': 3,
@@ -44,12 +46,20 @@ def item(elem):
         raise Exception('Error: item (2)')
     return short, long
 
+def click_delay(start):
+    end = time.time()
+    time_spent = end - start
+    time_remaining = min_click_delay - time_spent
+    if time_remaining > 0:
+        time.sleep(time_remaining)
+
 def scrape_match(driver, phase, month, day, match_url, match_id):
     driver.get(match_url)
     builds_all_games = []
     games = driver.find_elements_by_class_name('game-btn')
     for game_i, game in enumerate(games, 1):
         game.click()
+        start = time.time()
         # Find out teams, game length & which team won.
         tmp = driver.find_elements_by_class_name('content-wrapper')[1]
         teams = tmp.find_elements_by_tag_name('strong')
@@ -98,6 +108,7 @@ def scrape_match(driver, phase, month, day, match_url, match_id):
             builds_one_game.append(new_build)
             logging.info(f'Build scraped|{new_build}')
         builds_all_games.extend(builds_one_game)
+        click_delay(start)
     return builds_all_games
 
 if __name__ == '__main__':
@@ -131,6 +142,7 @@ if __name__ == '__main__':
             to_scrape = []
             for phase_elem, phase, last_match_id in zip(phase_elems, phases, last_match_ids):
                 phase_elem.click()
+                start = time.time()
                 day_elems = driver.find_elements_by_class_name('day')
                 for day_elem in day_elems:
                     date = text(day_elem.find_element_by_class_name('date'))
@@ -148,6 +160,7 @@ if __name__ == '__main__':
                             to_scrape.append((phase, month, day, match_url, match_id))
                         else:
                             logging.info(f'Skipping|{phase}|{match_id}')
+                click_delay(start)
 
             builds = []
             for phase, month, day, match_url, match_id in tqdm.tqdm(to_scrape):
