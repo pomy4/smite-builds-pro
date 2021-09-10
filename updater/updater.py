@@ -7,6 +7,10 @@ import requests
 from selenium import webdriver
 import tqdm
 
+backend_url = 'http://localhost:8080'
+spl_schedule_url = 'https://www.smiteproleague.com/schedule'
+spl_matches_url = 'https://www.smiteproleague.com/matches'
+
 month_to_i = {
     'January': 1, 'February': 2, 'March': 3,
     'April': 4, 'May': 5, 'June': 6,
@@ -95,8 +99,6 @@ def scrape_match():
         builds.extend(new_builds)
 
 if __name__ == '__main__':
-    backend_url = 'http://localhost:8080'
-
     # Set up logging.
     log_folder = pathlib.Path('logs')
     today = datetime.datetime.now().date().isoformat()
@@ -111,7 +113,7 @@ if __name__ == '__main__':
     try:
         # Scraping stuff.
         with webdriver.Firefox() as driver:
-            driver.get("https://www.smiteproleague.com/schedule/")
+            driver.get(spl_schedule_url)
             driver.implicitly_wait(3)
 
             phase_elems = driver.find_elements_by_class_name('phase')
@@ -137,7 +139,7 @@ if __name__ == '__main__':
                     for result_link_elem in result_link_elems:
                         match_url = result_link_elem.get_attribute('href')
                         match_url_split = match_url.split('/')
-                        if '/'.join(match_url_split[:-1]) != 'https://www.smiteproleague.com/matches':
+                        if '/'.join(match_url_split[:-1]) != spl_matches_url:
                             raise Exception('Error: match url')
                         match_id = number(match_url_split[-1])
                         if match_id > last_match_id:
