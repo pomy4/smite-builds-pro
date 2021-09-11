@@ -92,7 +92,8 @@ def add_builds(builds_request):
                 build[f'item{i}'] = items_request[(short, long)]
             del build['relics'], build['items']
         try:
-            Build.insert_many(builds_request).execute()
+            for batch in chunked(builds_request, 100):
+                Build.insert_many(batch).execute()
         except IntegrityError:
             raise MyError('At least one of the builds is already in the database.')
 

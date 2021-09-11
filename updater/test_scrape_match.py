@@ -14,6 +14,6 @@ if not (match_id := sys.argv[1:2]) and not (match_id := os.environ.get('SYSARG')
 match_url = f'{updater.spl_matches_url}/{match_id}'
 builds = []
 with webdriver.Firefox() as driver:
-    driver.implicitly_wait(3)
+    driver.implicitly_wait(updater.implicit_wait)
     builds = updater.scrape_match(driver, phase, month, day, match_url, match_id)
     pprint.pprint(builds)

@@ -7,17 +7,25 @@ import json
 import hmac
 import hashlib
 import os
-import sys
 
 import requests
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import tqdm
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
-backend_url = 'http://localhost:8080'
 spl_schedule_url = 'https://www.smiteproleague.com/schedule'
 spl_matches_url = 'https://www.smiteproleague.com/matches'
-min_click_delay = 0.333
+cnd_images_url = 'https://webcdn.hirezstudios.com/smite/item-icons'
+min_click_delay = 0.5
+implicit_wait = 3
+explicit_wait_match = 10
+
+HMAC_KEY_HEX = 'HMAC_KEY_HEX'
+BACKEND_URL = 'BACKEND_URL'
+required_env_vars = [HMAC_KEY_HEX, BACKEND_URL]
 
 month_to_i = {
     'January': 1, 'February': 2, 'March': 3,
@@ -30,26 +38,25 @@ def text(elem):
     # textContent to remove all caps styling.
     text = elem.get_attribute('textContent')
     if not 1 <= len(text) <= 30:
-        raise Exception(f'Error text: {text}')
+        raise RuntimeError(f'Error: text \"{text}\"')
     return text
 
 def number(number):
      # Also checks if is positive.
     if not number.isdigit():
-        raise Exception('Error: number')
+        raise RuntimeError('Error: number')
     return int(number)
 
 def item(elem):
     url = elem.get_attribute('src')
     last = url.rfind('/')
     if last == -1:
-        raise Exception('Error: item (1)')
+        raise RuntimeError('Error: item (1)')
     short = url[last + 1:]
     url = url[:last]
     long = elem.get_attribute('alt')
-    if not 1 <= len(short) <= 30 or not 1 <= len(long) <= 30 \
-            or url != 'https://webcdn.hirezstudios.com/smite/item-icons':
-        raise Exception('Error: item (2)')
+    if not 1 <= len(short) <= 30 or not 1 <= len(long) <= 30 or url != cnd_images_url:
+        raise RuntimeError('Error: item (2)')
     short_evolved, long_evolved  = 'evolved-', 'Evolved '
     if short.startswith(short_evolved) and long.startswith(long_evolved):
         short, long = short[len(short_evolved):], long[len(long_evolved):]
@@ -72,26 +79,29 @@ def better_raise_for_status(resp: requests.Response):
             msg += f'\nMore detail: {more_detail}'
         raise RuntimeError(msg)
 
-def get_hmac_key_hex_from_env():
-    load_dotenv('../.env')
-    env_var_name = 'HMAC_KEY_HEX'
-    if not (hmac_key_hex := os.getenv(env_var_name)):
-        logging.critical(f'{env_var_name} not set.')
-        sys.exit(1)
-    return hmac_key_hex
+def config_from_env():
+    config = {**dotenv_values('../.env'), **os.environ}
 
-def send_builds(hmac_key_hex, builds):
-    hmac_key = bytearray.fromhex(hmac_key_hex)
+    for env_var in required_env_vars:
+        if env_var not in config:
+            raise RuntimeError(f'\"{env_var}\" not set.')
+
+    return config
+
+def send_builds(config, builds):
+    hmac_key = bytearray.fromhex(config[HMAC_KEY_HEX])
     builds_bytes = json.dumps(builds).encode('utf-8')
     hmac_obj = hmac.new(hmac_key, builds_bytes, hashlib.sha256)
     headers = {'X-HMAC_DIGEST_HEX': hmac_obj.hexdigest()}
-    builds_resp = requests.post(f'{backend_url}/builds', data=builds_bytes, headers=headers)
+    builds_resp = requests.post(f'{config[BACKEND_URL]}/builds', data=builds_bytes, headers=headers)
     better_raise_for_status(builds_resp)
 
 def scrape_match(driver, phase, month, day, match_url, match_id):
     driver.get(match_url)
     builds_all_games = []
-    games = driver.find_elements_by_class_name('game-btn')
+    games = WebDriverWait(driver, explicit_wait_match).until(
+        EC.presence_of_all_elements_located((By.CLASS_NAME, "game-btn")))
+    # games = driver.find_elements_by_class_name('game-btn')
     for game_i, game in enumerate(games, 1):
         game.click()
         start = time.time()
@@ -109,11 +119,11 @@ def scrape_match(driver, phase, month, day, match_url, match_id):
         elif win_or_loss == 'L':
             first_team_won = False
         else:
-            raise Exception('Error: win')
+            raise RuntimeError('Error: win')
         # Get everything else.
         stats = driver.find_elements_by_class_name('item')
         if len(stats) != 128:
-            raise Exception('Error: stats')
+            raise RuntimeError('Error: stats')
         # Remove P&Bs and totals.
         stats = stats[:45] + stats[54:99]
         roles = {}
@@ -132,50 +142,57 @@ def scrape_match(driver, phase, month, day, match_url, match_id):
                 'player1': player, 'god1': god, 'team1': team, 'relics': relics, 'items': items}
             if role not in roles:
                 if player_i >= 5:
-                    raise Exception('Error: role (1)')
+                    raise RuntimeError('Error: role (1)')
                 roles[role] = player_i
             else:
                 if player_i < 5:
-                    raise Exception('Error role (2)')
+                    raise RuntimeError('Error role (2)')
                 opp = builds_one_game[roles[role]]
                 opp['player2'], opp['god2'], opp['team2'] = player, god, team
                 new_build['player2'], new_build['god2'], new_build['team2'] = opp['player1'], opp['god1'], opp['team1']
             builds_one_game.append(new_build)
         for x in builds_one_game:
             logging.info(f'Build scraped|{json.dumps(x)}')
+        if len(builds_one_game) < 10:
+            logging.warning(f'Missing build(s) in a game|{10 - len(builds_one_game)}')
+
         builds_all_games.extend(builds_one_game)
         click_delay(start)
+
+    if not builds_all_games:
+        raise RuntimeError("Error: builds")
+
     return builds_all_games
 
 if __name__ == '__main__':
-    # Set up logging.
-    log_folder = pathlib.Path('logs')
-    today = datetime.datetime.now().date().isoformat()
-    for i in itertools.count():
-        suffix = f'({i})' if i else ''
-        log_path = log_folder / f'{today}{suffix}.log'
-        if not log_path.is_file():
-            break
-    # https://hg.python.org/cpython/file/5c4ca109af1c/Lib/logging/__init__.py#l399
-    logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s|%(message)s')
-
-    hmac_key_hex = get_hmac_key_hex_from_env()
-
-    if os.getenv('LAUNCH_WATCHDOG'):
-        import subprocess
-        subprocess.call(['bash', './watchdog.sh'])
-
     try:
+        # Set up logging.
+        log_folder = pathlib.Path('logs')
+        today = datetime.datetime.now().date().isoformat()
+        for i in itertools.count():
+            suffix = f'({i})' if i else ''
+            log_path = log_folder / f'{today}{suffix}.log'
+            if not log_path.is_file():
+                break
+        # https://hg.python.org/cpython/file/5c4ca109af1c/Lib/logging/__init__.py#l399
+        logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s|%(levelname)s|%(message)s')
+
+        config = config_from_env()
+
+        if config.get('LAUNCH_WATCHDOG'):
+            import subprocess
+            subprocess.call(['bash', './watchdog.sh'])
+
         # Scraping stuff.
         with webdriver.Firefox() as driver:
             driver.get(spl_schedule_url)
-            driver.implicitly_wait(3)
+            driver.implicitly_wait(implicit_wait)
 
             phase_elems = driver.find_elements_by_class_name('phase')
             phases = [text(phase_elem) for phase_elem in phase_elems]
 
             # Backend stuff.
-            last_match_ids_resp = requests.post(f'{backend_url}/phases', json=phases)
+            last_match_ids_resp = requests.post(f'{config[BACKEND_URL]}/phases', json=phases)
             better_raise_for_status(last_match_ids_resp)
             last_match_ids = last_match_ids_resp.json()
             assert len(phases) == len(last_match_ids)
@@ -210,11 +227,11 @@ if __name__ == '__main__':
                 try:
                     new_builds = scrape_match(driver, phase, month, day, match_url, match_id)
                     builds.extend(new_builds)
-                except BaseException as e:
+                except Exception as e:
                     logging.exception(e)
 
             # Some more backend stuff.
-            send_builds(hmac_key_hex, builds)
+            send_builds(config, builds)
 
     except BaseException as e:
         logging.exception(e)
