@@ -161,6 +161,10 @@ if __name__ == '__main__':
 
     hmac_key_hex = get_hmac_key_hex_from_env()
 
+    if os.getenv('LAUNCH_WATCHDOG'):
+        import subprocess
+        subprocess.call(['bash', './watchdog.sh'])
+
     try:
         # Scraping stuff.
         with webdriver.Firefox() as driver:
