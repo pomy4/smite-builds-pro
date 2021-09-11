@@ -4,6 +4,7 @@
 *.code-workspace
 
 # Something in the middle.
+.env
 updater/geckodriver.exe
 updater/geckodriver.log
 

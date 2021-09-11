@@ -4,10 +4,15 @@ import itertools
 import logging
 import time
 import json
+import hmac
+import hashlib
+import os
+import sys
 
 import requests
 from selenium import webdriver
 import tqdm
+from dotenv import load_dotenv
 
 backend_url = 'http://localhost:8080'
 spl_schedule_url = 'https://www.smiteproleague.com/schedule'
@@ -66,6 +71,22 @@ def better_raise_for_status(resp: requests.Response):
         if more_detail := resp.text:
             msg += f'\nMore detail: {more_detail}'
         raise RuntimeError(msg)
+
+def get_hmac_key_hex_from_env():
+    load_dotenv('../.env')
+    env_var_name = 'HMAC_KEY_HEX'
+    if not (hmac_key_hex := os.getenv(env_var_name)):
+        logging.critical(f'{env_var_name} not set.')
+        sys.exit(1)
+    return hmac_key_hex
+
+def send_builds(hmac_key_hex, builds):
+    hmac_key = bytearray.fromhex(hmac_key_hex)
+    builds_bytes = json.dumps(builds).encode('utf-8')
+    hmac_obj = hmac.new(hmac_key, builds_bytes, hashlib.sha256)
+    headers = {'X-HMAC_DIGEST_HEX': hmac_obj.hexdigest()}
+    builds_resp = requests.post(f'{backend_url}/builds', data=builds_bytes, headers=headers)
+    better_raise_for_status(builds_resp)
 
 def scrape_match(driver, phase, month, day, match_url, match_id):
     driver.get(match_url)
@@ -138,6 +159,8 @@ if __name__ == '__main__':
     # https://hg.python.org/cpython/file/5c4ca109af1c/Lib/logging/__init__.py#l399
     logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s|%(message)s')
 
+    hmac_key_hex = get_hmac_key_hex_from_env()
+
     try:
         # Scraping stuff.
         with webdriver.Firefox() as driver:
@@ -184,8 +207,7 @@ if __name__ == '__main__':
                 builds.extend(new_builds)
 
             # Some more backend stuff.
-            builds_resp = requests.post(f'{backend_url}/builds', json=builds)
-            better_raise_for_status(builds_resp)
+            send_builds(hmac_key_hex, builds)
 
     except BaseException as e:
         logging.exception(e)

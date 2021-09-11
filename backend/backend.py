@@ -1,10 +1,14 @@
 import json
 import functools
+import os
+import hmac
+import hashlib
 
 from bottle import Bottle, response,  request, HTTPResponse
 from bottle_errorsrest import ErrorsRestPlugin
 import pydantic
 from typing import List, Optional
+from dotenv import load_dotenv
 
 from models import db, Build, add_builds, get_last_match_id
 
@@ -36,6 +40,25 @@ def validate_request_body(Schema):
                 return HTTPResponse(status=400, body=str(e))
         return inner_wrapper
     return outer_wrapper
+
+def verify_integrity(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if not (key_hex := os.getenv('HMAC_KEY_HEX')):
+            return HTTPResponse(status=501, body='HMAC secret key isn\'t set on the server.')
+        key = bytearray.fromhex(key_hex)
+
+        header_name = 'X-HMAC_DIGEST_HEX'
+        if not (digest_header := request.get_header(header_name)):
+            return HTTPResponse(status=400, body=f'HMAC digest was not included in the {header_name} header.')
+
+        hmac_obj = hmac.new(key, request.body.read(), hashlib.sha256)
+        digest_body = hmac_obj.hexdigest()
+        if not hmac.compare_digest(digest_header, digest_body):
+            return HTTPResponse(status=403, body='Wrong HMAC digest!')
+
+        return func(*args, **kwargs)
+    return wrapper
 
 class PhasesSchema(pydantic.BaseModel):
     __root__: List[str]
@@ -75,6 +98,7 @@ class BuildsSchema(pydantic.BaseModel):
     __root__: List[BuildSchema]
 
 @app.post('/builds')
+@verify_integrity
 @validate_request_body(BuildsSchema)
 def builds(builds):
     if add_builds(builds):
@@ -99,4 +123,5 @@ def player(player):
     return json.dumps(builds)
 
 if __name__ == '__main__':
+    load_dotenv('../.env')
     app.run(host='localhost', port=8080, reloader=True, debug=True)

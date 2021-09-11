@@ -2,13 +2,13 @@ import sys
 import json
 import os
 
-import requests
-
 import updater
 
 if not (input := sys.argv[1:2]) and not (input := os.environ.get('SYSARG')):
   print('Supply filepath of a log please.')
   sys.exit(0)
+
+hmac_key_hex = updater.get_hmac_key_hex_from_env()
 
 builds = []
 with open(input, 'r', encoding='utf-8') as f:
@@ -19,5 +19,4 @@ with open(input, 'r', encoding='utf-8') as f:
     build_json = json.loads(line_split[2])
     builds.append(build_json)
 
-builds_resp = requests.post(f'{updater.backend_url}/builds', json=builds)
-updater.better_raise_for_status(builds_resp)
+updater.send_builds(hmac_key_hex, builds)
