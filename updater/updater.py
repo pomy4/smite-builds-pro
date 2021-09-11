@@ -207,8 +207,11 @@ if __name__ == '__main__':
             builds = []
             for phase, month, day, match_url, match_id in tqdm.tqdm(to_scrape):
                 logging.info(f'Scraping|{phase}|{match_id}')
-                new_builds = scrape_match(driver, phase, month, day, match_url, match_id)
-                builds.extend(new_builds)
+                try:
+                    new_builds = scrape_match(driver, phase, month, day, match_url, match_id)
+                    builds.extend(new_builds)
+                except BaseException as e:
+                    logging.exception(e)
 
             # Some more backend stuff.
             send_builds(hmac_key_hex, builds)
