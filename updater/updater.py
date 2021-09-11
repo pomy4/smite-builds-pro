@@ -57,6 +57,16 @@ def click_delay(start):
     if time_remaining > 0:
         time.sleep(time_remaining)
 
+def better_raise_for_status(resp: requests.Response):
+    if not resp.ok:
+        msg  = f'HTTP response was not OK!\n'
+        msg += f'Url: {resp.url}\n'
+        msg += f'Status code: {resp.status_code}\n'
+        msg += f'Status code meaning: {resp.reason}'
+        if more_detail := resp.text:
+            msg += f'\nMore detail: {more_detail}'
+        raise RuntimeError(msg)
+
 def scrape_match(driver, phase, month, day, match_url, match_id):
     driver.get(match_url)
     builds_all_games = []
@@ -139,7 +149,7 @@ if __name__ == '__main__':
 
             # Backend stuff.
             last_match_ids_resp = requests.post(f'{backend_url}/phases', json=phases)
-            last_match_ids_resp.raise_for_status()
+            better_raise_for_status(last_match_ids_resp)
             last_match_ids = last_match_ids_resp.json()
             assert len(phases) == len(last_match_ids)
 
@@ -175,7 +185,7 @@ if __name__ == '__main__':
 
             # Some more backend stuff.
             builds_resp = requests.post(f'{backend_url}/builds', json=builds)
-            builds_resp.raise_for_status()
+            better_raise_for_status(builds_resp)
 
     except BaseException as e:
         logging.exception(e)

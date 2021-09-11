@@ -1,3 +1,4 @@
 bottle==0.12.19
 bottle-errorsrest==0.0.3
 peewee==3.14.4
+pydantic

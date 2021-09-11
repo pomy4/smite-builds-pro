@@ -20,4 +20,4 @@ with open(input, 'r', encoding='utf-8') as f:
     builds.append(build_json)
 
 builds_resp = requests.post(f'{updater.backend_url}/builds', json=builds)
-builds_resp.raise_for_status()
+updater.better_raise_for_status(builds_resp)
