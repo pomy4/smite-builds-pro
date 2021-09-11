@@ -97,72 +97,75 @@ def send_builds(config, builds):
     better_raise_for_status(builds_resp)
 
 def scrape_match(driver, phase, month, day, match_url, match_id):
-    driver.get(match_url)
-    builds_all_games = []
-    games = WebDriverWait(driver, explicit_wait_match).until(
-        EC.presence_of_all_elements_located((By.CLASS_NAME, "game-btn")))
-    # games = driver.find_elements_by_class_name('game-btn')
+    for _ in range(3):
+        driver.get(match_url)
+        builds_all = []
+        games = driver.find_elements_by_class_name('game-btn')
+        if games:
+            break
+
     for game_i, game in enumerate(games, 1):
         game.click()
         start = time.time()
         # Find out teams, game length & which team won.
         tmp = driver.find_elements_by_class_name('content-wrapper')[1]
         teams = tmp.find_elements_by_tag_name('strong')
-        team1 = text(teams[0])
-        team2 = text(teams[1])
+        teams = (text(teams[0]), text(teams[1]))
         game_length = text(tmp.find_element_by_class_name('game-duration'))
         minutes, seconds = game_length.split(':')
         minutes, seconds = number(minutes), number(seconds)
         win_or_loss = tmp.find_element_by_class_name('team-score').text
         if win_or_loss == 'W':
-            first_team_won = True
+            wins = (True, False)
         elif win_or_loss == 'L':
-            first_team_won = False
+            wins = (False, True)
         else:
             raise RuntimeError('Error: win')
         # Get everything else.
-        stats = driver.find_elements_by_class_name('item')
-        if len(stats) != 128:
-            raise RuntimeError('Error: stats')
-        # Remove P&Bs and totals.
-        stats = stats[:45] + stats[54:99]
-        roles = {}
-        builds_one_game = []
-        for player_i in range(10):
-            player, role, god, kills, deaths, assists, gpm, relics, items = stats[player_i * 9 : (player_i + 1) * 9]
-            player, role, god, kills, deaths, assists = text(player), text(role), text(god), \
-                number(kills.text), number(deaths.text), number(assists.text)
-            relics = [item(x) for x in relics.find_elements_by_tag_name('img')]
-            items = [item(x) for x in items.find_elements_by_tag_name('img')]
-            win, team = (first_team_won, team1) if player_i < 5 else (not first_team_won, team2)
-            # Optional values: year, season.
-            new_build = {'league': 'SPL', 'phase': phase, 'month': month, 'day': day, 'game_i': game_i,
-                'match_id': match_id, 'win' : win, 'minutes': minutes, 'seconds': seconds,
-                'kills': kills, 'deaths': deaths, 'assists': assists, 'role': role,
-                'player1': player, 'god1': god, 'team1': team, 'relics': relics, 'items': items}
-            if role not in roles:
-                if player_i >= 5:
-                    raise RuntimeError('Error: role (1)')
-                roles[role] = player_i
-            else:
-                if player_i < 5:
-                    raise RuntimeError('Error role (2)')
-                opp = builds_one_game[roles[role]]
-                opp['player2'], opp['god2'], opp['team2'] = player, god, team
-                new_build['player2'], new_build['god2'], new_build['team2'] = opp['player1'], opp['god1'], opp['team1']
-            builds_one_game.append(new_build)
-        for x in builds_one_game:
-            logging.info(f'Build scraped|{json.dumps(x)}')
-        if len(builds_one_game) < 10:
-            logging.warning(f'Missing build(s) in a game|{10 - len(builds_one_game)}')
-
-        builds_all_games.extend(builds_one_game)
+        tables = driver.find_elements_by_class_name('c-PlayerStatsTable')
+        if len(tables) != 2:
+            raise RuntimeError('Error: tables')
+        builds = ([], [])
+        roles = ({}, {})
+        for table_i, table in enumerate(tables):
+            stats = table.find_elements_by_class_name('item')
+            if not stats or len(stats) % 9 != 0:
+                raise RuntimeError('Error: stats')
+            stats = stats[:-9]
+            for player_i in range(len(stats) // 9):
+                player, role, god, kills, deaths, assists, gpm, relics, items = stats[player_i * 9 : (player_i + 1) * 9]
+                player, role, god, kills, deaths, assists = text(player), text(role), text(god), \
+                    number(kills.text), number(deaths.text), number(assists.text)
+                if role == 'Hunter': role = 'ADC'
+                relics = [item(x) for x in relics.find_elements_by_tag_name('img')]
+                items = [item(x) for x in items.find_elements_by_tag_name('img')]
+                # Optional values: year, season.
+                new_build = {'league': 'SPL', 'phase': phase, 'month': month, 'day': day, 'game_i': game_i,
+                    'match_id': match_id, 'win' : wins[table_i], 'minutes': minutes, 'seconds': seconds,
+                    'kills': kills, 'deaths': deaths, 'assists': assists, 'role': role,
+                    'team1': teams[table_i], 'team2': teams[1-table_i], 'relics': relics, 'items': items,
+                    'player1': player, 'god1': god}
+                builds[table_i].append(new_build)
+                roles[table_i][role] = new_build
+        for table_i in range(2):
+            for build in builds[table_i]:
+                if opp := roles[1-table_i].get(build['role']):
+                    build['player2'] = opp['player1']
+                    build['god2'] = opp['god1']
+                else:
+                    build['player2'] = 'Missing data'
+                    build['god2'] = 'Missing data'
+                logging.info(f'Build scraped|{json.dumps(build)}')
+        if (builds_cnt := len(builds[0]) + len(builds[1])) < 10:
+            logging.warning(f'Missing build(s) in a game|{10 - builds_cnt}')
+        builds_all.extend(builds[0])
+        builds_all.extend(builds[1])
         click_delay(start)
 
-    if not builds_all_games:
+    if not builds_all:
         raise RuntimeError("Error: builds")
 
-    return builds_all_games
+    return builds_all
 
 if __name__ == '__main__':
     try:
