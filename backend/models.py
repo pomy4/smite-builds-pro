@@ -1,6 +1,11 @@
 from peewee import *
 import datetime
 
+STR_MAX_LEN = 30
+
+class MyError(Exception):
+    pass
+
 db = SqliteDatabase('backend.db')
 
 class Base(Model):
@@ -18,8 +23,8 @@ class Item(Base):
 
 class Build(Base):
     season = SmallIntegerField()
-    league = CharField(30)
-    phase = CharField(30)
+    league = CharField(STR_MAX_LEN)
+    phase = CharField(STR_MAX_LEN)
     date = DateField()
     match_id = IntegerField()
     game_i = SmallIntegerField()
@@ -28,13 +33,13 @@ class Build(Base):
     kills = SmallIntegerField()
     deaths = SmallIntegerField()
     assists = SmallIntegerField()
-    role = CharField(30, index=True)
-    god1 = CharField(30, index=True)
-    player1 = CharField(30, index=True)
-    team1 = CharField(30)
-    god2 = CharField(30)
-    player2 = CharField(30)
-    team2 = CharField(30)
+    role = CharField(STR_MAX_LEN, index=True)
+    god1 = CharField(STR_MAX_LEN, index=True)
+    player1 = CharField(STR_MAX_LEN, index=True)
+    team1 = CharField(STR_MAX_LEN)
+    god2 = CharField(STR_MAX_LEN)
+    player2 = CharField(STR_MAX_LEN)
+    team2 = CharField(STR_MAX_LEN)
     relic1 = ForeignKeyField(Item, null=True)
     relic2 = ForeignKeyField(Item, null=True)
     item1 = ForeignKeyField(Item, null=True)
@@ -76,7 +81,10 @@ def add_builds(builds_request):
                 if today.month <= 2:
                     season -= 1
                 build['season'] = max(season, 0)
-            build['date'] = datetime.date(year=build['year'], month=build['month'], day=build['day'])
+            try:
+                build['date'] = datetime.date(year=build['year'], month=build['month'], day=build['day'])
+            except ValueError:
+                raise MyError('At least one of the builds has an invalid date.')
             del build['minutes'], build['seconds'], build['year'], build['month'], build['day']
             for i, (short, long) in enumerate(build['relics'], 1):
                 build[f'relic{i}'] = items_request[(short, long)]
@@ -85,9 +93,8 @@ def add_builds(builds_request):
             del build['relics'], build['items']
         try:
             Build.insert_many(builds_request).execute()
-            return True
         except IntegrityError:
-            return False
+            raise MyError('At least one of the builds is already in the database.')
 
 if __name__ == '__main__':
     tables = [Item, Build]

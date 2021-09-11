@@ -7,10 +7,15 @@ import hashlib
 from bottle import Bottle, response,  request, HTTPResponse
 from bottle_errorsrest import ErrorsRestPlugin
 import pydantic
+from pydantic .types import *
 from typing import List, Optional
 from dotenv import load_dotenv
 
-from models import db, Build, add_builds, get_last_match_id
+from models import STR_MAX_LEN, MyError, db, Build, add_builds, get_last_match_id
+
+Mystr = constr(min_length=1, max_length=STR_MAX_LEN, strict=True)
+Myint = conint(ge=0, strict=True)
+Myitem = conlist(min_items=2, max_items=2, item_type=Mystr)
 
 app = Bottle()
 app.install(ErrorsRestPlugin())
@@ -61,7 +66,7 @@ def verify_integrity(func):
     return wrapper
 
 class PhasesSchema(pydantic.BaseModel):
-    __root__: List[str]
+    __root__: List[Mystr]
 
 @app.post('/phases')
 @validate_request_body(PhasesSchema)
@@ -70,29 +75,29 @@ def phases(phases):
     return json.dumps(match_ids)
 
 class BuildSchema(pydantic.BaseModel):
-    season: Optional[str]
-    league: str
-    phase: str
-    year: Optional[str]
-    month: int
-    day: int
-    match_id: int
-    game_i: int
-    win: bool
-    minutes: int
-    seconds: int
-    kills: int
-    deaths: int
-    assists: int
-    role: str
-    player1: str
-    god1: str
-    team1: str
-    player2: str
-    god2: str
-    team2: str
-    relics: List[List[str]]
-    items: List[List[str]]
+    season: Optional[Mystr]
+    league: Mystr
+    phase: Mystr
+    year: Optional[Myint]
+    month: Myint
+    day: Myint
+    match_id: Myint
+    game_i: conint(ge=1, le=7, strict=True)
+    win: StrictBool
+    minutes: Myint
+    seconds: Myint
+    kills: Myint
+    deaths: Myint
+    assists: Myint
+    role: Mystr
+    player1: Mystr
+    god1: Mystr
+    team1: Mystr
+    player2: Mystr
+    god2: Mystr
+    team2: Mystr
+    relics: conlist(min_items=0, max_items=2, item_type=Myitem)
+    items: conlist(min_items=0, max_items=6, item_type=Myitem)
 
 class BuildsSchema(pydantic.BaseModel):
     __root__: List[BuildSchema]
@@ -101,10 +106,11 @@ class BuildsSchema(pydantic.BaseModel):
 @verify_integrity
 @validate_request_body(BuildsSchema)
 def builds(builds):
-    if add_builds(builds):
+    try:
+        add_builds(builds)
         return HTTPResponse(status=201)
-    else:
-        return HTTPResponse(status=409, body='At least one of the builds already exists.')
+    except MyError as e:
+        return HTTPResponse(status=400, body=str(e))
 
 @app.get('/players')
 def players():
