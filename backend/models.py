@@ -53,9 +53,9 @@ class Build(Base):
             (('match_id', 'game_i', 'player1'), True),
         )
 
-def get_last_match_id(phase):
-    query = Build.select(fn.MAX(Build.match_id)).where(Build.phase == phase)
-    return query.scalar()
+def get_match_ids(phase):
+    query = Build.select(fn.Distinct(Build.match_id))
+    return list(query.iterator())
 
 def add_builds(builds_request):
     # Uniquerize items based upon short and long.

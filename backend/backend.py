@@ -11,7 +11,7 @@ from pydantic .types import *
 from typing import List, Optional
 from dotenv import load_dotenv
 
-from models import STR_MAX_LEN, MyError, db, Build, add_builds, get_last_match_id
+from models import STR_MAX_LEN, MyError, db, Build, add_builds, get_match_ids
 
 Mystr = constr(min_length=1, max_length=STR_MAX_LEN, strict=True)
 Myint = conint(ge=0, strict=True)
@@ -71,7 +71,7 @@ class PhasesSchema(pydantic.BaseModel):
 @app.post('/phases')
 @validate_request_body(PhasesSchema)
 def phases(phases):
-    match_ids = [(match_id if (match_id := get_last_match_id(phase)) else 0) for phase in phases]
+    match_ids = [get_match_ids(phase) for phase in phases]
     return json.dumps(match_ids)
 
 class BuildSchema(pydantic.BaseModel):

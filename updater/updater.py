@@ -18,7 +18,7 @@ from dotenv import dotenv_values
 
 spl_schedule_url = 'https://www.smiteproleague.com/schedule'
 spl_matches_url = 'https://www.smiteproleague.com/matches'
-cnd_images_url = 'https://webcdn.hirezstudios.com/smite/item-icons'
+cdn_images_url = 'https://webcdn.hirezstudios.com/smite/item-icons'
 min_click_delay = 0.5
 implicit_wait = 3
 explicit_wait_match = 10
@@ -35,28 +35,19 @@ month_to_i = {
     }
 
 def text(elem):
-    # textContent to remove all caps styling.
-    text = elem.get_attribute('textContent')
-    if not 1 <= len(text) <= 30:
-        raise RuntimeError(f'Error: text \"{text}\"')
-    return text
+    # textContent removes all caps styling.
+    return elem.get_attribute('textContent')
 
 def number(number):
-     # Also checks if is positive.
-    if not number.isdigit():
-        raise RuntimeError('Error: number')
     return int(number)
 
 def item(elem):
     url = elem.get_attribute('src')
     last = url.rfind('/')
-    if last == -1:
-        raise RuntimeError('Error: item (1)')
+    if (base_url := url[:last]) != cdn_images_url:
+        logging.warning(f'Unknown URL for the CDN with images|{base_url}')
     short = url[last + 1:]
-    url = url[:last]
     long = elem.get_attribute('alt')
-    if not 1 <= len(short) <= 30 or not 1 <= len(long) <= 30 or url != cnd_images_url:
-        raise RuntimeError('Error: item (2)')
     short_evolved, long_evolved  = 'evolved-', 'Evolved '
     if short.startswith(short_evolved) and long.startswith(long_evolved):
         short, long = short[len(short_evolved):], long[len(long_evolved):]
@@ -120,17 +111,17 @@ def scrape_match(driver, phase, month, day, match_url, match_id):
         elif win_or_loss == 'L':
             wins = (False, True)
         else:
-            raise RuntimeError('Error: win')
+            raise RuntimeError(f'Could not ascertain victory or loss: {win_or_loss}')
         # Get everything else.
         tables = driver.find_elements_by_class_name('c-PlayerStatsTable')
         if len(tables) != 2:
-            raise RuntimeError('Error: tables')
+            raise RuntimeError(f'Wrong number of tables with player stats: {len(tables)}')
         builds = ([], [])
         roles = ({}, {})
         for table_i, table in enumerate(tables):
             stats = table.find_elements_by_class_name('item')
             if not stats or len(stats) % 9 != 0:
-                raise RuntimeError('Error: stats')
+                raise RuntimeError(f'Wrong number of player stats in a table: {len(stats)}')
             stats = stats[:-9]
             for player_i in range(len(stats) // 9):
                 player, role, god, kills, deaths, assists, gpm, relics, items = stats[player_i * 9 : (player_i + 1) * 9]
@@ -163,7 +154,7 @@ def scrape_match(driver, phase, month, day, match_url, match_id):
         click_delay(start)
 
     if not builds_all:
-        raise RuntimeError("Error: builds")
+        raise RuntimeError("Scraped zero builds")
 
     return builds_all
 
@@ -195,14 +186,15 @@ if __name__ == '__main__':
             phases = [text(phase_elem) for phase_elem in phase_elems]
 
             # Backend stuff.
-            last_match_ids_resp = requests.post(f'{config[BACKEND_URL]}/phases', json=phases)
-            better_raise_for_status(last_match_ids_resp)
-            last_match_ids = last_match_ids_resp.json()
-            assert len(phases) == len(last_match_ids)
+            all_match_ids_resp = requests.post(f'{config[BACKEND_URL]}/phases', json=phases)
+            better_raise_for_status(all_match_ids_resp)
+            all_match_ids = all_match_ids_resp.json()
+            assert len(phases) == len(all_match_ids)
 
             # Some more scraping stuff.
             to_scrape = []
-            for phase_elem, phase, last_match_id in zip(phase_elems, phases, last_match_ids):
+            for phase_elem, phase, match_ids in zip(phase_elems, phases, all_match_ids):
+                match_ids = set(match_ids)
                 phase_elem.click()
                 start = time.time()
                 day_elems = driver.find_elements_by_class_name('day')
@@ -214,11 +206,8 @@ if __name__ == '__main__':
                     result_link_elems = day_elem.find_elements_by_class_name('results')
                     for result_link_elem in result_link_elems:
                         match_url = result_link_elem.get_attribute('href')
-                        match_url_split = match_url.split('/')
-                        if '/'.join(match_url_split[:-1]) != spl_matches_url:
-                            raise Exception('Error: match url')
-                        match_id = number(match_url_split[-1])
-                        if match_id > last_match_id:
+                        match_id = number(match_url.split('/')[-1])
+                        if match_id not in match_ids:
                             to_scrape.append((phase, month, day, match_url, match_id))
                         else:
                             logging.info(f'Skipping|{phase}|{match_id}')
@@ -228,6 +217,8 @@ if __name__ == '__main__':
             for phase, month, day, match_url, match_id in tqdm.tqdm(to_scrape):
                 logging.info(f'Scraping|{phase}|{match_id}')
                 try:
+                    if (base_url := '/'.join(match_url.split('/')[:-1])) != spl_matches_url:
+                        logging.warning(f'Unknown URL for the SPL matches|{base_url}')
                     new_builds = scrape_match(driver, phase, month, day, match_url, match_id)
                     builds.extend(new_builds)
                 except Exception as e:
