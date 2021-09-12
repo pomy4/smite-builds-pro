@@ -54,8 +54,8 @@ class Build(Base):
         )
 
 def get_match_ids(phase):
-    query = Build.select(fn.Distinct(Build.match_id))
-    return list(query.iterator())
+    query = Build.select(Build.match_id).where(Build.phase == phase).distinct()
+    return [row.match_id for row in query.iterator()]
 
 def add_builds(builds_request):
     # Uniquerize items based upon short and long.
