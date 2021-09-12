@@ -21,7 +21,7 @@ spl_matches_url = 'https://www.smiteproleague.com/matches'
 cdn_images_url = 'https://webcdn.hirezstudios.com/smite/item-icons'
 min_click_delay = 0.5
 implicit_wait = 3
-explicit_wait_match = 10
+match_url_retries = 3
 
 HMAC_KEY_HEX = 'HMAC_KEY_HEX'
 BACKEND_URL = 'BACKEND_URL'
@@ -88,7 +88,7 @@ def send_builds(config, builds):
     better_raise_for_status(builds_resp)
 
 def scrape_match(driver, phase, month, day, match_url, match_id):
-    for _ in range(3):
+    for _ in range(match_url_retries):
         driver.get(match_url)
         builds_all = []
         games = driver.find_elements_by_class_name('game-btn')
