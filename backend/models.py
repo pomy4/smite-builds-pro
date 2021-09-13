@@ -1,4 +1,5 @@
 from peewee import *
+from peewee import Expression
 import datetime
 
 STR_MAX_LEN = 30
@@ -54,8 +55,21 @@ class Build(Base):
         )
 
 def get_match_ids(phase):
-    query = Build.select(Build.match_id).where(Build.phase == phase).distinct()
-    return [row.match_id for row in query.iterator()]
+    return [b[0] for b in Build.select(Build.match_id).where(Build.phase == phase).distinct().tuples()]
+
+def get_select_options():
+    res = {}
+    res['roles'] = [b[0] for b in Build.select(Build.role).distinct().tuples()]
+    res['god1s'] = [b[0] for b in Build.select(Build.god1).distinct().tuples()]
+    return res
+
+def get_builds(roles, god1s):
+    where = Expression(True, '=', True)
+    if roles:
+        where = where & Build.role.in_(roles)
+    if god1s:
+        where = where & Build.god1.in_(god1s)
+    return [b for b in Build.select().where(where).dicts()]
 
 def add_builds(builds_request):
     # Uniquerize items based upon short and long.

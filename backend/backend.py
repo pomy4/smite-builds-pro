@@ -11,7 +11,7 @@ from pydantic .types import *
 from typing import List, Optional
 from dotenv import load_dotenv
 
-from models import STR_MAX_LEN, MyError, db, Build, add_builds, get_match_ids
+from models import STR_MAX_LEN, MyError, db, Build, add_builds, get_match_ids, get_select_options, get_builds
 
 Mystr = constr(min_length=1, max_length=STR_MAX_LEN, strict=True)
 Myint = conint(ge=0, strict=True)
@@ -112,6 +112,21 @@ def builds(builds):
     except MyError as e:
         return HTTPResponse(status=400, body=str(e))
 
+@app.get('/select_options')
+def select_options():
+    return get_select_options()
+
+@app.get('/builds')
+def builds_():
+    roles = request.query.getall('role')
+    god1s = request.query.getall('god1')
+    builds = get_builds(roles=roles, god1s=god1s)
+    for build in builds:
+        build['date'] = build['date'].isoformat()
+        build['game_length'] = build['game_length'].strftime('%M:%S')
+    return json.dumps(builds)
+
+# Depreciated.
 @app.get('/players')
 def players():
     players = []
@@ -119,6 +134,7 @@ def players():
         players.append(row.player1)
     return json.dumps(players)
 
+# Depreciated.
 @app.get('/player/<player>')
 def player(player):
     if not (1 <= len(player) <= 30):
