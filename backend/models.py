@@ -3,6 +3,7 @@ from peewee import Expression
 import datetime
 
 STR_MAX_LEN = 30
+PAGE_SIZE = 10
 
 class MyError(Exception):
     pass
@@ -63,13 +64,13 @@ def get_select_options():
     res['god1s'] = [b[0] for b in Build.select(Build.god1).distinct().tuples()]
     return res
 
-def get_builds(roles, god1s):
+def get_builds(page, roles, god1s):
     where = Expression(True, '=', True)
     if roles:
         where = where & Build.role.in_(roles)
     if god1s:
         where = where & Build.god1.in_(god1s)
-    return [b for b in Build.select().where(where).dicts()]
+    return [b for b in Build.select().where(where).paginate(page, PAGE_SIZE).dicts()]
 
 def add_builds(builds_request):
     # Uniquerize items based upon short and long.
