@@ -4,7 +4,7 @@
       <div class="tabs is-centered is-medium is-boxed">
         <ul>
           <li class="is-active"><a>Basic search</a></li>
-          <li><a>Advanced search</a></li>
+          <li><a><s>Advanced search</s></a></li>
         </ul>
       </div>
       <div class="has-text-centered">
