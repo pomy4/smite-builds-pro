@@ -7,20 +7,50 @@
           <li><a><s>Advanced search</s></a></li>
         </ul>
       </div>
-      <div class="has-text-centered">
-        <label for="roles">God: </label>
-        <select class="select" id="gods">
-          <option v-for="god in god1s" v-bind:key="god">
-            {{ god }}
-          </option>
-        </select>
-        <label for="roles">Role: </label>
-        <select class="select" id="roles">
-          <option v-for="role in roles" v-bind:key="role">
-            {{ role }}
-          </option>
-        </select>
-        <button class="button">Find builds</button>
+      <div class="columns is-mobile is-centered is-multiline">
+        <div class="column is-narrow">
+          <div class="field is-horizontal">
+            <div class="field-label is-normal">
+              <label class="label">God</label>
+            </div>
+            <div class="field-body">
+              <div class="control">
+                <div class="select">
+                  <select id="gods">
+                    <option v-for="god in god1s" v-bind:key="god">
+                      {{ god }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="column is-narrow">
+          <div class="field is-horizontal">
+            <div class="field-label is-normal">
+              <label class="label">Role</label>
+            </div>
+            <div class="field-body">
+              <div class="control">
+                <div class="select">
+                  <select id="roles">
+                    <option v-for="role in roles" v-bind:key="role">
+                      {{ role }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="column is-narrow">
+          <div class="field">
+            <div class="control">
+              <button class="button">Find builds</button>
+            </div>
+          </div>
+        </div>
       </div>
       <ul class="has-text-centered">
         <li v-for="build in builds" v-bind:key="build.id">
