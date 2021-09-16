@@ -16,9 +16,9 @@
             <div class="field-body">
               <div class="control">
                 <div class="select">
-                  <select id="gods">
-                    <option v-for="god in god1s" v-bind:key="god">
-                      {{ god }}
+                  <select id="god1s">
+                    <option v-for="god1 in god1s" v-bind:key="god1" v-bind:value="god1">
+                      {{ god1 }}
                     </option>
                   </select>
                 </div>
@@ -35,7 +35,7 @@
               <div class="control">
                 <div class="select">
                   <select id="roles">
-                    <option v-for="role in roles" v-bind:key="role">
+                    <option v-for="role in roles" v-bind:key="role" v-bind:value="role">
                       {{ role }}
                     </option>
                   </select>
@@ -47,7 +47,7 @@
         <div class="column is-narrow">
           <div class="field">
             <div class="control">
-              <button class="button">Find builds</button>
+              <button class="button" v-on:click="get_builds">Find builds</button>
             </div>
           </div>
         </div>
@@ -81,32 +81,30 @@
     },
 
     methods: {
-      choose_player(event) {
-        fetch(`${this.backend}/player/${event.target.value}`)
-        .then(response => response.json())
-        .then(json => this.builds = json)
-        .catch(error => console.log(error))
+      async get_builds() {
+        let god1 = document.getElementById('god1s').value
+        let role = document.getElementById('roles').value
+        let url = `${this.backend}/builds?god1=${god1}&role=${role}`
+        let response = await fetch(url)
+        if (! response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`)
+        }
+        this.builds = await response.json()
       },
-      get_select_options() {
-        fetch(`${this.backend}/select_options`)
-        .then(response => response.json())
-        .then(json => {
-          this.god1s = json['god1s']
-          this.roles = json['roles']
-          })
-        .catch(error => console.log(error))
-      },
-      get_builds() {
-        fetch(`${this.backend}/builds`)
-        .then(response => response.json())
-        .then(json => this.builds = json)
-        .catch(error => console.log(error))
+      async get_select_options() {
+        let url = `${this.backend}/select_options`
+        let response = await fetch(url)
+        if (! response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`)
+        }
+        let json = await response.json()
+        this.god1s = json['god1s']
+        this.roles = json['roles']
       }
     },
 
     mounted() {
       this.get_select_options()
-      this.get_builds()
     }
   }
 </script>
