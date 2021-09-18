@@ -52,25 +52,18 @@
           </div>
         </div>
       </div>
-      <ul class="has-text-centered">
-        <li v-for="build in builds" v-bind:key="build.id">
-          {{ build.season }} {{ build.league }} {{ build.phase }}
-          {{ build.date }} {{ build.role }}
-          {{ build.game_i }} {{ build.win }} {{ build.game_length }}
-          {{ build.kills }} {{ build.deaths }} {{ build.assists }}
-          {{ build.team1 }} {{ build.player1 }} {{ build.god1 }}
-          {{ build.team2 }} {{ build.player2 }} {{ build.god2 }}
-          {{ build.relic1 }} {{ build.relic2 }}
-          {{ build.item1 }} {{ build.item2 }} {{build.item3 }}
-          {{ build.item4 }} {{ build.item5 }} {{build.item6 }}
-        </li>
-      </ul>
+      <build v-for="build in builds" v-bind:key="build.id" v-bind:data="build"></build>
     </div>
   </div>
 </template>
 
 <script>
+  import Build from './Build.vue'
+
   export default {
+    components: {
+      'build': Build
+    },
     data() {
       return {
         backend: import.meta.env.PROD ? 'https://gebgebgeb.pythonanywhere.com' : 'http://localhost:8080',
@@ -81,6 +74,13 @@
     },
 
     methods: {
+      set_default_img_if_undefined(item) {
+        if (item) {
+          return {'src': 'https://webcdn.hirezstudios.com/smite/item-icons/' + item.short, 'name': item.long}
+        } else {
+          return {'src': 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=', 'name': 'Empty'}
+        }
+      },
       async get_builds() {
         let god1 = document.getElementById('god1s').value
         let role = document.getElementById('roles').value
@@ -89,7 +89,19 @@
         if (! response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`)
         }
-        this.builds = await response.json()
+        let builds = await response.json()
+        for (let build of builds) {
+          build.win = build.win ? 'WIN' : 'LOSE'
+          build.relic1 = this.set_default_img_if_undefined(build.relic1)
+          build.relic2 = this.set_default_img_if_undefined(build.relic2)
+          build.item1 = this.set_default_img_if_undefined(build.item1)
+          build.item2 = this.set_default_img_if_undefined(build.item2)
+          build.item3 = this.set_default_img_if_undefined(build.item3)
+          build.item4 = this.set_default_img_if_undefined(build.item4)
+          build.item5 = this.set_default_img_if_undefined(build.item5)
+          build.item6 = this.set_default_img_if_undefined(build.item6)
+        }
+        this.builds = builds
       },
       async get_select_options() {
         let url = `${this.backend}/select_options`

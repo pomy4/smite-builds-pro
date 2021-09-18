@@ -83,7 +83,13 @@ def get_builds(page, roles, god1s):
         .join_from(Build, Item5, JOIN.LEFT_OUTER, Build.item1) \
         .join_from(Build, Item6, JOIN.LEFT_OUTER, Build.item1) \
         .where(where).paginate(page, PAGE_SIZE)
-    return [model_to_dict(build) for build in query.iterator()]
+    builds = []
+    for build in query.iterator():
+        build = model_to_dict(build)
+        build['date'] = build['date'].isoformat()
+        build['game_length'] = build['game_length'].strftime('%M:%S')
+        builds.append(build)
+    return builds
 
 def add_builds(builds_request):
     # Uniquerize items based upon short and long.

@@ -123,9 +123,6 @@ def builds_():
     roles = request.query.getall('role')
     god1s = request.query.getall('god1')
     builds = get_builds(page=page, roles=roles, god1s=god1s)
-    for build in builds:
-        build['date'] = build['date'].isoformat()
-        build['game_length'] = build['game_length'].strftime('%M:%S')
     return json.dumps(builds)
 
 # Depreciated.
