@@ -1,5 +1,6 @@
 from peewee import *
 from peewee import Expression
+from playhouse.shortcuts import model_to_dict, dict_to_model
 import datetime
 
 STR_MAX_LEN = 30
@@ -70,7 +71,19 @@ def get_builds(page, roles, god1s):
         where = where & Build.role.in_(roles)
     if god1s:
         where = where & Build.god1.in_(god1s)
-    return [b for b in Build.select().where(where).paginate(page, PAGE_SIZE).dicts()]
+    Relic1, Relic2, Item1, Item2 = Item.alias(), Item.alias(), Item.alias(), Item.alias()
+    Item3, Item4, Item5, Item6 = Item.alias(), Item.alias(), Item.alias(), Item.alias()
+    query = Build.select(Build, Relic1, Relic2, Item1, Item2, Item3, Item4, Item5, Item6) \
+        .join_from(Build, Relic1, JOIN.LEFT_OUTER, Build.relic1) \
+        .join_from(Build, Relic2, JOIN.LEFT_OUTER, Build.relic2) \
+        .join_from(Build, Item1, JOIN.LEFT_OUTER, Build.item1) \
+        .join_from(Build, Item2, JOIN.LEFT_OUTER, Build.item1) \
+        .join_from(Build, Item3, JOIN.LEFT_OUTER, Build.item1) \
+        .join_from(Build, Item4, JOIN.LEFT_OUTER, Build.item1) \
+        .join_from(Build, Item5, JOIN.LEFT_OUTER, Build.item1) \
+        .join_from(Build, Item6, JOIN.LEFT_OUTER, Build.item1) \
+        .where(where).paginate(page, PAGE_SIZE)
+    return [model_to_dict(build) for build in query.iterator()]
 
 def add_builds(builds_request):
     # Uniquerize items based upon short and long.
