@@ -1,30 +1,28 @@
 <template>
   <div class="build-row block box">
     <div class="metadata-row">
-      <div class="my-column" style="width: 100px">
+      <div class="my-column" style="width: 125px">
         <span><span>Season </span><span>{{ data.season }}</span></span>
         <span><span>{{ data.league }}</span></span>
         <span><span>{{ data.phase }}</span></span>
       </div>
       <div class="my-column" style="width: 100px">
-        <span>{{ data.date }} </span>
-        <span>Match ID {{ data.match_id }} </span>
-        <span>Game #{{ data.game_i }}</span>
+        <span>{{ data.date }}</span>
+        <span>{{ data.team1 }} VS {{ data.team2 }}</span>
+        <span>Match ID {{ data.match_id }}</span>
       </div>
       <div class="my-column" style="width: 100px">
-        <span>{{ data.god1 }}</span>
-        <span>{{ data.player1 }}</span>
-        <span>{{ data.team1 }}</span>
-      </div>
-      <div class="my-column" style="width: 50px">
+        <span>Game #{{ data.game_i }}</span>
+        <span>{{ data.game_length }}</span>
         <span v-if="data.win">WIN</span><span v-else>LOSE</span>
-        <span>VS</span>
+      </div>
+      <div class="my-column" style="width: 60px">
+        <span>{{ data.player1 }}</span>
+        <span>{{ data.role }}</span>
         <span>{{ data.kills }}/{{ data.deaths }}/{{ data.assists }}</span>
       </div>
-      <div class="my-column" style="width: 100px">
-        <span>{{ data.god2 }}</span>
-        <span>{{ data.player2 }}</span>
-        <span>{{ data.team2 }}</span>
+      <div class="my-column" style="width: 85px">
+        <span>{{ data.god1 }}</span>
       </div>
     </div>
     <div class="data-row">
@@ -56,6 +54,11 @@
           <img v-bind:src="data.item6.src" v-bind:alt="data.item6.name" v-bind:title="data.item6.name">
         </div>
       </div>
+    </div>
+    <div class="my-column" style="width: 100px">
+      <span>Opponent:</span>
+      <span>{{ data.god2 }}</span>
+      <span>{{ data.player2 }}</span>
     </div>
   </div>
 </template>
