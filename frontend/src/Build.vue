@@ -9,7 +9,7 @@
       <div class="my-column" style="width: 100px">
         <span>{{ data.date }}</span>
         <span>{{ data.team1 }} VS {{ data.team2 }}</span>
-        <span>Match ID {{ data.match_id }}</span>
+        <a v-bind:href="data.match_url">Link to match</a>
       </div>
       <div class="my-column" style="width: 100px">
         <span>Game #{{ data.game_i }}</span>

@@ -90,6 +90,8 @@ def get_builds(page, roles, god1s):
         build = model_to_dict(build)
         build['date'] = build['date'].isoformat()
         build['game_length'] = build['game_length'].strftime('%M:%S')
+        build['match_url'] = f'https://www.smiteproleague.com/matches/{build["match_id"]}'
+        del build['match_id']
         builds.append(build)
     return builds
 
