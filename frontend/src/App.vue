@@ -148,4 +148,8 @@
   flex-direction: column;
   align-items: center;
 }
+.ts-wrapper.multi .ts-control > div {
+  margin: 0 5px 0 0;
+  padding: 0 5px;
+}
 </style>
