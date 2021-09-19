@@ -28,7 +28,7 @@ def before():
 @app.hook('after_request')
 def after():
     db.close()
-    response.add_header('Access-Control-Allow-Origin', '*')
+    # response.add_header('Access-Control-Allow-Origin', '*')
 
 def validate_request_body(Schema):
     def outer_wrapper(func):
@@ -112,11 +112,11 @@ def builds(builds):
     except MyError as e:
         return HTTPResponse(status=400, body=str(e))
 
-@app.get('/select_options')
+@app.get('/api/select_options')
 def select_options():
     return get_select_options()
 
-@app.get('/builds')
+@app.get('/api/builds')
 def builds_():
     page = request.query.get('page', '1')
     page = int(page) if page.isnumeric() else '1'

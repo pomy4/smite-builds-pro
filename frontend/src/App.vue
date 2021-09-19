@@ -37,7 +37,6 @@
     },
     data() {
       return {
-        backend: import.meta.env.PROD ? 'https://gebgebgeb.pythonanywhere.com' : 'http://localhost:8080',
         god1s: undefined,
         roles: undefined,
         builds: []
@@ -55,9 +54,7 @@
       async get_builds() {
         let god1s = this.god1s.getValue()
         let roles = this.roles.getValue()
-        console.log(god1s)
-        console.log(roles)
-        let url = `${this.backend}/builds?`
+        let url = '/api/builds?'
         for (let god1 of god1s) {
           url += `god1=${god1}&`
         }
@@ -82,8 +79,7 @@
         this.builds = builds
       },
       async get_select_options() {
-        let url = `${this.backend}/select_options`
-        let response = await fetch(url)
+        let response = await fetch('/api/select_options')
         if (! response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`)
         }
