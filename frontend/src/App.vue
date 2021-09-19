@@ -87,7 +87,7 @@
       },
       create_select(name) {
         return new TomSelect(`#${name}`, {
-          options: [{value: 1, text: 'Loading ...'}],
+          options: [{value: 1, text: 'Loading ...', disabled: true}],
           placeholder: 'All',
           hidePlaceholder: true,
           // eslint-disable-next-line no-unused-vars
@@ -98,7 +98,7 @@
         })
       },
       update_select(select, options) {
-        options = options.map((option) => {return {value: option, text: option}})
+        options = options.map(option => {return {value: option, text: option}})
         select.removeOption(1)
         select.addOptions(options)
         select.refreshOptions(false)
