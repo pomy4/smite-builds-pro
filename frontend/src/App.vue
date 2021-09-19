@@ -7,9 +7,7 @@
           <li><a><s>Advanced search</s></a></li>
         </ul>
       </div>
-
       <div class="select-row">
-
         <div>
           <div class="label-select">
             <label class="label">God</label>
@@ -116,6 +114,7 @@
       let options = await this.get_select_options()
       this.update_select(this.god1s, options['god1s'])
       this.update_select(this.roles, options['roles'])
+      await this.get_builds()
     }
   }
 </script>
@@ -145,5 +144,6 @@
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
+  margin-bottom: 20px;
 }
 </style>
