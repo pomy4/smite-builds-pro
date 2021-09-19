@@ -23,7 +23,9 @@
         </div>
         <button class="button" v-on:click="get_builds">Find builds</button>
       </div>
-      <build v-for="build in builds" v-bind:key="build.id" v-bind:data="build"></build>
+      <div class="build-column">
+        <build v-for="build in builds" v-bind:key="build.id" v-bind:data="build"></build>
+      </div>
     </div>
   </div>
 </template>
@@ -42,7 +44,6 @@
         builds: []
       }
     },
-
     methods: {
       set_default_img_if_undefined(item) {
         if (item) {
@@ -131,15 +132,20 @@
 .label-select {
   display: flex;
   align-items: center;
-  column-gap: 10px;
+  column-gap: 0.667rem;
 }
 .select-row {
   display: flex;
-  column-gap: 20px;
-  row-gap: 20px;
+  column-gap: 1.333rem;
+  row-gap: 1.333rem;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 1.333rem;
+}
+.build-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 </style>

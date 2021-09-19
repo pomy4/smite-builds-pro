@@ -71,10 +71,9 @@ export default {
 
 <style>
 .build-row {
-  display: flex;
-  column-gap: 20px;
-  row-gap: 20px;
-  justify-content: center;
+  display: inline-flex;
+  column-gap: 0.667rem;
+  row-gap: 1.333rem;
   flex-wrap: wrap;
 }
 .metadata-row {
@@ -82,11 +81,11 @@ export default {
 }
 .data-row {
   display: flex;
-  column-gap: 20px;
+  column-gap: 1.333rem;
 }
 .item-row {
   display: flex;
-  column-gap: 5px;
+  column-gap: 0.333rem;
 }
 .my-column {
   white-space: nowrap;
@@ -94,7 +93,7 @@ export default {
   justify-content: center;
   flex-direction: column;
   align-items: center;
-  row-gap: 5px;
+  row-gap: 0.333rem;
 }
 img {
   width: 50px;
