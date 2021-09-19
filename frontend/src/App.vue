@@ -7,50 +7,23 @@
           <li><a><s>Advanced search</s></a></li>
         </ul>
       </div>
-      <div class="columns is-mobile is-centered is-multiline">
-        <div class="column is-narrow">
-          <div class="field is-horizontal">
-            <div class="field-label is-normal">
-              <label class="label">God</label>
-            </div>
-            <div class="field-body">
-              <div class="control">
-                <div class="select">
-                  <select id="god1s">
-                    <option v-for="god1 in god1s" v-bind:key="god1" v-bind:value="god1">
-                      {{ god1 }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-            </div>
+
+      <div class="select-row">
+
+        <div>
+          <div class="label-select">
+            <label class="label">God</label>
+            <select id="god1s" autocomplete="on" multiple></select>
           </div>
         </div>
-        <div class="column is-narrow">
-          <div class="field is-horizontal">
-            <div class="field-label is-normal">
-              <label class="label">Role</label>
-            </div>
-            <div class="field-body">
-              <div class="control">
-                <div class="select">
-                  <select id="roles">
-                    <option v-for="role in roles" v-bind:key="role" v-bind:value="role">
-                      {{ role }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-            </div>
+        <div>
+          <div class="label-select">
+            <label class="label">Role</label>
+            <select id="roles" autocomplete="on" multiple>
+            </select>
           </div>
         </div>
-        <div class="column is-narrow">
-          <div class="field">
-            <div class="control">
-              <button class="button" v-on:click="get_builds">Find builds</button>
-            </div>
-          </div>
-        </div>
+        <button class="button" v-on:click="get_builds">Find builds</button>
       </div>
       <build v-for="build in builds" v-bind:key="build.id" v-bind:data="build"></build>
     </div>
@@ -67,8 +40,8 @@
     data() {
       return {
         backend: import.meta.env.PROD ? 'https://gebgebgeb.pythonanywhere.com' : 'http://localhost:8080',
-        god1s: ['Loading ...'],
-        roles: ['Loading ...'],
+        god1s: undefined,
+        roles: undefined,
         builds: []
       }
     },
@@ -82,16 +55,23 @@
         }
       },
       async get_builds() {
-        let god1 = document.getElementById('god1s').value
-        let role = document.getElementById('roles').value
-        let url = `${this.backend}/builds?god1=${god1}&role=${role}`
+        let god1s = this.god1s.getValue()
+        let roles = this.roles.getValue()
+        console.log(god1s)
+        console.log(roles)
+        let url = `${this.backend}/builds?`
+        for (let god1 of god1s) {
+          url += `god1=${god1}&`
+        }
+        for (let role of roles) {
+          url += `role=${role}&`
+        }
         let response = await fetch(url)
         if (! response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`)
         }
         let builds = await response.json()
         for (let build of builds) {
-          build.win = build.win ? 'WIN' : 'LOSE'
           build.relic1 = this.set_default_img_if_undefined(build.relic1)
           build.relic2 = this.set_default_img_if_undefined(build.relic2)
           build.item1 = this.set_default_img_if_undefined(build.item1)
@@ -109,17 +89,61 @@
         if (! response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`)
         }
-        let json = await response.json()
-        this.god1s = json['god1s']
-        this.roles = json['roles']
+        return await response.json()
+      },
+      create_select(name) {
+        return new TomSelect(`#${name}`, {
+          options: [{value: 1, text: 'Loading ...'}],
+          placeholder: 'All',
+          hidePlaceholder: true,
+          // eslint-disable-next-line no-unused-vars
+          onItemAdd: function(_0, _1) {
+            this.setTextboxValue('')
+            this.refreshOptions(false)
+          }
+        })
+      },
+      update_select(select, options) {
+        options = options.map((option) => {return {value: option, text: option}})
+        select.removeOption(1)
+        select.addOptions(options)
+        select.refreshOptions(false)
       }
     },
-
-    mounted() {
-      this.get_select_options()
+    async mounted() {
+      this.god1s = this.create_select('god1s')
+      this.roles = this.create_select('roles')
+      let options = await this.get_select_options()
+      this.update_select(this.god1s, options['god1s'])
+      this.update_select(this.roles, options['roles'])
     }
   }
 </script>
 
 <style>
+.input-hidden .ts-control > input {
+  opacity: 0;
+  position: unset;
+  left: unset;
+  min-width: 5rem;
+}
+.ts-control > input {
+  min-width: 5rem;
+}
+.label:not(:last-child) {
+  margin-bottom: unset;
+}
+.label-select {
+  display: flex;
+  align-items: center;
+  column-gap: 10px;
+}
+.select-row {
+  display: flex;
+  column-gap: 20px;
+  row-gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
 </style>

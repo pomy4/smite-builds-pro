@@ -17,7 +17,7 @@
         <span>{{ data.team1 }}</span>
       </div>
       <div class="my-column" style="width: 50px">
-        <span>{{ data.win }}</span>
+        <span v-if="data.win">WIN</span><span v-else>LOSE</span>
         <span>VS</span>
         <span>{{ data.kills }}/{{ data.deaths }}/{{ data.assists }}</span>
       </div>

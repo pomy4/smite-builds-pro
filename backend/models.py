@@ -82,7 +82,7 @@ def get_builds(page, roles, god1s):
         .join_from(Build, Item4, JOIN.LEFT_OUTER, Build.item1) \
         .join_from(Build, Item5, JOIN.LEFT_OUTER, Build.item1) \
         .join_from(Build, Item6, JOIN.LEFT_OUTER, Build.item1) \
-        .where(where).paginate(page, PAGE_SIZE)
+        .where(where).order_by(Build.date.desc()).paginate(page, PAGE_SIZE)
     builds = []
     for build in query.iterator():
         build = model_to_dict(build)
