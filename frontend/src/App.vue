@@ -21,7 +21,7 @@
             </select>
           </div>
         </div>
-        <button class="button" v-on:click="get_builds">Find builds</button>
+        <button class="button" style="margin-left: 2rem" v-on:click="get_builds">Find builds</button>
       </div>
       <div class="build-column">
         <build v-for="build in builds" v-bind:key="build.id" v-bind:data="build"></build>
