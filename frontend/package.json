@@ -6,6 +6,7 @@
     "serve": "vite preview"
   },
   "dependencies": {
+    "tom-select": "^2.0.0-rc.3",
     "vue": "^3.0.5"
   },
   "devDependencies": {
