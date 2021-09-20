@@ -92,12 +92,19 @@
         return new TomSelect(`#${name}`, {
           options: [{value: 1, text: 'Loading ...', disabled: true}],
           placeholder: 'All',
-          hidePlaceholder: true,
+          hidePlaceholder: false,
           plugins: ['caret_position', 'clear_button', 'no_active_items', 'remove_button'],
           // eslint-disable-next-line no-unused-vars
           onItemAdd: function(_0, _1) {
             this.setTextboxValue('')
             this.refreshOptions(false)
+            this.settings.placeholder = 'or ...'
+          },
+          // eslint-disable-next-line no-unused-vars
+          onItemRemove: function(_) {
+            if (this.getValue().length == 0) {
+              this.settings.placeholder = 'All'
+            }
           }
         })
       },
