@@ -93,6 +93,7 @@
           options: [{value: 1, text: 'Loading ...', disabled: true}],
           placeholder: 'All',
           hidePlaceholder: true,
+          plugins: ['caret_position', 'clear_button', 'no_active_items', 'remove_button'],
           // eslint-disable-next-line no-unused-vars
           onItemAdd: function(_0, _1) {
             this.setTextboxValue('')
