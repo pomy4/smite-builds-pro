@@ -119,7 +119,7 @@ def select_options():
 @app.get('/api/builds')
 def builds_():
     page = request.query.get('page', '1')
-    page = int(page) if page.isnumeric() else '1'
+    page = int(page) if page.isnumeric() else 1
     roles = request.query.getall('role')
     god1s = request.query.getall('god1')
     builds = get_builds(page=page, roles=roles, god1s=god1s)

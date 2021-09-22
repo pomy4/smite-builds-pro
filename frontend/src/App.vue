@@ -21,10 +21,11 @@
             </select>
           </div>
         </div>
-        <button class="button" style="margin-left: 2rem" v-on:click="get_builds">Find builds</button>
+        <button class="button" style="margin-left: 2rem" v-on:click="reset_builds">Find builds</button>
       </div>
       <div class="build-column">
         <build v-for="build in builds" v-bind:key="build.id" v-bind:data="build"></build>
+        <div id="bottom-of-page"></div>
       </div>
     </div>
   </div>
@@ -43,7 +44,8 @@
       return {
         god1s: undefined,
         roles: undefined,
-        builds: []
+        builds: [],
+        page: 1,
       }
     },
     methods: {
@@ -54,15 +56,21 @@
           return {'src': 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=', 'name': 'Empty'}
         }
       },
+      reset_builds() {
+        this.builds = []
+        this.page = 1
+      },
       async get_builds() {
+        let bottom_of_page = document.getElementById('bottom-of-page')
+        bottom_of_page.textContent = 'Loading builds ...'
         let god1s = this.god1s.getValue()
         let roles = this.roles.getValue()
-        let url = '/api/builds?'
+        let url = `/api/builds?page=${this.page}`
         for (let god1 of god1s) {
-          url += `god1=${god1}&`
+          url += `&god1=${god1}`
         }
         for (let role of roles) {
-          url += `role=${role}&`
+          url += `&role=${role}`
         }
         let response = await fetch(url)
         if (! response.ok) {
@@ -79,7 +87,9 @@
           build.item5 = this.set_default_img_if_undefined(build.item5)
           build.item6 = this.set_default_img_if_undefined(build.item6)
         }
-        this.builds = builds
+        this.builds.push(...builds)
+        this.page += 1
+        bottom_of_page.textContent = ''
       },
       async get_select_options() {
         let response = await fetch('/api/select_options')
@@ -121,7 +131,8 @@
       let options = await this.get_select_options()
       this.update_select(this.god1s, options['god1s'])
       this.update_select(this.roles, options['roles'])
-      await this.get_builds()
+      let observer = new IntersectionObserver(this.get_builds)
+      observer.observe(document.getElementById('bottom-of-page'))
     }
   }
 </script>
