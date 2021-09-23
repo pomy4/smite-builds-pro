@@ -21,7 +21,7 @@
             </select>
           </div>
         </div>
-        <button class="button" style="margin-left: 2rem" v-on:click="reset_builds">Find builds</button>
+        <button class="button" style="margin-left: 2rem" v-on:click="button_clicked">Find builds</button>
       </div>
       <div class="build-column">
         <build v-for="build in builds" v-bind:key="build.id" v-bind:data="build"></build>
@@ -42,10 +42,14 @@
     },
     data() {
       return {
-        god1s: undefined,
-        roles: undefined,
+        select_god1s: undefined,
+        select_roles: undefined,
+        filters_god1s: [],
+        filters_roles: [],
         builds: [],
         page: 1,
+        watch_for_intersections: false,
+        watch_for_intersections_timeout: undefined,
       }
     },
     methods: {
@@ -56,6 +60,17 @@
           return {'src': 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=', 'name': 'Empty'}
         }
       },
+      button_clicked() {
+        clearTimeout(this.watch_for_intersections_timeout)
+        this.watch_for_intersections = false
+        this.update_filters()
+        this.reset_builds()
+        this.get_builds()
+      },
+      update_filters() {
+        this.filters_god1s = this.select_god1s.getValue()
+        this.filters_roles = this.select_roles.getValue()
+      },
       reset_builds() {
         this.builds = []
         this.page = 1
@@ -63,13 +78,11 @@
       async get_builds() {
         let bottom_of_page = document.getElementById('bottom-of-page')
         bottom_of_page.textContent = 'Loading builds ...'
-        let god1s = this.god1s.getValue()
-        let roles = this.roles.getValue()
         let url = `/api/builds?page=${this.page}`
-        for (let god1 of god1s) {
+        for (let god1 of this.filters_god1s) {
           url += `&god1=${god1}`
         }
-        for (let role of roles) {
+        for (let role of this.filters_roles) {
           url += `&role=${role}`
         }
         let response = await fetch(url)
@@ -90,6 +103,7 @@
         this.builds.push(...builds)
         this.page += 1
         bottom_of_page.textContent = ''
+        this.start_watching_in_the_future()
       },
       async get_select_options() {
         let response = await fetch('/api/select_options')
@@ -123,16 +137,26 @@
         select.removeOption(1)
         select.addOptions(options)
         select.refreshOptions(false)
+      },
+      start_watching_in_the_future() {
+        this.watch_for_intersections_timeout = setTimeout(()=>
+          this.watch_for_intersections=true, 50)
       }
     },
     async mounted() {
-      this.god1s = this.create_select('god1s')
-      this.roles = this.create_select('roles')
+      this.select_god1s = this.create_select('god1s')
+      this.select_roles = this.create_select('roles')
       let options = await this.get_select_options()
-      this.update_select(this.god1s, options['god1s'])
-      this.update_select(this.roles, options['roles'])
-      let observer = new IntersectionObserver(this.get_builds)
+      this.update_select(this.select_god1s, options['god1s'])
+      this.update_select(this.select_roles, options['roles'])
+      let observer = new IntersectionObserver(()=> {
+        if (this.watch_for_intersections) {
+          this.watch_for_intersections = false
+          this.get_builds()
+        }
+      })
       observer.observe(document.getElementById('bottom-of-page'))
+      this.get_builds()
     }
   }
 </script>
