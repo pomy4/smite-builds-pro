@@ -57,13 +57,6 @@
       }
     },
     methods: {
-      set_default_img_if_undefined(item) {
-        if (item) {
-          return {'src': 'https://webcdn.hirezstudios.com/smite/item-icons/' + item.short, 'name': item.long}
-        } else {
-          return {'src': 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=', 'name': 'Empty'}
-        }
-      },
       button_clicked() {
         clearTimeout(this.watch_for_intersections_timeout)
         this.watch_for_intersections = false
@@ -99,38 +92,21 @@
         bottom_of_page.textContent = ''
         this.start_watching_in_the_future()
       },
-      async get_select_options() {
-        let response = await fetch('/api/select_options')
-        if (! response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`)
-        }
-        return await response.json()
-      },
-      create_select(name) {
-        return new TomSelect(`#${name}`, {
-          options: [{value: 1, text: 'Loading ...', disabled: true}],
-          placeholder: 'All',
-          hidePlaceholder: false,
-          plugins: ['caret_position', 'clear_button', 'no_active_items', 'remove_button'],
-          // eslint-disable-next-line no-unused-vars
-          onItemAdd: function(_0, _1) {
-            this.setTextboxValue('')
-            this.refreshOptions(false)
-            this.settings.placeholder = 'or ...'
-          },
-          // eslint-disable-next-line no-unused-vars
-          onItemRemove: function(_) {
-            if (this.getValue().length == 0) {
-              this.settings.placeholder = 'All'
-            }
+      filters_to_server_url_fragment() {
+        let url = `?page=${this.page}`
+        for (const [key, vals] of Object.entries(this.filters)) {
+          for (const val of vals) {
+            url += `&${key.slice(0, -1)}=${val}`
           }
-        })
+        }
+        return url
       },
-      update_select(select, options) {
-        options = options.map(option => {return {value: option, text: option}})
-        select.removeOption(1)
-        select.addOptions(options)
-        select.refreshOptions(false)
+      set_default_img_if_undefined(item) {
+        if (item) {
+          return {'src': 'https://webcdn.hirezstudios.com/smite/item-icons/' + item.short, 'name': item.long}
+        } else {
+          return {'src': 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=', 'name': 'Empty'}
+        }
       },
       start_watching_in_the_future() {
         this.watch_for_intersections_timeout = setTimeout(()=>
@@ -168,15 +144,40 @@
         }
         // TODO print selected filters
       },
-      filters_to_server_url_fragment() {
-        let url = `?page=${this.page}`
-        for (const [key, vals] of Object.entries(this.filters)) {
-          for (const val of vals) {
-            url += `&${key.slice(0, -1)}=${val}`
-          }
+      // These functions are called only on page load.
+      async get_select_options() {
+        let response = await fetch('/api/select_options')
+        if (! response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`)
         }
-        return url
-      }
+        return await response.json()
+      },
+      create_select(name) {
+        return new TomSelect(`#${name}`, {
+          options: [{value: 1, text: 'Loading ...', disabled: true}],
+          placeholder: 'All',
+          hidePlaceholder: false,
+          plugins: ['caret_position', 'clear_button', 'no_active_items', 'remove_button'],
+          // eslint-disable-next-line no-unused-vars
+          onItemAdd: function(_0, _1) {
+            this.setTextboxValue('')
+            this.refreshOptions(false)
+            this.settings.placeholder = 'or ...'
+          },
+          // eslint-disable-next-line no-unused-vars
+          onItemRemove: function(_) {
+            if (this.getValue().length == 0) {
+              this.settings.placeholder = 'All'
+            }
+          }
+        })
+      },
+      update_select(select, options) {
+        options = options.map(option => {return {value: option, text: option}})
+        select.removeOption(1)
+        select.addOptions(options)
+        select.refreshOptions(false)
+      },
     },
     async mounted() {
       let options = await this.get_select_options()
