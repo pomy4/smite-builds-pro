@@ -44,6 +44,7 @@
       return {
         builds: [],
         page: 1,
+        last_page: false,
         watch_for_intersections: false,
         watch_for_intersections_timeout: undefined,
         selects: {},
@@ -67,6 +68,7 @@
       reset_builds() {
         this.builds = []
         this.page = 1
+        this.last_page = false
       },
       async get_builds() {
         let bottom_of_page = document.getElementById('bottom-of-page')
@@ -87,8 +89,13 @@
           build.item5 = this.set_default_img_if_undefined(build.item5)
           build.item6 = this.set_default_img_if_undefined(build.item6)
         }
-        this.builds.push(...builds)
-        this.page += 1
+        if (builds.length > 0) {
+          this.builds.push(...builds)
+          this.page += 1
+        }
+        else {
+          this.last_page = true
+        }
         bottom_of_page.textContent = ''
         this.start_watching_in_the_future()
       },
@@ -189,7 +196,7 @@
       }
       // Prepare pagination.
       let observer = new IntersectionObserver(()=> {
-        if (this.watch_for_intersections) {
+        if (this.watch_for_intersections && ! this.last_page) {
           this.watch_for_intersections = false
           this.get_builds()
         }
