@@ -120,9 +120,23 @@ def select_options():
 def builds_():
     page = request.query.get('page', '1')
     page = int(page) if page.isnumeric() else 1
+    seasons = [int(x) for x in request.query.getall('season')]
+    leagues = request.query.getall('league')
+    phases = request.query.getall('phase')
+    wins = [bool(x) for x in request.query.getall('win')]
     roles = request.query.getall('role')
+    team1s = request.query.getall('team1')
+    player1s = request.query.getall('player1')
     god1s = request.query.getall('god1')
-    builds = get_builds(page=page, roles=roles, god1s=god1s)
+    team2s = request.query.getall('team2')
+    player2s = request.query.getall('player2')
+    god2s = request.query.getall('god2')
+    relics = request.query.getall('relics')
+    items = request.query.getall('items')
+    builds = get_builds(page=page, seasons=seasons, leagues=leagues,
+        phases=phases, wins=wins, roles=roles, team1s=team1s,
+        player1s=player1s, god1s=god1s, team2s=team2s, player2s=player2s,
+        god2s=god2s, relics=relics, items=items)
     return json.dumps(builds)
 
 if __name__ == '__main__':

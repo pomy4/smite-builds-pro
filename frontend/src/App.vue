@@ -13,8 +13,19 @@
         <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
       <div v-show="!is_in_basic_view" class="select-row" id="advanced-row">
-        <label-select label="God(s)"  id="god1s" multiple></label-select>
-        <label-select label="Role(s)" id="roles" multiple></label-select>
+        <label-select label="Seasons"  id="seasons" multiple></label-select>
+        <label-select label="Leagues"  id="leagues" multiple></label-select>
+        <label-select label="Phases"  id="phases" multiple></label-select>
+        <label-select label="Win" id="wins" multiple></label-select>
+        <label-select label="Roles" id="roles" multiple></label-select>
+        <label-select label="Teams" id="team1s" multiple></label-select>
+        <label-select label="Players" id="player1s" multiple></label-select>
+        <label-select label="Gods"  id="god1s" multiple></label-select>
+        <label-select label="Opponent teams" id="team2s" multiple></label-select>
+        <label-select label="Opponent players" id="player2s" multiple></label-select>
+        <label-select label="Opponent gods"  id="god2s" multiple></label-select>
+        <label-select label="Relics" id="relics" multiple></label-select>
+        <label-select label="Items"  id="items" multiple></label-select>
         <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
       <div class="build-column">

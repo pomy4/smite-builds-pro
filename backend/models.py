@@ -61,16 +61,53 @@ def get_match_ids(phase):
 
 def get_select_options():
     res = {}
+    res['seasons'] = [b[0] for b in Build.select(Build.season).distinct().tuples()]
+    res['leagues'] = [b[0] for b in Build.select(Build.league).distinct().tuples()]
+    res['phases'] = [b[0] for b in Build.select(Build.phase).distinct().tuples()]
+    res['wins'] = [b[0] for b in Build.select(Build.win).distinct().tuples()]
     res['roles'] = [b[0] for b in Build.select(Build.role).distinct().tuples()]
+    res['team1s'] = [b[0] for b in Build.select(Build.team1).distinct().tuples()]
+    res['player1s'] = [b[0] for b in Build.select(Build.player1).distinct().tuples()]
     res['god1s'] = [b[0] for b in Build.select(Build.god1).distinct().tuples()]
+    res['team2s'] = [b[0] for b in Build.select(Build.team2).distinct().tuples()]
+    res['player2s'] = [b[0] for b in Build.select(Build.player2).distinct().tuples()]
+    res['god2s'] = [b[0] for b in Build.select(Build.god2).distinct().tuples()]
+    res['relics'] = [b[0] for b in (
+        Build.select(Item.long).join(Item, on=Build.relic1) |
+        Build.select(Item.long).join(Item, on=Build.relic2)).tuples()]
+    res['items'] = [b[0] for b in (
+        Build.select(Item.long).join(Item, on=Build.item1) |
+        Build.select(Item.long).join(Item, on=Build.item2) | # type: ignore
+        Build.select(Item.long).join(Item, on=Build.item3) | # type: ignore
+        Build.select(Item.long).join(Item, on=Build.item4) | # type: ignore
+        Build.select(Item.long).join(Item, on=Build.item5) | # type: ignore
+        Build.select(Item.long).join(Item, on=Build.item6)).tuples()]
     return res
 
-def get_builds(page, roles, god1s):
+def get_builds(page, **builds_request):
     where = Expression(True, '=', True)
-    if roles:
+    if seasons := builds_request['seasons']:
+        where = where & Build.season.in_(seasons)
+    if leagues := builds_request['leagues']:
+        where = where & Build.league.in_(leagues)
+    if phases := builds_request['phases']:
+        where = where & Build.phase.in_(phases)
+    if wins := builds_request['wins']:
+        where = where & Build.win.in_(wins)
+    if roles := builds_request['roles']:
         where = where & Build.role.in_(roles)
-    if god1s:
+    if team1s := builds_request['team1s']:
+        where = where & Build.team1.in_(team1s)
+    if player1s := builds_request['player1s']:
+        where = where & Build.player1.in_(player1s)
+    if god1s := builds_request['god1s']:
         where = where & Build.god1.in_(god1s)
+    if team2s := builds_request['team2s']:
+        where = where & Build.team2.in_(team2s)
+    if player2s := builds_request['player2s']:
+        where = where & Build.player2.in_(player2s)
+    if god2s := builds_request['god2s']:
+        where = where & Build.god2.in_(god2s)
     Relic1, Relic2, Item1, Item2 = Item.alias(), Item.alias(), Item.alias(), Item.alias()
     Item3, Item4, Item5, Item6 = Item.alias(), Item.alias(), Item.alias(), Item.alias()
     query = Build.select(Build, Relic1, Relic2, Item1, Item2, Item3, Item4, Item5, Item6) \
