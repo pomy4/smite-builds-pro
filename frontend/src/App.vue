@@ -51,6 +51,7 @@
       return {
         is_in_basic_view: true,
         builds: [],
+        filters_txt: []
       }
     },
     methods: {
@@ -319,8 +320,11 @@
 .ts-wrapper.plugin-remove_button .item .remove {
   padding: 0 5px;
 }
-.ts-control {
-  min-width: 10.5rem;
+#basic-row .ts-control {
+  min-width: 11rem;
+}
+#advanced-row .ts-control {
+  min-width: 9rem;
 }
 #basic-row input {
   min-width: unset;
