@@ -61,27 +61,27 @@ def get_match_ids(phase):
 
 def get_select_options():
     res = {}
-    res['seasons'] = [b[0] for b in Build.select(Build.season).distinct().tuples()]
-    res['leagues'] = [b[0] for b in Build.select(Build.league).distinct().tuples()]
-    res['phases'] = [b[0] for b in Build.select(Build.phase).distinct().tuples()]
-    res['wins'] = [b[0] for b in Build.select(Build.win).distinct().tuples()]
-    res['roles'] = [b[0] for b in Build.select(Build.role).distinct().tuples()]
-    res['team1s'] = [b[0] for b in Build.select(Build.team1).distinct().tuples()]
-    res['player1s'] = [b[0] for b in Build.select(Build.player1).distinct().tuples()]
-    res['god1s'] = [b[0] for b in Build.select(Build.god1).distinct().tuples()]
-    res['team2s'] = [b[0] for b in Build.select(Build.team2).distinct().tuples()]
-    res['player2s'] = [b[0] for b in Build.select(Build.player2).distinct().tuples()]
-    res['god2s'] = [b[0] for b in Build.select(Build.god2).distinct().tuples()]
+    res['seasons'] = [b[0] for b in Build.select(Build.season).distinct().order_by(Build.season.asc()).tuples()]
+    res['leagues'] = [b[0] for b in Build.select(Build.league).distinct().order_by(Build.league.asc()).tuples()]
+    res['phases'] = [b[0] for b in Build.select(Build.phase).distinct().order_by(Build.phase.asc()).tuples()]
+    res['wins'] = [b[0] for b in Build.select(Build.win).distinct().order_by(Build.win.desc()).tuples()]
+    res['roles'] = [b[0] for b in Build.select(Build.role).distinct().order_by(Build.role.asc()).tuples()]
+    res['team1s'] = [b[0] for b in Build.select(Build.team1).distinct().order_by(Build.team1.asc()).tuples()]
+    res['player1s'] = [b[0] for b in Build.select(Build.player1).distinct().order_by(Build.player1.asc()).tuples()]
+    res['god1s'] = [b[0] for b in Build.select(Build.god1).distinct().order_by(Build.god1.asc()).tuples()]
+    res['team2s'] = [b[0] for b in Build.select(Build.team2).distinct().order_by(Build.team2.asc()).tuples()]
+    res['player2s'] = [b[0] for b in Build.select(Build.player2).distinct().order_by(Build.player2.asc()).tuples()]
+    res['god2s'] = [b[0] for b in Build.select(Build.god2).distinct().order_by(Build.god2.asc()).tuples()]
     res['relics'] = [b[0] for b in (
         Build.select(Item.long).join(Item, on=Build.relic1) |
-        Build.select(Item.long).join(Item, on=Build.relic2)).tuples()]
+        Build.select(Item.long).join(Item, on=Build.relic2).order_by(Item.long.asc())).tuples()]
     res['items'] = [b[0] for b in (
         Build.select(Item.long).join(Item, on=Build.item1) |
         Build.select(Item.long).join(Item, on=Build.item2) | # type: ignore
         Build.select(Item.long).join(Item, on=Build.item3) | # type: ignore
         Build.select(Item.long).join(Item, on=Build.item4) | # type: ignore
         Build.select(Item.long).join(Item, on=Build.item5) | # type: ignore
-        Build.select(Item.long).join(Item, on=Build.item6)).tuples()]
+        Build.select(Item.long).join(Item, on=Build.item6).order_by(Item.long.asc())).tuples()]
     return res
 
 def get_builds(page, **builds_request):

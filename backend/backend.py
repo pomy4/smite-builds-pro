@@ -123,7 +123,7 @@ def builds_():
     seasons = [int(x) for x in request.query.getall('season')]
     leagues = request.query.getall('league')
     phases = request.query.getall('phase')
-    wins = [bool(x) for x in request.query.getall('win')]
+    wins = [bool(int(x)) for x in request.query.getall('win')]
     roles = request.query.getall('role')
     team1s = request.query.getall('team1')
     player1s = request.query.getall('player1')
