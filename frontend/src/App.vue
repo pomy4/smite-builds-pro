@@ -8,35 +8,13 @@
         </ul>
       </div>
       <div v-show="is_in_basic_view" class="select-row" id="basic-row">
-        <div>
-          <div class="label-select">
-            <label class="label">God</label>
-            <select id="god1" autocomplete="on"></select>
-          </div>
-        </div>
-        <div>
-          <div class="label-select">
-            <label class="label">Role</label>
-            <select id="role" autocomplete="on">
-            </select>
-          </div>
-        </div>
+        <label-select label="God"  id="god1"></label-select>
+        <label-select label="Role" id="role"></label-select>
         <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
       <div v-show="!is_in_basic_view" class="select-row" id="advanced-row">
-        <div>
-          <div class="label-select">
-            <label class="label">God(s)</label>
-            <select id="god1s" autocomplete="on" multiple></select>
-          </div>
-        </div>
-        <div>
-          <div class="label-select">
-            <label class="label">Role(s)</label>
-            <select id="roles" autocomplete="on" multiple>
-            </select>
-          </div>
-        </div>
+        <label-select label="God(s)"  id="god1s" multiple></label-select>
+        <label-select label="Role(s)" id="roles" multiple></label-select>
         <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
       <div class="build-column">
@@ -49,12 +27,14 @@
 
 <script>
   import Build from './Build.vue'
+  import LabelSelect from './LabelSelect.vue'
   import TomSelect from 'tom-select'
   import 'tom-select/dist/css/tom-select.css'
 
   export default {
     components: {
-      'build': Build
+      'build': Build,
+        LabelSelect
     },
     data() {
       return {
@@ -307,14 +287,6 @@
 </script>
 
 <style>
-.label:not(:last-child) {
-  margin-bottom: unset;
-}
-.label-select {
-  display: flex;
-  align-items: center;
-  column-gap: 0.667rem;
-}
 .select-row {
   display: flex;
   column-gap: 1.333rem;
