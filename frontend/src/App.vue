@@ -235,17 +235,16 @@
           hidePlaceholder: false,
           plugins: ['no_active_items', 'remove_button', 'caret_position', 'clear_button'],
           maxOptions: 999,
-          // eslint-disable-next-line no-unused-vars
-          onItemAdd: function(_0, _1) {
+          onItemAdd: function() {
             this.settings.placeholder = 'or ...'
+            // Tom-select expects that the user will want to keep adding similar options.
             this.setTextboxValue('')
             this.refreshOptions(false)
           },
-          // eslint-disable-next-line no-unused-vars
-          onItemRemove: function(_) {
+          onItemRemove: function() {
             if (this.getValue().length == 0) {
               this.settings.placeholder = 'All'
-              // Temporary fix for 'remove_button' (this.inputState() also seems to work).
+              // Fix for the remove_button plugin.
               document.getElementById(`${id}-ts-control`).setAttribute('placeholder', 'All')
             }
           }
@@ -258,11 +257,10 @@
           hidePlaceholder: true,
           plugins: ['no_active_items', 'remove_button'],
           maxOptions: 999,
-          // eslint-disable-next-line no-unused-vars
-          onItemRemove: function(_) {
+          onItemRemove: function() {
             if (this.getValue().length == 0) {
-              // Temporary fix for 'remove_button' (this.inputState() also seems to work).
-              document.getElementById(`${id}-ts-control`).setAttribute('placeholder', 'All')
+              // Fix for the remove_button plugin AND the squishening when out of focus.
+              this.inputState()
             }
           }
         })
