@@ -21,7 +21,7 @@
             </select>
           </div>
         </div>
-        <button class="button" style="margin-left: 2rem" v-on:click="button_clicked">Find builds</button>
+        <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
       <div v-show="!is_in_basic_view" class="select-row" id="advanced-row">
         <div>
@@ -37,7 +37,7 @@
             </select>
           </div>
         </div>
-        <button class="button" style="margin-left: 2rem" v-on:click="button_clicked">Find builds</button>
+        <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
       <div class="build-column">
         <build v-for="build in builds" v-bind:key="build.id" v-bind:data="build"></build>
@@ -58,28 +58,19 @@
     },
     data() {
       return {
-        builds: [],
-        page: 1,
-        is_on_last_page: false,
         is_in_basic_view: true,
-        is_next_search_basic: true,
-        watch_for_intersections: false,
-        watch_for_intersections_timeout: undefined,
-        selects: {},
-        filters: {},
-        translations: {'god1s': 'God', 'roles': 'Role'}, // This will be used for printing.
-        // This will be used in the basic view.
-        select_basic_god1: undefined,
-        select_basic_role: undefined,
-        filter_basic_god1: undefined,
-        filter_basic_role: undefined,
+        builds: [],
       }
     },
     methods: {
-      button_clicked() {
+      refresh(prompted_by_button_click) {
         clearTimeout(this.watch_for_intersections_timeout)
         this.watch_for_intersections = false
-        this.selects_to_filters_and_client_url()
+        if (prompted_by_button_click) {
+          this.selects_to_filters_and_client_url()
+        } else {
+          this.client_url_to_selects_and_filters()
+        }
         this.reset_builds()
         this.get_builds()
       },
@@ -208,24 +199,28 @@
           this.filter_basic_god1 = basic_god1
         }
         search_params.delete('god1~')
-        const basic_role = search_params.get('role1~')
+        const basic_role = search_params.get('role~')
         if (basic_role) {
           this.select_basic_role.addItem(basic_role)
           this.filter_basic_role1 = basic_role
         }
-        search_params.delete('role1~')
+        search_params.delete('role~')
 
         for (const key of search_params.keys()) {
           const keys = `${key}s`
-          const vals = search_params.getAll(key)
-          for (const val of vals) {
-            this.selects[keys].addItem(val)
+          if (this.selects[keys]) {
+            const vals = search_params.getAll(key)
+            for (const val of vals) {
+              this.selects[keys].addItem(val)
+            }
+            this.filters[keys] = vals
           }
-          this.filters[keys] = vals
         }
         // TODO print selected filters
       },
-      // These functions are called only on page load.
+      // ---
+      // The rest of these functions is called only on page load.
+      // ---
       async get_select_options() {
         let response = await fetch('/api/select_options')
         if (! response.ok) {
@@ -249,6 +244,8 @@
           // eslint-disable-next-line no-unused-vars
           onItemRemove: function(_) {
             if (this.getValue().length == 0) {
+              this.settings.placeholder = 'All'
+              // Temporary fix for 'remove_button' (this.inputState() also seems to work).
               document.getElementById(`${id}-ts-control`).setAttribute('placeholder', 'All')
             }
           }
@@ -264,8 +261,8 @@
           // eslint-disable-next-line no-unused-vars
           onItemRemove: function(_) {
             if (this.getValue().length == 0) {
+              // Temporary fix for 'remove_button' (this.inputState() also seems to work).
               document.getElementById(`${id}-ts-control`).setAttribute('placeholder', 'All')
-              // or this.settings.placeholder = 'All' + this.inputState()
             }
           }
         })
@@ -279,17 +276,20 @@
     },
     async mounted() {
       let options = await this.get_select_options()
-      // Create Tom-selects.
+
+      // Tom-selects.
       this.select_basic_god1 = this.create_select_single('god1')
       this.update_select(this.select_basic_god1, options['god1s'])
       this.select_basic_role = this.create_select_single('role')
       this.update_select(this.select_basic_role, options['roles'])
-      for (const node of document.querySelectorAll('#advanced-row select')) {
+      this.selects = {}
+      for (const node of document.querySelectorAll('select[multiple]')) {
         const id = node.id
         this.selects[id] = this.create_select(id)
         this.update_select(this.selects[id], options[id])
       }
-      // Prepare pagination.
+
+      // Pagination.
       let observer = new IntersectionObserver(()=> {
         if (this.watch_for_intersections && ! this.is_on_last_page) {
           this.watch_for_intersections = false
@@ -297,18 +297,13 @@
         }
       })
       observer.observe(document.getElementById('bottom-of-page'))
-      // Prepare navigation.
+
+      // History/navigation.
       window.addEventListener('popstate', () => {
-        clearTimeout(this.watch_for_intersections_timeout)
-        this.watch_for_intersections = false
-        // Same as button_clicked except for this line.
-        this.client_url_to_selects_and_filters()
-        this.reset_builds()
-        this.get_builds()
+        this.refresh(false)
       })
 
-      this.client_url_to_selects_and_filters()
-      this.get_builds()
+      this.refresh(false)
     }
   }
 </script>
