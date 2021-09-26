@@ -3,20 +3,36 @@
     <div class="container">
       <div class="tabs is-centered is-medium is-boxed">
         <ul>
-          <li class="is-active"><a>Basic search</a></li>
-          <li><a><s>Advanced search</s></a></li>
+          <li v-on:click="is_in_basic_view=true"  v-bind:class="{ 'is-active':  is_in_basic_view }"><a>Basic search</a></li>
+          <li v-on:click="is_in_basic_view=false" v-bind:class="{ 'is-active': !is_in_basic_view }"><a>Advanced search</a></li>
         </ul>
       </div>
-      <div class="select-row">
+      <div v-show="is_in_basic_view" class="select-row" id="basic-row">
         <div>
           <div class="label-select">
             <label class="label">God</label>
-            <select id="god1s" autocomplete="on" multiple></select>
+            <select id="god1" autocomplete="on"></select>
           </div>
         </div>
         <div>
           <div class="label-select">
             <label class="label">Role</label>
+            <select id="role" autocomplete="on">
+            </select>
+          </div>
+        </div>
+        <button class="button" style="margin-left: 2rem" v-on:click="button_clicked">Find builds</button>
+      </div>
+      <div v-show="!is_in_basic_view" class="select-row" id="advanced-row">
+        <div>
+          <div class="label-select">
+            <label class="label">God(s)</label>
+            <select id="god1s" autocomplete="on" multiple></select>
+          </div>
+        </div>
+        <div>
+          <div class="label-select">
+            <label class="label">Role(s)</label>
             <select id="roles" autocomplete="on" multiple>
             </select>
           </div>
@@ -44,17 +60,19 @@
       return {
         builds: [],
         page: 1,
-        last_page: false,
+        is_on_last_page: false,
+        is_in_basic_view: true,
+        is_next_search_basic: true,
         watch_for_intersections: false,
         watch_for_intersections_timeout: undefined,
         selects: {},
         filters: {},
         translations: {'god1s': 'God', 'roles': 'Role'}, // This will be used for printing.
         // This will be used in the basic view.
-        select_god1: undefined,
-        select_role: undefined,
-        filter_god1: [],
-        filter_role: [],
+        select_basic_god1: undefined,
+        select_basic_role: undefined,
+        filter_basic_god1: undefined,
+        filter_basic_role: undefined,
       }
     },
     methods: {
@@ -68,7 +86,7 @@
       reset_builds() {
         this.builds = []
         this.page = 1
-        this.last_page = false
+        this.is_on_last_page = false
       },
       async get_builds() {
         let bottom_of_page = document.getElementById('bottom-of-page')
@@ -94,16 +112,25 @@
           this.page += 1
         }
         else {
-          this.last_page = true
+          this.is_on_last_page = true
         }
         bottom_of_page.textContent = ''
         this.start_watching_in_the_future()
       },
       filters_to_server_url_fragment() {
         let url = `?page=${this.page}`
-        for (const [key, vals] of Object.entries(this.filters)) {
-          for (const val of vals) {
-            url += `&${key.slice(0, -1)}=${val}`
+        if (this.is_next_search_basic) {
+          if (this.filter_basic_god1) {
+            url += `&god1=${this.filter_basic_god1}`
+          }
+          if (this.filter_basic_role) {
+            url += `&role=${this.filter_basic_role}`
+          }
+        } else {
+          for (const [key, vals] of Object.entries(this.filters)) {
+            for (const val of vals) {
+              url += `&${key.slice(0, -1)}=${val}`
+            }
           }
         }
         return url
@@ -120,34 +147,81 @@
           this.watch_for_intersections=true, 50)
       },
       selects_to_filters_and_client_url() {
-        let url_fragment = `?view=basic`
+        this.filter_basic_god1 = undefined
+        this.filter_basic_role = undefined
+        this.filters = {}
+
+        let url_fragment = '?view='
+        if (this.is_in_basic_view) {
+          url_fragment += 'basic'
+          this.is_next_search_basic = true
+        } else {
+          url_fragment += 'advanced'
+          this.is_next_search_basic = false
+        }
+
+        const basic_god1 = this.select_basic_god1.getValue()
+        if (basic_god1) {
+          url_fragment += `&god1~=${basic_god1}`
+          this.filter_basic_god1 = basic_god1
+        }
+        const basic_role = this.select_basic_role.getValue()
+        if (basic_role) {
+          url_fragment += `&role~=${basic_role}`
+          this.filter_basic_role = basic_role
+        }
+
         for (const [keys, select] of Object.entries(this.selects)) {
           const vals = select.getValue()
-          this.filters[keys] = vals
           for (const val of vals) {
             url_fragment += `&${keys.slice(0, -1)}=${val}`
           }
+          this.filters[keys] = vals
         }
+
         let url_object = new URL(url_fragment, window.location.origin)
         history.pushState(undefined, '' , url_object.href)
       },
-      client_url_to_filters_and_selects() {
-        this.filters = {}
+      client_url_to_selects_and_filters() {
+        this.select_basic_god1.clear()
+        this.select_basic_role.clear()
+        this.filter_basic_god1 = undefined
+        this.filter_basic_role = undefined
         for (const select of Object.values(this.selects)) {
           select.clear()
         }
+        this.filters = {}
+
         let search_params = new URL(window.location.href).searchParams
+        if (search_params.get('view') != 'advanced') {
+          this.is_in_basic_view = true
+          this.is_next_search_basic = true
+        } else {
+          this.is_in_basic_view = false
+          this.is_next_search_basic = false
+        }
+        search_params.delete('view')
+
+        const basic_god1 = search_params.get('god1~')
+        if (basic_god1) {
+          this.select_basic_god1.addItem(basic_god1)
+          this.filter_basic_god1 = basic_god1
+        }
+        search_params.delete('god1~')
+        const basic_role = search_params.get('role1~')
+        if (basic_role) {
+          this.select_basic_role.addItem(basic_role)
+          this.filter_basic_role1 = basic_role
+        }
+        search_params.delete('role1~')
+
         for (const key of search_params.keys()) {
-          console.log(key)
-          if (key == 'view') {
-            continue // TODO
-          }
           const keys = `${key}s`
           const vals = search_params.getAll(key)
-          this.filters[keys] = vals
           for (const val of vals) {
             this.selects[keys].addItem(val)
           }
+          this.filters[keys] = vals
         }
         // TODO print selected filters
       },
@@ -159,22 +233,39 @@
         }
         return await response.json()
       },
-      create_select(name) {
-        return new TomSelect(`#${name}`, {
+      create_select(id) {
+        return new TomSelect(`#${id}`, {
           options: [{value: 1, text: 'Loading ...', disabled: true}],
           placeholder: 'All',
           hidePlaceholder: false,
-          plugins: ['caret_position', 'clear_button', 'no_active_items', 'remove_button'],
+          plugins: ['no_active_items', 'remove_button', 'caret_position', 'clear_button'],
+          maxOptions: 999,
           // eslint-disable-next-line no-unused-vars
           onItemAdd: function(_0, _1) {
+            this.settings.placeholder = 'or ...'
             this.setTextboxValue('')
             this.refreshOptions(false)
-            this.settings.placeholder = 'or ...'
           },
           // eslint-disable-next-line no-unused-vars
           onItemRemove: function(_) {
             if (this.getValue().length == 0) {
-              this.settings.placeholder = 'All'
+              document.getElementById(`${id}-ts-control`).setAttribute('placeholder', 'All')
+            }
+          }
+        })
+      },
+      create_select_single(id) {
+        return new TomSelect(`#${id}`, {
+          options: [{value: 1, text: 'Loading ...', disabled: true}],
+          placeholder: 'All',
+          hidePlaceholder: true,
+          plugins: ['no_active_items', 'remove_button'],
+          maxOptions: 999,
+          // eslint-disable-next-line no-unused-vars
+          onItemRemove: function(_) {
+            if (this.getValue().length == 0) {
+              document.getElementById(`${id}-ts-control`).setAttribute('placeholder', 'All')
+              // or this.settings.placeholder = 'All' + this.inputState()
             }
           }
         })
@@ -189,14 +280,18 @@
     async mounted() {
       let options = await this.get_select_options()
       // Create Tom-selects.
-      for (const node of document.querySelectorAll("select")) {
+      this.select_basic_god1 = this.create_select_single('god1')
+      this.update_select(this.select_basic_god1, options['god1s'])
+      this.select_basic_role = this.create_select_single('role')
+      this.update_select(this.select_basic_role, options['roles'])
+      for (const node of document.querySelectorAll('#advanced-row select')) {
         const id = node.id
         this.selects[id] = this.create_select(id)
         this.update_select(this.selects[id], options[id])
       }
       // Prepare pagination.
       let observer = new IntersectionObserver(()=> {
-        if (this.watch_for_intersections && ! this.last_page) {
+        if (this.watch_for_intersections && ! this.is_on_last_page) {
           this.watch_for_intersections = false
           this.get_builds()
         }
@@ -207,27 +302,18 @@
         clearTimeout(this.watch_for_intersections_timeout)
         this.watch_for_intersections = false
         // Same as button_clicked except for this line.
-        this.client_url_to_filters_and_selects()
+        this.client_url_to_selects_and_filters()
         this.reset_builds()
         this.get_builds()
       })
 
-      this.client_url_to_filters_and_selects()
+      this.client_url_to_selects_and_filters()
       this.get_builds()
     }
   }
 </script>
 
 <style>
-.input-hidden .ts-control > input {
-  opacity: 0;
-  position: unset;
-  left: unset;
-  min-width: 5rem;
-}
-.ts-control > input {
-  min-width: 5rem;
-}
 .label:not(:last-child) {
   margin-bottom: unset;
 }
@@ -253,5 +339,17 @@
 .ts-wrapper.multi .ts-control > div {
   margin: 0 5px 0 0;
   padding: 0 5px;
+}
+.ts-wrapper.plugin-remove_button .item .remove {
+  padding: 0 5px;
+}
+.ts-control {
+  min-width: 10rem;
+}
+#basic-row input {
+  min-width: unset;
+}
+#advanced-row input {
+  min-width: 2rem;
 }
 </style>
