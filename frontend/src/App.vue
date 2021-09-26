@@ -339,7 +339,7 @@
   padding: 0 5px;
 }
 .ts-control {
-  min-width: 10rem;
+  min-width: 10.5rem;
 }
 #basic-row input {
   min-width: unset;
