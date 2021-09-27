@@ -16,10 +16,10 @@
         <span>{{ data.game_length }}</span>
         <span v-if="data.win">WIN</span><span v-else>LOSE</span>
       </div>
-      <div class="my-column" style="width: 4rem">
+      <div class="my-column" style="width: 4.667rem">
         <span>{{ data.player1 }}</span>
         <span>{{ data.role }}</span>
-        <span>{{ data.kills }}/{{ data.deaths }}/{{ data.assists }}</span>
+        <span>{{ data.kills }}/{{ data.deaths }}/{{ data.assists }} ({{ data.kda_ratio }})</span>
       </div>
       <div class="my-column" style="width: 5.667rem">
         <span>{{ data.god1 }}</span>

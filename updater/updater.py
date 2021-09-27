@@ -130,6 +130,7 @@ def scrape_match(driver, phase, month, day, match_url, match_id):
                 # Optional values: year, season.
                 new_build = {'league': 'SPL', 'phase': phase, 'month': month, 'day': day, 'game_i': game_i,
                     'match_id': match_id, 'win' : wins[table_i], 'minutes': minutes, 'seconds': seconds,
+                    'kda_ratio': (kills + assists) / (deaths if deaths > 0 else 1),
                     'kills': kills, 'deaths': deaths, 'assists': assists, 'role': role,
                     'team1': teams[table_i], 'team2': teams[1-table_i], 'relics': relics, 'items': items,
                     'player1': player, 'god1': god}

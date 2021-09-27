@@ -15,6 +15,7 @@ from models import STR_MAX_LEN, MyError, db, Build, add_builds, get_match_ids, g
 
 Mystr = constr(min_length=1, max_length=STR_MAX_LEN, strict=True)
 Myint = conint(ge=0, strict=True)
+Myfloat = confloat(ge=0., strict=True)
 Myitem = conlist(min_items=2, max_items=2, item_type=Mystr)
 
 app = Bottle()
@@ -86,6 +87,7 @@ class BuildSchema(pydantic.BaseModel):
     win: StrictBool
     minutes: Myint
     seconds: Myint
+    kda_ratio: Myfloat
     kills: Myint
     deaths: Myint
     assists: Myint

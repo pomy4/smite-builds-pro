@@ -46,6 +46,7 @@ class Build(Base):
     game_i = SmallIntegerField()
     win = BooleanField()
     game_length = TimeField()
+    kda_ratio = FloatField()
     kills = SmallIntegerField()
     deaths = SmallIntegerField()
     assists = SmallIntegerField()
@@ -166,6 +167,7 @@ def get_builds(page, **builds_request):
         build['date'] = build['date'].isoformat()
         build['game_length'] = build['game_length'].strftime('%M:%S')
         build['match_url'] = f'{spl_matches_url}/{build["match_id"]}'
+        build['kda_ratio'] = f'{build["kda_ratio"]:.1f}'
         del build['match_id']
         unmodify_relic_name(build['relic1'])
         unmodify_relic_name(build['relic2'])
