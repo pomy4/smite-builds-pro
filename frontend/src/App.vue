@@ -47,6 +47,8 @@
   import LabelSelect from './LabelSelect.vue'
   import TomSelect from 'tom-select'
   import 'tom-select/dist/css/tom-select.css'
+  import empty_url from '/images/empty.png'
+  import blood_soaked_shroud_url from '/images/blood_soaked_shroud.png'
 
   export default {
     components: {
@@ -157,9 +159,13 @@
       },
       handle_img(item) {
         if (item) {
-          return {'name': item.name, 'src': 'https://webcdn.hirezstudios.com/smite/item-icons/' + item.image_name}
+          let result = {'name': item.name, 'src': 'https://webcdn.hirezstudios.com/smite/item-icons/' + item.image_name}
+          if (item.name == 'Blood-soaked Shroud') {
+            result.src = blood_soaked_shroud_url
+          }
+          return result
         } else {
-          return {'name': 'Empty', 'src': 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='}
+          return {'name': 'Empty', 'src': empty_url}
         }
       },
       start_watching_in_the_future() {
