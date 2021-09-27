@@ -42,16 +42,13 @@ def number(number):
     return int(number)
 
 def item(elem):
+    name = elem.get_attribute('alt')
     url = elem.get_attribute('src')
     last = url.rfind('/')
     if (base_url := url[:last]) != cdn_images_url:
         logging.warning(f'Unknown URL for the CDN with images|{base_url}')
-    short = url[last + 1:]
-    long = elem.get_attribute('alt')
-    short_evolved, long_evolved  = 'evolved-', 'Evolved '
-    if short.startswith(short_evolved) and long.startswith(long_evolved):
-        short, long = short[len(short_evolved):], long[len(long_evolved):]
-    return short, long
+    image_name = url[last + 1:]
+    return name, image_name
 
 def click_delay(start):
     end = time.time()

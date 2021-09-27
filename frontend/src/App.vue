@@ -118,14 +118,14 @@
           builds = builds['builds']
         }
         for (let build of builds) {
-          build.relic1 = this.set_default_img_if_undefined(build.relic1)
-          build.relic2 = this.set_default_img_if_undefined(build.relic2)
-          build.item1 = this.set_default_img_if_undefined(build.item1)
-          build.item2 = this.set_default_img_if_undefined(build.item2)
-          build.item3 = this.set_default_img_if_undefined(build.item3)
-          build.item4 = this.set_default_img_if_undefined(build.item4)
-          build.item5 = this.set_default_img_if_undefined(build.item5)
-          build.item6 = this.set_default_img_if_undefined(build.item6)
+          build.relic1 = this.handle_img(build.relic1)
+          build.relic2 = this.handle_img(build.relic2)
+          build.item1 = this.handle_img(build.item1)
+          build.item2 = this.handle_img(build.item2)
+          build.item3 = this.handle_img(build.item3)
+          build.item4 = this.handle_img(build.item4)
+          build.item5 = this.handle_img(build.item5)
+          build.item6 = this.handle_img(build.item6)
         }
         if (builds.length > 0) {
           this.builds.push(...builds)
@@ -155,11 +155,11 @@
         }
         return url
       },
-      set_default_img_if_undefined(item) {
+      handle_img(item) {
         if (item) {
-          return {'src': 'https://webcdn.hirezstudios.com/smite/item-icons/' + item.short, 'name': item.long}
+          return {'name': item.name, 'src': 'https://webcdn.hirezstudios.com/smite/item-icons/' + item.image_name}
         } else {
-          return {'src': 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=', 'name': 'Empty'}
+          return {'name': 'Empty', 'src': 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='}
         }
       },
       start_watching_in_the_future() {
