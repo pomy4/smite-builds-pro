@@ -13,6 +13,7 @@
         <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
       <div v-show="!is_in_basic_view" class="select-row" id="advanced-row">
+        <button class="button" style="margin-right: 2rem" v-on:click="clear_all_button">Clear all</button>
         <!-- <label-select label="Seasons"  id="seasons" multiple></label-select>
         <label-select label="Leagues"  id="leagues" multiple></label-select> -->
         <label-select label="Phases"  id="phases" multiple></label-select>
@@ -61,6 +62,11 @@
       }
     },
     methods: {
+      clear_all_button() {
+        for (const select of Object.values(this.selects)) {
+          select.clear()
+        }
+      },
       refresh(prompted_by_button_click) {
         clearTimeout(this.watch_for_intersections_timeout)
         this.watch_for_intersections = false
