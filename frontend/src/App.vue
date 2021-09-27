@@ -253,7 +253,6 @@
             this.filters[keys] = vals
           }
         }
-        // TODO print selected filters
       },
       // ---
       // The rest of these functions is called only on page load.
