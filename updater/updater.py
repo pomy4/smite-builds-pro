@@ -13,6 +13,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.firefox.options import Options
 import tqdm
 from dotenv import dotenv_values
 
@@ -176,9 +177,16 @@ if __name__ == '__main__':
             subprocess.call(['bash', './watchdog.sh'])
 
         # Scraping stuff.
-        with webdriver.Firefox() as driver:
+        options = Options()
+        options.add_argument('--headless')
+        options.add_argument('--disable-gpu')
+        with webdriver.Firefox(options=options) as driver:
             driver.get(spl_schedule_url)
             driver.implicitly_wait(implicit_wait)
+
+            cookie_accept_button = driver.find_element_by_class_name('approve')
+            cookie_accept_button.click()
+            time.sleep(0.1)
 
             phase_elems = driver.find_elements_by_class_name('phase')
             phases = [text(phase_elem) for phase_elem in phase_elems]
