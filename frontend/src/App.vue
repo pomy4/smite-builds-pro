@@ -30,7 +30,7 @@
         <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
       <div class="filter-row">
-        <div class="filter-thing" v-show="filters_txt.length == 0">Found {{ build_count }} builds</div>
+        <div class="filter-thing" v-show="filters_txt.length === 0">Found {{ build_count }} builds</div>
         <div class="filter-thing" v-show="filters_txt.length > 0">Found {{ build_count }} builds with filters:</div>
         <div class="filter-thing filter-box" v-for="txt in filters_txt" v-bind:key="txt">{{ txt }}</div>
       </div>
@@ -113,7 +113,7 @@
           throw new Error(`HTTP error! Status: ${response.status}`)
         }
         let builds = await response.json()
-        if (this.page == 1) {
+        if (this.page === 1) {
           this.build_count = builds['count']
           builds = builds['builds']
         }
@@ -215,7 +215,7 @@
         this.filters = {}
 
         let search_params = new URL(window.location.href).searchParams
-        if (search_params.get('view') != 'advanced') {
+        if (search_params.get('view') !== 'advanced') {
           this.is_in_basic_view = true
           this.is_next_search_basic = true
         } else {
@@ -261,7 +261,7 @@
       },
       create_select(select) {
         const and = select.getAttribute('and')
-        const placeholder = and == null ? 'or ...' : 'and ...'
+        const placeholder = and === null ? 'or ...' : 'and ...'
         return new TomSelect(`#${select.id}`, {
           options: [{value: 1, text: 'Loading ...', disabled: true}],
           placeholder: 'All',
@@ -275,7 +275,7 @@
             this.refreshOptions(false)
           },
           onItemRemove: function() {
-            if (this.getValue().length == 0) {
+            if (this.getValue().length === 0) {
               this.settings.placeholder = 'All'
               // Fix for the remove_button plugin.
               document.getElementById(`${select.id}-ts-control`).setAttribute('placeholder', 'All')
@@ -291,7 +291,7 @@
           plugins: ['no_active_items', 'remove_button'],
           maxOptions: 999,
           onItemRemove: function() {
-            if (this.getValue().length == 0) {
+            if (this.getValue().length === 0) {
               // Fix for the remove_button plugin AND the squishening when out of focus.
               this.inputState()
             }
