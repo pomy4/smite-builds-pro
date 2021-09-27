@@ -44,7 +44,6 @@
   import TomSelect from 'tom-select'
   import 'tom-select/dist/css/tom-select.css'
   import empty_url from '/images/empty.png'
-  import blood_soaked_shroud_url from '/images/blood_soaked_shroud.png'
 
   export default {
     components: {
@@ -133,11 +132,7 @@
       },
       handle_img(item) {
         if (item) {
-          let result = {'name': item.name, 'src': 'https://webcdn.hirezstudios.com/smite/item-icons/' + item.image_name}
-          if (item.name == 'Blood-soaked Shroud') {
-            result.src = blood_soaked_shroud_url
-          }
-          return result
+          return {'name': item.name, 'src': 'https://webcdn.hirezstudios.com/smite/item-icons/' + item.image_name}
         } else {
           return {'name': 'Empty', 'src': empty_url}
         }
