@@ -1,27 +1,27 @@
 <template>
   <div class="build-row block box">
     <div class="metadata-row">
-      <div class="my-column" style="width: 125px">
+      <div class="my-column" style="width: 8.333rem">
         <span><span>Season </span><span>{{ data.season }}</span></span>
         <span><span>{{ data.league }}</span></span>
         <span><span>{{ data.phase }}</span></span>
       </div>
-      <div class="my-column" style="width: 100px">
+      <div class="my-column" style="width: 6.667rem">
         <span>{{ data.date }}</span>
         <span>{{ data.team1 }} VS {{ data.team2 }}</span>
         <a v-bind:href="data.match_url">Link to match</a>
       </div>
-      <div class="my-column" style="width: 100px">
+      <div class="my-column" style="width: 6.667rem">
         <span>Game #{{ data.game_i }}</span>
         <span>{{ data.game_length }}</span>
         <span v-if="data.win">WIN</span><span v-else>LOSE</span>
       </div>
-      <div class="my-column" style="width: 60px">
+      <div class="my-column" style="width: 4rem">
         <span>{{ data.player1 }}</span>
         <span>{{ data.role }}</span>
         <span>{{ data.kills }}/{{ data.deaths }}/{{ data.assists }}</span>
       </div>
-      <div class="my-column" style="width: 85px">
+      <div class="my-column" style="width: 5.667rem">
         <span>{{ data.god1 }}</span>
       </div>
     </div>
@@ -55,7 +55,7 @@
         </div>
       </div>
     </div>
-    <div class="my-column" style="width: 100px">
+    <div class="my-column" style="width: 6.667rem">
       <span>Opponent:</span>
       <span>{{ data.god2 }}</span>
       <span>{{ data.player2 }}</span>
@@ -96,7 +96,7 @@ export default {
   row-gap: 0.333rem;
 }
 img {
-  width: 50px;
+  width: 3.333rem;
   max-width: none;
 }
 </style>
