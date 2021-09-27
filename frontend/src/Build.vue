@@ -1,6 +1,6 @@
 <template>
   <div class="build-row block box">
-    <div class="metadata-row">
+    <!--<div class="metadata-row">-->
       <div class="my-column" style="width: 8.333rem">
         <span><span>Season </span><span>{{ data.season }}</span></span>
         <span><span>{{ data.league }}</span></span>
@@ -24,8 +24,8 @@
       <div class="my-column" style="width: 5.667rem">
         <span>{{ data.god1 }}</span>
       </div>
-    </div>
-    <div class="data-row">
+    <!--</div>-->
+    <!--<div class="data-row">-->
       <div class="item-row">
         <div class="my-column">
           <img v-bind:src="data.relic1.src" v-bind:alt="data.relic1.name" v-bind:title="data.relic1.name">
@@ -54,7 +54,7 @@
           <img v-bind:src="data.item6.src" v-bind:alt="data.item6.name" v-bind:title="data.item6.name">
         </div>
       </div>
-    </div>
+    <!--</div>-->
     <div class="my-column" style="width: 6.667rem">
       <span>Opponent:</span>
       <span>{{ data.god2 }}</span>
@@ -75,6 +75,7 @@ export default {
   column-gap: 0.667rem;
   row-gap: 1.333rem;
   flex-wrap: wrap;
+  justify-content: center;
 }
 .metadata-row {
   display: flex;
