@@ -1,13 +1,13 @@
 <template>
   <div class="label-select">
     <label class="label">{{ label }}</label>
-    <select :id="id" autocomplete="on" :multiple="multiple"></select>
+    <select :id="id" autocomplete="on" :multiple="multiple" :and="and"></select>
   </div>
 </template>
 
 <script>
 export default {
-  props: ['label', 'id', 'multiple']
+  props: ['label', 'id', 'multiple', 'and']
 }
 </script>
 

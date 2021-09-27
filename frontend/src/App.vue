@@ -24,8 +24,8 @@
         <label-select label="Opponent teams" id="team2s" multiple></label-select>
         <label-select label="Opponent players" id="player2s" multiple></label-select>
         <label-select label="Opponent gods"  id="god2s" multiple></label-select>
-        <label-select label="Relics" id="relics" multiple></label-select>
-        <label-select label="Items"  id="items" multiple></label-select>
+        <label-select label="Relics" id="relics" multiple and></label-select>
+        <label-select label="Items"  id="items" multiple and></label-select>
         <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
       <div class="filter-row">
@@ -253,15 +253,17 @@
         }
         return await response.json()
       },
-      create_select(id) {
-        return new TomSelect(`#${id}`, {
+      create_select(select) {
+        const and = select.getAttribute('and')
+        const placeholder = and == null ? 'or ...' : 'and ...'
+        return new TomSelect(`#${select.id}`, {
           options: [{value: 1, text: 'Loading ...', disabled: true}],
           placeholder: 'All',
           hidePlaceholder: false,
           plugins: ['no_active_items', 'remove_button', 'caret_position', 'clear_button'],
           maxOptions: 999,
           onItemAdd: function() {
-            this.settings.placeholder = 'or ...'
+            this.settings.placeholder = placeholder
             // Tom-select expects that the user will want to keep adding similar options.
             this.setTextboxValue('')
             this.refreshOptions(false)
@@ -270,7 +272,7 @@
             if (this.getValue().length == 0) {
               this.settings.placeholder = 'All'
               // Fix for the remove_button plugin.
-              document.getElementById(`${id}-ts-control`).setAttribute('placeholder', 'All')
+              document.getElementById(`${select.id}-ts-control`).setAttribute('placeholder', 'All')
             }
           }
         })
@@ -310,7 +312,7 @@
       for (const node of document.querySelectorAll('select[multiple]')) {
         const id = node.id
         this.id_to_label[id] = node.previousElementSibling.textContent
-        this.selects[id] = this.create_select(id)
+        this.selects[id] = this.create_select(node)
         this.update_select(this.selects[id], options[id])
       }
 
@@ -384,6 +386,6 @@
   min-width: unset;
 }
 #advanced-row input {
-  min-width: 2rem;
+  min-width: 2.2rem;
 }
 </style>
