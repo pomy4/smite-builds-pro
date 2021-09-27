@@ -11,7 +11,7 @@ from pydantic .types import *
 from typing import List, Optional
 from dotenv import load_dotenv
 
-from models import STR_MAX_LEN, MyError, db, Build, add_builds, get_match_ids, get_select_options, get_builds
+from models import STR_MAX_LEN, MyError, db, add_builds, get_match_ids, get_select_options, get_builds
 
 Mystr = constr(min_length=1, max_length=STR_MAX_LEN, strict=True)
 Myint = conint(ge=0, strict=True)
