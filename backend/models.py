@@ -121,8 +121,10 @@ def get_builds(page, **builds_request):
         .join_from(Build, Item6, JOIN.LEFT_OUTER, Build.item1) \
         .where(where) \
         .order_by(Build.date.desc(), Build.match_id.desc(), Build.game_i.desc(),
-            Build.win.desc(), Build.role.asc()) \
-        .paginate(page, PAGE_SIZE)
+            Build.win.desc(), Build.role.asc())
+    if page == 1:
+        count = query.count()
+    query = query.paginate(page, PAGE_SIZE)
     builds = []
     for build in query.iterator():
         build = model_to_dict(build)
@@ -131,7 +133,7 @@ def get_builds(page, **builds_request):
         build['match_url'] = f'https://www.smiteproleague.com/matches/{build["match_id"]}'
         del build['match_id']
         builds.append(build)
-    return builds
+    return {'count': count, 'builds': builds} if page == 1 else builds
 
 def add_builds(builds_request):
     # Uniquerize items based upon short and long.

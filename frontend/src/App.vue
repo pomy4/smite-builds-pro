@@ -29,7 +29,8 @@
         <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
       <div class="filter-row">
-        <div class="filter-thing" v-show="filters_txt.length > 0">Applied filters:</div>
+        <div class="filter-thing" v-show="filters_txt.length == 0">Found {{ build_count }} builds</div>
+        <div class="filter-thing" v-show="filters_txt.length > 0">Found {{ build_count }} builds with filters:</div>
         <div class="filter-thing filter-box" v-for="txt in filters_txt" v-bind:key="txt">{{ txt }}</div>
       </div>
       <div class="build-column">
@@ -55,6 +56,7 @@
       return {
         is_in_basic_view: true,
         builds: [],
+        build_count: 0,
         filters_txt: []
       }
     },
@@ -105,6 +107,10 @@
           throw new Error(`HTTP error! Status: ${response.status}`)
         }
         let builds = await response.json()
+        if (this.page == 1) {
+          this.build_count = builds['count']
+          builds = builds['builds']
+        }
         for (let build of builds) {
           build.relic1 = this.set_default_img_if_undefined(build.relic1)
           build.relic2 = this.set_default_img_if_undefined(build.relic2)
@@ -335,7 +341,7 @@
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  margin-bottom: 1.333rem;
+  margin-bottom: 1rem;
 }
 .build-column {
   display: flex;
@@ -345,10 +351,11 @@
 .filter-row {
   display: flex;
   justify-content: center;
+  align-items: center;
   flex-wrap: wrap;
   column-gap: 0.67rem;
   row-gap: 0.67rem;
-  margin-bottom: 0.67rem;
+  margin-bottom: 1rem;
 }
 .filter-thing {
   color: hsl(0, 0%, 90%);
