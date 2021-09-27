@@ -85,6 +85,8 @@ def get_select_options():
     return res
 
 def get_builds(page, **builds_request):
+    Relic1, Relic2, Item1, Item2 = Item.alias(), Item.alias(), Item.alias(), Item.alias()
+    Item3, Item4, Item5, Item6 = Item.alias(), Item.alias(), Item.alias(), Item.alias()
     where = Expression(True, '=', True)
     if seasons := builds_request['seasons']:
         where = where & Build.season.in_(seasons)
@@ -108,17 +110,22 @@ def get_builds(page, **builds_request):
         where = where & Build.player2.in_(player2s)
     if god2s := builds_request['god2s']:
         where = where & Build.god2.in_(god2s)
-    Relic1, Relic2, Item1, Item2 = Item.alias(), Item.alias(), Item.alias(), Item.alias()
-    Item3, Item4, Item5, Item6 = Item.alias(), Item.alias(), Item.alias(), Item.alias()
+    if relics := builds_request['relics']:
+        for relic in relics:
+            where = where & Expression(relic, 'IN', [Relic1.long, Relic2.long])
+    if items := builds_request['items']:
+        for item in items:
+            where = where & Expression(item, 'IN', [Item1.long, Item2.long,
+                Item3.long, Item4.long, Item5.long, Item6.long])
     query = Build.select(Build, Relic1, Relic2, Item1, Item2, Item3, Item4, Item5, Item6) \
         .join_from(Build, Relic1, JOIN.LEFT_OUTER, Build.relic1) \
         .join_from(Build, Relic2, JOIN.LEFT_OUTER, Build.relic2) \
         .join_from(Build, Item1, JOIN.LEFT_OUTER, Build.item1) \
-        .join_from(Build, Item2, JOIN.LEFT_OUTER, Build.item1) \
-        .join_from(Build, Item3, JOIN.LEFT_OUTER, Build.item1) \
-        .join_from(Build, Item4, JOIN.LEFT_OUTER, Build.item1) \
-        .join_from(Build, Item5, JOIN.LEFT_OUTER, Build.item1) \
-        .join_from(Build, Item6, JOIN.LEFT_OUTER, Build.item1) \
+        .join_from(Build, Item2, JOIN.LEFT_OUTER, Build.item2) \
+        .join_from(Build, Item3, JOIN.LEFT_OUTER, Build.item3) \
+        .join_from(Build, Item4, JOIN.LEFT_OUTER, Build.item4) \
+        .join_from(Build, Item5, JOIN.LEFT_OUTER, Build.item5) \
+        .join_from(Build, Item6, JOIN.LEFT_OUTER, Build.item6) \
         .where(where) \
         .order_by(Build.date.desc(), Build.match_id.desc(), Build.game_i.desc(),
             Build.win.desc(), Build.role.asc())

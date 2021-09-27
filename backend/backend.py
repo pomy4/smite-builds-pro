@@ -131,8 +131,8 @@ def builds_():
     team2s = request.query.getall('team2')
     player2s = request.query.getall('player2')
     god2s = request.query.getall('god2')
-    relics = request.query.getall('relics')
-    items = request.query.getall('items')
+    relics = request.query.getall('relic')
+    items = request.query.getall('item')
     builds = get_builds(page=page, seasons=seasons, leagues=leagues,
         phases=phases, wins=wins, roles=roles, team1s=team1s,
         player1s=player1s, god1s=god1s, team2s=team2s, player2s=player2s,
