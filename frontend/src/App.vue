@@ -28,6 +28,10 @@
         <label-select label="Items"  id="items" multiple></label-select>
         <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
+      <div class="filter-row">
+        <div class="filter-thing" v-show="filters_txt.length > 0">Applied filters:</div>
+        <div class="filter-thing filter-box" v-for="txt in filters_txt" v-bind:key="txt">{{ txt }}</div>
+      </div>
       <div class="build-column">
         <build v-for="build in builds" v-bind:key="build.id" v-bind:data="build"></build>
         <div id="bottom-of-page"></div>
@@ -63,6 +67,7 @@
         } else {
           this.client_url_to_selects_and_filters()
         }
+        // this.filters_to_filters_txt()
         this.reset_builds()
         this.get_builds()
       },
@@ -70,6 +75,26 @@
         this.builds = []
         this.page = 1
         this.is_on_last_page = false
+      },
+      filters_to_filters_txt() {
+        this.filters_txt = []
+        if (this.is_next_search_basic) {
+          if (this.filter_basic_god1) {
+            this.filters_txt.push(`God: ${this.filter_basic_god1}`)
+          }
+          if (this.filter_basic_role) {
+            this.filters_txt.push(`Role: ${this.filter_basic_role}`)
+          }
+        } else {
+          for (const [key, vals] of Object.entries(this.filters)) {
+            let filter_txt = `${this.id_to_label[key]}: `
+            for (const val of vals) {
+              filter_txt += `${val}, `
+            }
+            filter_txt = filter_txt.slice(0, -2)
+            this.filters_txt.push(filter_txt)
+          }
+        }
       },
       async get_builds() {
         let bottom_of_page = document.getElementById('bottom-of-page')
@@ -159,7 +184,9 @@
           for (const val of vals) {
             url_fragment += `&${keys.slice(0, -1)}=${val}`
           }
-          this.filters[keys] = vals
+          if (vals.length > 0) {
+            this.filters[keys] = vals
+          }
         }
 
         let url_object = new URL(url_fragment, window.location.origin)
@@ -273,8 +300,10 @@
       this.select_basic_role = this.create_select_single('role')
       this.update_select(this.select_basic_role, options['roles'])
       this.selects = {}
+      this.id_to_label = {}
       for (const node of document.querySelectorAll('select[multiple]')) {
         const id = node.id
+        this.id_to_label[id] = node.previousElementSibling.textContent
         this.selects[id] = this.create_select(id)
         this.update_select(this.selects[id], options[id])
       }
@@ -312,6 +341,24 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+.filter-row {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  column-gap: 0.67rem;
+  row-gap: 0.67rem;
+  margin-bottom: 0.67rem;
+}
+.filter-thing {
+  color: hsl(0, 0%, 90%);
+}
+.filter-box {
+  border-style: solid;
+  border-color: hsl(0, 0%, 90%);
+  border-width: 1px;
+  border-radius: 5px;
+  padding: 0 5px;
 }
 .ts-wrapper.multi .ts-control > div {
   margin: 0 5px 0 0;
