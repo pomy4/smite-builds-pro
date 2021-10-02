@@ -54,7 +54,7 @@ def verify_integrity(func):
             return HTTPResponse(status=501, body='HMAC secret key isn\'t set on the server.')
         key = bytearray.fromhex(key_hex)
 
-        header_name = 'X-HMAC_DIGEST_HEX'
+        header_name = 'Authorization'
         if not (digest_header := request.get_header(header_name)):
             return HTTPResponse(status=400, body=f'HMAC digest was not included in the {header_name} header.')
 
