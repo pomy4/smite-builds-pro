@@ -10,8 +10,9 @@ import updater
 phase = 'just a phase'
 month = 9
 day = 9
-if not (match_id := sys.argv[1:2]) and not (match_id := int(os.environ.get('SYSARG'))):
+if not (match_id := sys.argv[1:2]) and not (match_id := os.environ.get('SYSARG')):
     match_id = 2455
+match_id = int(match_id)
 match_url = f'{updater.spl_matches_url}/{match_id}'
 logging.basicConfig(filename='logs/tmp.log', level=logging.INFO, format='%(asctime)s|%(levelname)s|%(message)s')
 builds = []
