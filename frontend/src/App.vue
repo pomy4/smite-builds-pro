@@ -280,20 +280,25 @@
       },
     },
     async mounted() {
-      let options = await this.get_select_options()
+      let options_future = this.get_select_options()
 
       // Tom-selects.
       this.select_basic_god1 = this.create_select_single('god1')
-      this.update_select(this.select_basic_god1, options['god1s'])
       this.select_basic_role = this.create_select_single('role')
-      this.update_select(this.select_basic_role, options['roles'])
       this.selects = {}
       this.id_to_label = {}
-      for (const node of document.querySelectorAll('select[multiple]')) {
-        const id = node.id
-        this.id_to_label[id] = node.previousElementSibling.textContent
-        this.selects[id] = this.create_select(node)
-        this.update_select(this.selects[id], options[id])
+      const select_nodes = document.querySelectorAll('select[multiple]')
+      for (const node of select_nodes) {
+        this.id_to_label[node.id] = node.previousElementSibling.textContent
+        this.selects[node.id] = this.create_select(node)
+      }
+
+      // Select options.
+      const options = await options_future
+      this.update_select(this.select_basic_god1, options['god1s'])
+      this.update_select(this.select_basic_role, options['roles'])
+      for (const node of select_nodes) {
+        this.update_select(this.selects[node.id], options[node.id])
       }
 
       // Pagination.
