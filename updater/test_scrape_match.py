@@ -15,7 +15,7 @@ if not (match_id := sys.argv[1:2]) and not (match_id := int(os.environ.get('SYSA
 match_url = f'{updater.spl_matches_url}/{match_id}'
 logging.basicConfig(filename='logs/tmp.log', level=logging.INFO, format='%(asctime)s|%(levelname)s|%(message)s')
 builds = []
-with webdriver.Firefox() as driver:
+with webdriver.Chrome() as driver:
     driver.implicitly_wait(updater.implicit_wait)
     builds = updater.scrape_match(driver, phase, month, day, match_url, match_id)
     pprint.pprint(builds)

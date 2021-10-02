@@ -8,11 +8,11 @@ fi
 echo "Sleeping for ${WATCHDOG_TIMER_SECONDS} seconds ..."
 sleep ${WATCHDOG_TIMER_SECONDS}
 
-echo "Gently killing Firefox ..."
-pkill -f firefox
+echo "Gently killing Chrome ..."
+pkill -f chrome
 sleep 10
-echo "Killing Firefox ..."
-pkill -9 -f firefox
+echo "Killing Chrome ..."
+pkill -9 -f chrome
 sleep 10
 echo "Gently killing Python ..."
 pkill -f python

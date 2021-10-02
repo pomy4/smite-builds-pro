@@ -7,6 +7,7 @@
 .env
 updater/geckodriver.exe
 updater/geckodriver.log
+updater/chromedriver.exe
 
 # Project specific.
 __pycache__/

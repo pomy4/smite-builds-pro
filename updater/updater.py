@@ -10,7 +10,6 @@ import os
 
 import requests
 from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
 import tqdm
 from dotenv import dotenv_values
 
@@ -174,10 +173,10 @@ if __name__ == '__main__':
             subprocess.call(['bash', './watchdog.sh'])
 
         # Scraping stuff.
-        options = Options()
+        options = webdriver.ChromeOptions()
         options.add_argument('--headless')
         options.add_argument('--disable-gpu')
-        with webdriver.Firefox(options=options) as driver:
+        with webdriver.Chrome(options=options) as driver:
             driver.get(spl_schedule_url)
             driver.implicitly_wait(implicit_wait)
 
