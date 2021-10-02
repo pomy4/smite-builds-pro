@@ -29,7 +29,7 @@
         <label-select label="Items"  id="items" multiple and></label-select>
         <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
-      <div class="build-count">Found {{ build_count }} builds.</div>
+      <div v-show="build_count !== null" class="build-count">Found {{ build_count }} builds.</div>
       <div class="build-column">
         <build v-for="build in builds" v-bind:key="build.id" v-bind:data="build"></build>
         <div id="bottom-of-page"></div>
@@ -54,7 +54,7 @@
       return {
         is_in_basic_view: true,
         builds: [],
-        build_count: 0,
+        build_count: null,
       }
     },
     methods: {
