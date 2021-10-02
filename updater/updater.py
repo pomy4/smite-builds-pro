@@ -176,6 +176,8 @@ if __name__ == '__main__':
         options = webdriver.ChromeOptions()
         options.add_argument('--headless')
         options.add_argument('--disable-gpu')
+        # https://stackoverflow.com/a/53970825
+        options.add_argument('--disable-dev-shm-usage')
         with webdriver.Chrome(options=options) as driver:
             driver.get(spl_schedule_url)
             driver.implicitly_wait(implicit_wait)
