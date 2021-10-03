@@ -21,6 +21,7 @@ Myfloat = confloat(ge=0., strict=True)
 Myitem = conlist(min_items=2, max_items=2, item_type=Mystr)
 
 app = Bottle()
+app.config['json.enable'] = False
 app.install(ErrorsRestPlugin())
 
 last_modified = datetime.datetime.now(datetime.timezone.utc)
