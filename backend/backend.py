@@ -4,8 +4,9 @@ import os
 import hmac
 import hashlib
 import datetime
+import traceback
 
-from bottle import Bottle, response,  request, HTTPResponse
+from bottle import Bottle, request, response
 from bottle_errorsrest import ErrorsRestPlugin
 import pydantic
 from pydantic .types import *
@@ -26,48 +27,12 @@ last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 @app.hook('before_request')
 def before():
-    response.content_type = 'application/json'
     db.connect()
 
 @app.hook('after_request')
 def after():
     db.close()
     # response.add_header('Access-Control-Allow-Origin', '*')
-
-def validate_request_body(Schema):
-    def outer_wrapper(func):
-        @functools.wraps(func)
-        def inner_wrapper():
-            try:
-                body_bytes = request.body.read()
-                body_str = body_bytes.decode('utf-8')
-                body_json = json.loads(body_str)
-                body_dict = Schema.parse_obj(body_json).dict()
-                body = body_dict.get('__root__', body_dict)
-                return func(body)
-            except (UnicodeDecodeError, json.JSONDecodeError, pydantic.ValidationError) as e:
-                return HTTPResponse(status=400, body=str(e))
-        return inner_wrapper
-    return outer_wrapper
-
-def verify_integrity(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        if not (key_hex := os.getenv('HMAC_KEY_HEX')):
-            return HTTPResponse(status=501, body='HMAC secret key isn\'t set on the server.')
-        key = bytearray.fromhex(key_hex)
-
-        header_name = 'Authorization'
-        if not (digest_header := request.get_header(header_name)):
-            return HTTPResponse(status=400, body=f'HMAC digest was not included in the {header_name} header.')
-
-        hmac_obj = hmac.new(key, request.body.read(), hashlib.sha256)
-        digest_body = hmac_obj.hexdigest()
-        if not hmac.compare_digest(digest_header, digest_body):
-            return HTTPResponse(status=403, body='Wrong HMAC digest!')
-
-        return func(*args, **kwargs)
-    return wrapper
 
 def cache_with_last_modified(func):
     @functools.wraps(func)
@@ -78,15 +43,64 @@ def cache_with_last_modified(func):
                 if last_modified < if_modified_since:
                     raise ValueError('Request is from the future.')
                 elif last_modified == if_modified_since:
-                    return HTTPResponse(status=304)
+                    response.status = 304
+                    return
+            # Log this, but don't reject the request over it.
             except ValueError:
-                # Log this (TODO), but don't reject the request over this.
-                pass
+                traceback.print_exc()
         result = func(*args, **kwargs)
-        # Bottle: changes to the global response object are used only if the
-        # handler does not return its own Response object.
-        response.add_header('Cache-Control', 'public')
-        response.add_header('Last-modified', last_modified.isoformat())
+        if response.status_code < 400:
+            response.add_header('Cache-Control', 'public')
+            response.add_header('Last-modified', last_modified.isoformat())
+        return result
+    return wrapper
+
+def verify_integrity(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if not (key_hex := os.getenv('HMAC_KEY_HEX')):
+            response.status = 501
+            return 'HMAC secret key isn\'t set on the server.'
+        key = bytearray.fromhex(key_hex)
+
+        header_name = 'Authorization'
+        if not (digest_header := request.get_header(header_name)):
+            response.status = 400
+            return f'HMAC digest was not included in the {header_name} header.'
+
+        hmac_obj = hmac.new(key, request.body.read(), hashlib.sha256)
+        digest_body = hmac_obj.hexdigest()
+        if not hmac.compare_digest(digest_header, digest_body):
+            response.status = 403
+            return 'Wrong HMAC digest!'
+
+        return func(*args, **kwargs)
+    return wrapper
+
+def validate_request_body(Schema):
+    def outer_wrapper(func):
+        @functools.wraps(func)
+        def inner_wrapper():
+            try:
+                body_bytes = request.body.read()
+                body_str = body_bytes.decode('utf-8')
+                body_json = json.loads(body_str)
+                body_dict = Schema.parse_obj(body_json).dict()
+            except (UnicodeDecodeError, json.JSONDecodeError, pydantic.ValidationError) as e:
+                response.status = 400
+                return str(e)
+            body = body_dict.get('__root__', body_dict)
+            return func(body)
+        return inner_wrapper
+    return outer_wrapper
+
+def jsonify(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        if response.status_code < 400 and result:
+            result = json.dumps(result)
+            response.content_type = 'application/json'
         return result
     return wrapper
 
@@ -95,9 +109,9 @@ class PhasesSchema(pydantic.BaseModel):
 
 @app.post('/phases')
 @validate_request_body(PhasesSchema)
+@jsonify
 def phases(phases):
-    match_ids = [get_match_ids(phase) for phase in phases]
-    return json.dumps(match_ids)
+    return [get_match_ids(phase) for phase in phases]
 
 class BuildSchema(pydantic.BaseModel):
     season: Optional[Mystr]
@@ -134,21 +148,26 @@ class BuildsSchema(pydantic.BaseModel):
 def builds(builds):
     global last_modified
     if not builds:
-        return HTTPResponse(status=204)
+        response.status = 204
+        return
     try:
         add_builds(builds)
         last_modified = datetime.datetime.now(datetime.timezone.utc)
-        return HTTPResponse(status=201)
+        response.status = 201
+        return
     except MyError as e:
-        return HTTPResponse(status=400, body=str(e))
+        response.status = 400
+        return str(e)
 
 @app.get('/api/select_options')
 @cache_with_last_modified
+@jsonify
 def select_options():
     return get_select_options()
 
 @app.get('/api/builds')
 @cache_with_last_modified
+@jsonify
 def builds_():
     page = request.query.get('page', '1')
     page = int(page) if page.isnumeric() else 1
@@ -165,11 +184,10 @@ def builds_():
     god2s = request.query.getall('god2')
     relics = request.query.getall('relic')
     items = request.query.getall('item')
-    builds = get_builds(page=page, seasons=seasons, leagues=leagues,
+    return get_builds(page=page, seasons=seasons, leagues=leagues,
         phases=phases, wins=wins, roles=roles, team1s=team1s,
         player1s=player1s, god1s=god1s, team2s=team2s, player2s=player2s,
         god2s=god2s, relics=relics, items=items)
-    return json.dumps(builds)
 
 if __name__ == '__main__':
     load_dotenv('../.env')
