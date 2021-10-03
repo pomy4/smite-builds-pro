@@ -76,6 +76,7 @@
       },
       reset_builds() {
         this.builds = []
+        this.build_count = null
         this.page = 1
         this.is_on_last_page = false
       },
