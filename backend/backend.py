@@ -7,7 +7,6 @@ import datetime
 import traceback
 
 from bottle import Bottle, request, response
-from bottle_errorsrest import ErrorsRestPlugin
 import pydantic
 from pydantic .types import *
 from typing import List, Optional
@@ -22,7 +21,6 @@ Myitem = conlist(min_items=2, max_items=2, item_type=Mystr)
 
 app = Bottle()
 app.config['json.enable'] = False
-app.install(ErrorsRestPlugin())
 
 last_modified = datetime.datetime.now(datetime.timezone.utc)
 
