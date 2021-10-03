@@ -32,7 +32,6 @@ def before():
 @app.hook('after_request')
 def after():
     db.close()
-    # response.add_header('Access-Control-Allow-Origin', '*')
 
 def cache_with_last_modified(func):
     @functools.wraps(func)
