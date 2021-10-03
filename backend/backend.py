@@ -3,6 +3,7 @@ import functools
 import os
 import hmac
 import hashlib
+import datetime
 
 from bottle import Bottle, response,  request, HTTPResponse
 from bottle_errorsrest import ErrorsRestPlugin
@@ -20,6 +21,8 @@ Myitem = conlist(min_items=2, max_items=2, item_type=Mystr)
 
 app = Bottle()
 app.install(ErrorsRestPlugin())
+
+last_modified = datetime.datetime.now(datetime.timezone.utc)
 
 @app.hook('before_request')
 def before():
@@ -66,6 +69,27 @@ def verify_integrity(func):
         return func(*args, **kwargs)
     return wrapper
 
+def cache_with_last_modified(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if if_modified_since := request.get_header('If-Modified-Since'):
+            try:
+                if_modified_since = datetime.datetime.fromisoformat(if_modified_since)
+                if last_modified < if_modified_since:
+                    raise ValueError('Request is from the future.')
+                elif last_modified == if_modified_since:
+                    return HTTPResponse(status=304)
+            except ValueError:
+                # Log this (TODO), but don't reject the request over this.
+                pass
+        result = func(*args, **kwargs)
+        # Bottle: changes to the global response object are used only if the
+        # handler does not return its own Response object.
+        response.add_header('Cache-Control', 'public')
+        response.add_header('Last-modified', last_modified.isoformat())
+        return result
+    return wrapper
+
 class PhasesSchema(pydantic.BaseModel):
     __root__: List[Mystr]
 
@@ -108,17 +132,23 @@ class BuildsSchema(pydantic.BaseModel):
 @verify_integrity
 @validate_request_body(BuildsSchema)
 def builds(builds):
+    global last_modified
+    if not builds:
+        return HTTPResponse(status=204)
     try:
         add_builds(builds)
+        last_modified = datetime.datetime.now(datetime.timezone.utc)
         return HTTPResponse(status=201)
     except MyError as e:
         return HTTPResponse(status=400, body=str(e))
 
 @app.get('/api/select_options')
+@cache_with_last_modified
 def select_options():
     return get_select_options()
 
 @app.get('/api/builds')
+@cache_with_last_modified
 def builds_():
     page = request.query.get('page', '1')
     page = int(page) if page.isnumeric() else 1
