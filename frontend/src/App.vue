@@ -226,8 +226,8 @@
       // ---
       // The rest of these functions is called only on page load.
       // ---
-      async get_select_options() {
-        let response = await fetch('/api/select_options')
+      async get_options() {
+        let response = await fetch('/api/options')
         if (! response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`)
         }
@@ -280,7 +280,7 @@
       },
     },
     async mounted() {
-      let options_future = this.get_select_options()
+      let options_future = this.get_options()
 
       // Tom-selects.
       this.select_basic_god1 = this.create_select_single('god1')

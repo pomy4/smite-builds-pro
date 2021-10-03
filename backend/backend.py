@@ -13,7 +13,7 @@ from pydantic .types import *
 from typing import List, Optional
 from dotenv import load_dotenv
 
-from models import STR_MAX_LEN, MyError, db, add_builds, get_match_ids, get_select_options, get_builds
+from models import STR_MAX_LEN, MyError, db, get_match_ids, post_builds, get_options, get_builds
 
 Mystr = constr(min_length=1, max_length=STR_MAX_LEN, strict=True)
 Myint = conint(ge=0, strict=True)
@@ -106,7 +106,7 @@ def jsonify(func):
 class PhasesSchema(pydantic.BaseModel):
     __root__: List[Mystr]
 
-@app.post('/phases')
+@app.post('/api/phases')
 @validate_request_body(PhasesSchema)
 @jsonify
 def phases(phases):
@@ -141,16 +141,16 @@ class BuildSchema(pydantic.BaseModel):
 class BuildsSchema(pydantic.BaseModel):
     __root__: List[BuildSchema]
 
-@app.post('/builds')
+@app.post('/api/builds')
 @verify_integrity
 @validate_request_body(BuildsSchema)
-def builds(builds):
+def builds_post(builds):
     global last_modified
     if not builds:
         response.status = 204
         return
     try:
-        add_builds(builds)
+        post_builds(builds)
         last_modified = datetime.datetime.now(datetime.timezone.utc)
         response.status = 201
         return
@@ -158,16 +158,16 @@ def builds(builds):
         response.status = 400
         return str(e)
 
-@app.get('/api/select_options')
+@app.get('/api/options')
 @cache_with_last_modified
 @jsonify
-def select_options():
-    return get_select_options()
+def options():
+    return get_options()
 
 @app.get('/api/builds')
 @cache_with_last_modified
 @jsonify
-def builds_():
+def builds_get():
     page = request.query.get('page', '1')
     page = int(page) if page.isnumeric() else 1
     seasons = [int(x) for x in request.query.getall('season')]

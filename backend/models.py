@@ -73,7 +73,7 @@ class Build(Base):
 def get_match_ids(phase):
     return [b[0] for b in Build.select(Build.match_id).where(Build.phase == phase).distinct().tuples()]
 
-def get_select_options():
+def get_options():
     res = {}
     res['seasons'] = [b[0] for b in Build.select(Build.season).distinct().order_by(Build.season.asc()).tuples()]
     res['leagues'] = [b[0] for b in Build.select(Build.league).distinct().order_by(Build.league.asc()).tuples()]
@@ -187,7 +187,7 @@ def request_delay(start):
     if time_remaining > 0:
         time.sleep(time_remaining)
 
-def add_builds(builds_request):
+def post_builds(builds_request):
     # Uniquerize items based upon name and image name.
     today = datetime.date.today()
     items_request = dict()

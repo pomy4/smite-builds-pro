@@ -78,7 +78,7 @@ def send_builds(config, builds):
     builds_bytes = json.dumps(builds).encode('utf-8')
     hmac_obj = hmac.new(hmac_key, builds_bytes, hashlib.sha256)
     headers = {'Authorization': hmac_obj.hexdigest()}
-    builds_resp = requests.post(f'{config[BACKEND_URL]}/builds', data=builds_bytes, headers=headers)
+    builds_resp = requests.post(f'{config[BACKEND_URL]}/api/builds', data=builds_bytes, headers=headers)
     better_raise_for_status(builds_resp)
 
 def scrape_match(driver, phase, month, day, match_url, match_id):
@@ -190,7 +190,7 @@ if __name__ == '__main__':
             phases = [text(phase_elem) for phase_elem in phase_elems]
 
             # Backend stuff.
-            all_match_ids_resp = requests.post(f'{config[BACKEND_URL]}/phases', json=phases)
+            all_match_ids_resp = requests.post(f'{config[BACKEND_URL]}/api/phases', json=phases)
             better_raise_for_status(all_match_ids_resp)
             all_match_ids = all_match_ids_resp.json()
             assert len(phases) == len(all_match_ids)
