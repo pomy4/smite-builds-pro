@@ -99,7 +99,7 @@ def jsonify(func):
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
         if response.status_code < 400 and result:
-            result = json.dumps(result)
+            result = json.dumps(result, indent=2)
             response.content_type = 'application/json'
         return result
     return wrapper
