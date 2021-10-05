@@ -239,8 +239,10 @@ def post_builds(builds_request):
                 build[f'item{i}'] = items_request[(name, image_name)]
             del build['relics'], build['items']
         try:
-            for batch in chunked(builds_request, 100):
-                Build.insert_many(batch).execute()
+            # This is done one by one, since for some reason bulk insertion
+            # sometimes causes silent corruption of data (!).
+            for build in builds_request:
+                Build.create(**build)
         except IntegrityError:
             raise MyError('At least one of the builds is already in the database.')
 
