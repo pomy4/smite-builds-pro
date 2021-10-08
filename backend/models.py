@@ -5,6 +5,8 @@ import datetime
 import urllib.request
 import urllib.error
 import time
+import enum
+import typing
 
 spl_matches_url = 'https://www.smiteproleague.com/matches'
 cdn_images_url = 'https://webcdn.hirezstudios.com/smite/item-icons'
@@ -111,39 +113,35 @@ def unmodify_item_name(item):
         item['name'] = evolved_prefix + item['name']
         del item['name_was_modified']
 
-def get_builds(page, **builds_request):
+class WhereStrat(enum.Enum):
+    match = enum.auto()
+    range = enum.auto()
+
+def get_builds(builds_request):
     Relic1, Relic2, Item1, Item2 = Item.alias(), Item.alias(), Item.alias(), Item.alias()
     Item3, Item4, Item5, Item6 = Item.alias(), Item.alias(), Item.alias(), Item.alias()
+
     where = Expression(True, '=', True)
-    if seasons := builds_request['seasons']:
-        where = where & Build.season.in_(seasons)
-    if leagues := builds_request['leagues']:
-        where = where & Build.league.in_(leagues)
-    if phases := builds_request['phases']:
-        where = where & Build.phase.in_(phases)
-    if wins := builds_request['wins']:
-        where = where & Build.win.in_(wins)
-    if roles := builds_request['roles']:
-        where = where & Build.role.in_(roles)
-    if team1s := builds_request['team1s']:
-        where = where & Build.team1.in_(team1s)
-    if player1s := builds_request['player1s']:
-        where = where & Build.player1.in_(player1s)
-    if god1s := builds_request['god1s']:
-        where = where & Build.god1.in_(god1s)
-    if team2s := builds_request['team2s']:
-        where = where & Build.team2.in_(team2s)
-    if player2s := builds_request['player2s']:
-        where = where & Build.player2.in_(player2s)
-    if god2s := builds_request['god2s']:
-        where = where & Build.god2.in_(god2s)
-    if relics := builds_request['relics']:
-        for relic in relics:
-            where = where & Expression(relic, 'IN', [Relic1.name, Relic2.name])
-    if items := builds_request['items']:
-        for item in items:
-            where = where & Expression(item, 'IN', [Item1.name, Item2.name,
-                Item3.name, Item4.name, Item5.name, Item6.name])
+    types = typing.get_type_hints(builds_request, include_extras=True)
+    for key, vals in vars(builds_request).items():
+        if not vals:
+            continue
+        if key == 'page':
+            page = vals[0]
+        elif key == 'relic':
+            for relic in vals:
+                where = where & Expression(relic, 'IN', [Relic1.name, Relic2.name])
+        elif key == 'item':
+            for item in vals:
+                where = where & Expression(item, 'IN', [Item1.name, Item2.name,
+                    Item3.name, Item4.name, Item5.name, Item6.name])
+        else:
+            where_strat = typing.get_args(types[key])[1]
+            if where_strat == WhereStrat.match:
+                where = where & getattr(Build, key).in_(vals)
+            else: # where_strat == WhereStrat.range:
+                raise NotImplementedError
+
     query = Build.select(Build, *no_img(Relic1), *no_img(Relic2),
             *no_img(Item1), *no_img(Item2), *no_img(Item3),
             *no_img(Item4), *no_img(Item5), *no_img(Item6)) \

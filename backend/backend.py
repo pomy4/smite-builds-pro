@@ -5,18 +5,18 @@ import hmac
 import hashlib
 import datetime
 import traceback
+from typing import List, Optional, Annotated
 
 from bottle import Bottle, request, response
 import pydantic
 from pydantic .types import *
-from typing import List, Optional
 from dotenv import load_dotenv
 
-from models import STR_MAX_LEN, MyError, db, get_match_ids, post_builds, get_options, get_builds
+from models import STR_MAX_LEN, MyError, db, get_match_ids, post_builds, get_options, get_builds, WhereStrat
 
-Mystr = constr(min_length=1, max_length=STR_MAX_LEN, strict=True)
-Myint = conint(ge=0, strict=True)
-Myfloat = confloat(ge=0., strict=True)
+Mystr = constr(min_length=1, max_length=STR_MAX_LEN, strict=False)
+Myint = conint(ge=0, strict=False)
+Myfloat = confloat(ge=0., strict=False)
 Myitem = conlist(min_items=2, max_items=2, item_type=Mystr)
 
 app = Bottle()
@@ -111,7 +111,7 @@ class PhasesSchema(pydantic.BaseModel):
 def phases(phases):
     return [get_match_ids(phase) for phase in phases]
 
-class BuildSchema(pydantic.BaseModel):
+class PostBuildSchema(pydantic.BaseModel):
     season: Optional[Mystr]
     league: Mystr
     phase: Mystr
@@ -137,12 +137,12 @@ class BuildSchema(pydantic.BaseModel):
     relics: conlist(min_items=0, max_items=2, item_type=Myitem)
     items: conlist(min_items=0, max_items=6, item_type=Myitem)
 
-class BuildsSchema(pydantic.BaseModel):
-    __root__: List[BuildSchema]
+class PostBuildsSchema(pydantic.BaseModel):
+    __root__: List[PostBuildSchema]
 
 @app.post('/api/builds')
 @verify_integrity
-@validate_request_body(BuildsSchema)
+@validate_request_body(PostBuildsSchema)
 def builds_post(builds):
     global last_modified
     if not builds:
@@ -163,29 +163,47 @@ def builds_post(builds):
 def options():
     return get_options()
 
+class GetBuildsSchema(pydantic.BaseModel):
+    page: conlist(Myint, min_items=0, max_items=1) = [1]
+    season: Annotated[Optional[List[Myint]], WhereStrat.match]
+    league: Annotated[Optional[List[Mystr]], WhereStrat.match]
+    phase: Annotated[Optional[List[Mystr]], WhereStrat.match]
+    # year: Myint
+    # month: Myint
+    # day: Myint
+    # match_id: Myint
+    # game_i: conint(ge=1, le=7, strict=True)
+    win: Annotated[Optional[List[bool]], WhereStrat.match]
+    # minutes: Myint
+    # seconds: Myint
+    # kda_ratio: Myfloat
+    # kills: Myint
+    # deaths: Myint
+    # assists: Myint
+    role: Annotated[Optional[List[Mystr]], WhereStrat.match]
+    player1: Annotated[Optional[List[Mystr]], WhereStrat.match]
+    god1: Annotated[Optional[List[Mystr]], WhereStrat.match]
+    team1: Annotated[Optional[List[Mystr]], WhereStrat.match]
+    player2: Annotated[Optional[List[Mystr]], WhereStrat.match]
+    god2: Annotated[Optional[List[Mystr]], WhereStrat.match]
+    team2: Annotated[Optional[List[Mystr]], WhereStrat.match]
+    relic: Optional[List[Mystr]]
+    item: Optional[List[Mystr]]
+
 @app.get('/api/builds')
 @cache_with_last_modified
 @jsonify
 def builds_get():
-    page = request.query.get('page', '1')
-    page = int(page) if page.isnumeric() else 1
-    seasons = [int(x) for x in request.query.getall('season')]
-    leagues = request.query.getall('league')
-    phases = request.query.getall('phase')
-    wins = [bool(int(x)) for x in request.query.getall('win')]
-    roles = request.query.getall('role')
-    team1s = request.query.getall('team1')
-    player1s = request.query.getall('player1')
-    god1s = request.query.getall('god1')
-    team2s = request.query.getall('team2')
-    player2s = request.query.getall('player2')
-    god2s = request.query.getall('god2')
-    relics = request.query.getall('relic')
-    items = request.query.getall('item')
-    return get_builds(page=page, seasons=seasons, leagues=leagues,
-        phases=phases, wins=wins, roles=roles, team1s=team1s,
-        player1s=player1s, god1s=god1s, team2s=team2s, player2s=player2s,
-        god2s=god2s, relics=relics, items=items)
+    form_dict = request.query.decode()
+    dict_with_lists = {key: form_dict.getall(key) for key in form_dict.keys()}
+
+    try:
+        model = GetBuildsSchema.parse_obj(dict_with_lists)
+    except (pydantic.ValidationError) as e:
+        response.status = 400
+        return str(e)
+
+    return get_builds(model)
 
 if __name__ == '__main__':
     load_dotenv('../.env')
