@@ -83,7 +83,7 @@ def get_options():
     res['date'] = [x.isoformat() for x in Build.select(fn.MIN(Build.date), fn.MAX(Build.date)).tuples()[0]]
     res['game_i'] = [b[0] for b in Build.select(Build.game_i).distinct().order_by(Build.game_i.asc()).tuples()]
     res['win'] = [b[0] for b in Build.select(Build.win).distinct().order_by(Build.win.desc()).tuples()]
-    res['game_length'] = [x.strftime('%M:%S') for x in Build.select(fn.MIN(Build.game_length), fn.MAX(Build.game_length)).tuples()[0]]
+    res['game_length'] = [x.isoformat() for x in Build.select(fn.MIN(Build.game_length), fn.MAX(Build.game_length)).tuples()[0]]
     res['kda_ratio'] = Build.select(fn.MIN(Build.kda_ratio), fn.MAX(Build.kda_ratio)).tuples()[0]
     res['kills'] = Build.select(fn.MIN(Build.kills), fn.MAX(Build.kills)).tuples()[0]
     res['deaths'] = Build.select(fn.MIN(Build.deaths), fn.MAX(Build.deaths)).tuples()[0]
@@ -171,7 +171,7 @@ def get_builds(builds_request):
     for build in query.iterator():
         build = model_to_dict(build)
         build['date'] = build['date'].isoformat()
-        build['game_length'] = build['game_length'].strftime('%M:%S')
+        build['game_length'] = build['game_length'].isoformat()
         build['match_url'] = f'{spl_matches_url}/{build["match_id"]}'
         build['kda_ratio'] = f'{build["kda_ratio"]:.1f}'
         del build['match_id']
@@ -241,7 +241,7 @@ def post_builds(builds_request):
             items_request[(name, image_name)] = item.id
         # Create builds.
         for build in builds_request:
-            build['game_length'] = datetime.time(minute=build['minutes'], second=build['seconds'])
+            build['game_length'] = datetime.time(hour=build['hours'], minute=build['minutes'], second=build['seconds'])
             if not build.get('year'):
                 build['year'] = today.year
             if not build.get('season'):
@@ -255,7 +255,7 @@ def post_builds(builds_request):
                 raise MyError('At least one of the builds has an invalid date.')
             build['player1'] = fix_player_name(build['player1'])
             build['player2'] = fix_player_name(build['player2'])
-            del build['minutes'], build['seconds'], build['year'], build['month'], build['day']
+            del build['hours'], build['minutes'], build['seconds'], build['year'], build['month'], build['day']
             for i, (name, image_name) in enumerate(build['relics'], 1):
                 build[f'relic{i}'] = items_request[(name, image_name)]
             for i, (name, image_name) in enumerate(build['items'], 1):

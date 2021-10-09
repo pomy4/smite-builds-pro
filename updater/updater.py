@@ -7,6 +7,7 @@ import json
 import hmac
 import hashlib
 import os
+import math
 
 import requests
 from selenium import webdriver
@@ -97,8 +98,20 @@ def scrape_match(driver, phase, month, day, match_url, match_id):
         teams = tmp.find_elements_by_tag_name('strong')
         teams = (text(teams[0]), text(teams[1]))
         game_length = text(tmp.find_element_by_class_name('game-duration'))
-        minutes, seconds = game_length.split(':')
-        minutes, seconds = number(minutes), number(seconds)
+        game_length = game_length.split(':')
+        if len(game_length) == 2:
+            minutes, seconds = game_length
+            minutes, seconds = number(minutes), number(seconds)
+            if minutes < 60:
+                hours = 0
+            else:
+                hours = math.floor(minutes / 60)
+                minutes = minutes % 60
+        elif len(game_length) == 3:
+            hours, minutes, seconds = game_length
+            hours, minutes, seconds = number(hours), number(minutes), number(seconds)
+        else:
+            raise RuntimeError(f'Could not parse game length: {game_length}')
         win_or_loss = tmp.find_element_by_class_name('team-score').text
         if win_or_loss == 'W':
             wins = (True, False)
@@ -126,7 +139,7 @@ def scrape_match(driver, phase, month, day, match_url, match_id):
                 items = [item(x) for x in items.find_elements_by_tag_name('img')]
                 # Optional values: year, season.
                 new_build = {'league': 'SPL', 'phase': phase, 'month': month, 'day': day, 'game_i': game_i,
-                    'match_id': match_id, 'win' : wins[table_i], 'minutes': minutes, 'seconds': seconds,
+                    'match_id': match_id, 'win' : wins[table_i], 'hours': hours, 'minutes': minutes, 'seconds': seconds,
                     'kda_ratio': (kills + assists) / (deaths if deaths > 0 else 1),
                     'kills': kills, 'deaths': deaths, 'assists': assists, 'role': role,
                     'team1': teams[table_i], 'team2': teams[1-table_i], 'relics': relics, 'items': items,

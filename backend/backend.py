@@ -121,6 +121,7 @@ class PostBuildSchema(pydantic.BaseModel):
     match_id: Myint
     game_i: Myint
     win: StrictBool
+    hours: Myint
     minutes: Myint
     seconds: Myint
     kda_ratio: Myfloat

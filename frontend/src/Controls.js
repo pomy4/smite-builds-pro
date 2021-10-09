@@ -77,24 +77,17 @@ import wNumb from 'wnumb'
 
 function parse_date(s) {
   const split = s.split('-')
-  return new Date(parseInt(split[0]), parseInt(split[1])-1, parseInt(split[2]), 12).getTime()
+  return Date.UTC(parseInt(split[0]), parseInt(split[1])-1, parseInt(split[2]))
 }
 function format_date(timestamp) {
   return new Date(parseInt(timestamp)).toISOString().split('T')[0]
 }
 function parse_time(s) {
   const split = s.split(':')
-  return parseInt(split[0]) * 60 + parseInt(split[1])
+  return Date.UTC(0, 0, 1, parseInt(split[0]), parseInt(split[1]), parseInt(split[2]))
 }
-function format_time(prepend_hours) {
-  return seconds => {
-    const minutes = Math.floor(parseInt(seconds) / 60)
-    seconds = (seconds % 60).toString()
-    if (seconds.length == 1) {
-      seconds = `0${seconds}`
-    }
-    return prepend_hours ? `00:${minutes}:${seconds}` : `${minutes}:${seconds}`
-  }
+function format_time(timestamp) {
+  return new Date(parseInt(timestamp)).toISOString().split('T')[1].split('.')[0]
 }
 
 class SliderJs {
@@ -119,33 +112,31 @@ class SliderJs {
       this.max = parse_date(range[1])
       options['step'] = 1000 * 60 * 60 * 24
       options['format'] = wNumb({decimals: 0})
-      this.format1 = format_date
-      this.format2 = format_date
+      this.format = format_date
     } else if (format == 'time') {
+      this.node.style.width = '9.3rem'
       this.min = parse_time(range[0])
       this.max = parse_time(range[1])
-      options['step'] = 1
+      options['step'] = 1000
       options['format'] = wNumb({decimals: 0})
-      this.format1 = format_time(false)
-      this.format2 = format_time(true)
+      this.format = format_time
     } else {
       this.min = range[0]
       this.max = range[1]
       if (this.node.id == 'kda_ratio') {
         options['format'] = wNumb({decimals: 1})
-        this.format1 = s => s.length < 4 ? `0${s}` : s
+        this.format = s => s.length < 4 ? `0${s}` : s
       } else {
         options['step'] = 1
         options['format'] = wNumb({decimals: 0})
-        this.format1 = s => s.length < 2 ? `0${s}` : s
+        this.format = s => s.length < 2 ? `0${s}` : s
       }
-      this.format2 = s => s
     }
     options['start'] = [this.min, this.max]
     options['range'] = {'min': this.min, 'max': this.max}
     this.slider = noUiSlider.create(this.node, options)
     this.slider.on('update', (values, handle) => {
-      this.tooltips[handle].textContent = this.format1(values[handle]);
+      this.tooltips[handle].textContent = this.format(values[handle]);
     });
   }
   clear() {
@@ -153,7 +144,7 @@ class SliderJs {
   }
   get() {
     const range = this.slider.get()
-    return (range[0] > this.min || range[1] < this.max) ? [this.format2(range[0]), this.format2(range[1])] : []
+    return (range[0] > this.min || range[1] < this.max) ? [this.format(range[0]), this.format(range[1])] : []
   }
   add(range) {
     this.slider.set(range)
