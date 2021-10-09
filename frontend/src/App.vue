@@ -343,6 +343,9 @@
 .slider-styled {
     height: 10px;
 }
+.slider-styled .noUi-connect {
+    background: #01abc9;
+}
 .slider-styled .noUi-handle {
     height: 18px;
     width: 18px;
