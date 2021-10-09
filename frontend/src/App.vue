@@ -235,17 +235,20 @@
       this.select_basic_god1 = new SelectJsSingle('basic-god1')
       this.select_basic_role = new SelectJsSingle('basic-role')
       this.controls = {}
-      const nodes = document.querySelectorAll('#advanced-row select')
+      const nodes = document.querySelectorAll('#advanced-row > *')
       for (const node of nodes) {
-        this.controls[node.id] = new SelectJsMultiple(node)
+        if (node.className == 'label-select') {
+          const select_node = node.children[1]
+          this.controls[select_node.id] = new SelectJsMultiple(select_node)
+        }
       }
 
       // Initialization.
       const options = await options_future
       this.select_basic_god1.init(options['god1'])
       this.select_basic_role.init(options['role'])
-      for (const node of nodes) {
-        this.controls[node.id].init(options[node.id])
+      for (const [key, control] of Object.entries(this.controls)) {
+        control.init(options[key])
       }
 
       // Pagination.
