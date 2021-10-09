@@ -77,7 +77,7 @@ import wNumb from 'wnumb'
 
 function parse_date(s) {
   const split = s.split('-')
-  return new Date(parseInt(split[0]), parseInt(split[1])-1, parseInt(split[2])).getTime()
+  return new Date(parseInt(split[0]), parseInt(split[1])-1, parseInt(split[2]), 12).getTime()
 }
 function format_date(timestamp) {
   return new Date(parseInt(timestamp)).toISOString().split('T')[0]
