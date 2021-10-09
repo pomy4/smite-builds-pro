@@ -129,8 +129,14 @@ class SliderJs {
     } else {
       this.min = range[0]
       this.max = range[1]
-      options['format'] = wNumb({decimals: 1})
-      this.format = x => x
+      if (this.node.id == 'kda_ratio') {
+        options['format'] = wNumb({decimals: 1})
+        this.format = (s) => s.length < 4 ? `0${s}` : s
+      } else {
+        options['step'] = 1
+        options['format'] = wNumb({decimals: 0})
+        this.format = (s) => s.length < 2 ? `0${s}` : s
+      }
     }
     options['start'] = [this.min, this.max]
     options['range'] = {'min': this.min, 'max': this.max}
