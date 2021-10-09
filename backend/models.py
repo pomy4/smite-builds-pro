@@ -193,11 +193,26 @@ def request_delay(start):
     if time_remaining > 0:
         time.sleep(time_remaining)
 
+def fix_image_name(image_name):
+    if image_name == 'bloodsoaked-shroud.jpg':
+        return 'blood-soaked-shroud.jpg'
+    elif image_name == 'pointed-shuriken.jpg':
+        return '8-pointed-shuriken.jpg'
+    else:
+        return image_name
+
+def fix_player_name(player_name):
+    if player_name == 'AwesomeJake408':
+        return 'Awesomejake408'
+    else:
+        return player_name
+
 def post_builds(builds_request):
     # Uniquerize items based upon name and image name.
     today = datetime.date.today()
     items_request = dict()
     for build in builds_request:
+        build['items'] = [(name, fix_image_name(image_name)) for name, image_name in build['items']]
         for name, image_name in build['relics']:
             items_request[(name, image_name)] = True
         for name, image_name in build['items']:
@@ -238,6 +253,8 @@ def post_builds(builds_request):
                 build['date'] = datetime.date(year=build['year'], month=build['month'], day=build['day'])
             except ValueError:
                 raise MyError('At least one of the builds has an invalid date.')
+            build['player1'] = fix_player_name(build['player1'])
+            build['player2'] = fix_player_name(build['player2'])
             del build['minutes'], build['seconds'], build['year'], build['month'], build['day']
             for i, (name, image_name) in enumerate(build['relics'], 1):
                 build[f'relic{i}'] = items_request[(name, image_name)]
