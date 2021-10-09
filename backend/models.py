@@ -81,7 +81,7 @@ def get_options():
     res['league'] = [b[0] for b in Build.select(Build.league).distinct().order_by(Build.league.asc()).tuples()]
     res['phase'] = [b[0] for b in Build.select(Build.phase).distinct().order_by(Build.phase.asc()).tuples()]
     res['date'] = [x.isoformat() for x in Build.select(fn.MIN(Build.date), fn.MAX(Build.date)).tuples()[0]]
-    res['game_i'] = Build.select(fn.MIN(Build.game_i), fn.MAX(Build.game_i)).tuples()[0]
+    res['game_i'] = [b[0] for b in Build.select(Build.game_i).distinct().order_by(Build.game_i.asc()).tuples()]
     res['win'] = [b[0] for b in Build.select(Build.win).distinct().order_by(Build.win.desc()).tuples()]
     res['game_length'] = [x.strftime('%M:%S') for x in Build.select(fn.MIN(Build.game_length), fn.MAX(Build.game_length)).tuples()[0]]
     res['kda_ratio'] = Build.select(fn.MIN(Build.kda_ratio), fn.MAX(Build.kda_ratio)).tuples()[0]

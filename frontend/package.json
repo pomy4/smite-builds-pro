@@ -6,8 +6,10 @@
     "serve": "vite preview"
   },
   "dependencies": {
+    "nouislider": "^15.5.0",
     "tom-select": "^2.0.0-rc.3",
-    "vue": "^3.0.5"
+    "vue": "^3.0.5",
+    "wnumb": "^1.2.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^1.2.3",

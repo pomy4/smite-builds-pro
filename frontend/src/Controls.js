@@ -71,4 +71,84 @@ class SelectJsMultiple extends SelectJs {
   }
 }
 
-export { SelectJsSingle, SelectJsMultiple };
+import noUiSlider from 'nouislider';
+import 'nouislider/dist/nouislider.css';
+import wNumb from 'wnumb'
+
+function parse_date(s) {
+  const split = s.split('-')
+  return new Date(parseInt(split[0]), parseInt(split[1])-1, parseInt(split[2])).getTime()
+}
+function format_date(timestamp) {
+  return new Date(parseInt(timestamp)).toISOString().split('T')[0]
+}
+function parse_time(s) {
+  const split = s.split(':')
+  return parseInt(split[0]) * 60 + parseInt(split[1])
+}
+function format_time(seconds) {
+  const minutes = Math.floor(parseInt(seconds) / 60)
+  seconds = (seconds % 60).toString()
+  if (seconds.length == 1) {
+    seconds = `0${seconds}`
+  }
+  return `${minutes}:${seconds}`
+
+
+}
+
+class SliderJs {
+  constructor(node) {
+    this.node = node
+  }
+  init(range) {
+    this.min = range[0]
+    this.max = range[1]
+    this.node.textContent = ''
+    this.node.style.width = '6.667rem'
+    this.node.style.margin = '0 1rem'
+    this.tooltips = this.node.nextElementSibling.children
+    const format = this.node.getAttribute('format')
+    let options = {
+      connect: true,
+      animate: false,
+    }
+    if (format == 'date') {
+      this.node.style.width = '12rem'
+      this.min = parse_date(range[0])
+      this.max = parse_date(range[1])
+      options['step'] = 1000 * 60 * 60 * 24
+      options['format'] = wNumb({decimals: 0})
+      this.format = format_date
+    } else if (format == 'time') {
+      this.min = parse_time(range[0])
+      this.max = parse_time(range[1])
+      options['step'] = 1
+      options['format'] = wNumb({decimals: 0})
+      this.format = format_time
+    } else {
+      this.min = range[0]
+      this.max = range[1]
+      options['format'] = wNumb({decimals: 1})
+      this.format = x => x
+    }
+    options['start'] = [this.min, this.max]
+    options['range'] = {'min': this.min, 'max': this.max}
+    this.slider = noUiSlider.create(this.node, options)
+    this.slider.on('update', (values, handle) => {
+      this.tooltips[handle].textContent = this.format(values[handle]);
+    });
+  }
+  clear() {
+    this.slider.reset()
+  }
+  get() {
+    const range = this.slider.get()
+    return (range[0] > this.min || range[1] < this.max) ? [this.format(range[0]), this.format(range[1])] : []
+  }
+  add(range) {
+    this.slider.set(range)
+  }
+}
+
+export { SelectJsSingle, SelectJsMultiple, SliderJs };

@@ -14,19 +14,26 @@
       </div>
       <div v-show="!is_in_basic_view" class="select-row" id="advanced-row">
         <button class="button" style="margin-right: 2rem" v-on:click="clear_all_button">Clear all</button>
-        <!-- <label-select label="Seasons"  id="seasons" multiple></label-select>
-        <label-select label="Leagues"  id="leagues" multiple></label-select> -->
-        <label-select label="Phases"  id="phase" multiple></label-select>
+        <!-- <label-select label="Seasons" id="seasons" multiple></label-select>
+        <label-select label="Leagues" id="leagues" multiple></label-select> -->
+        <label-select label="Phases" id="phase" multiple></label-select>
+        <label-slider label="Date" id="date" format="date"></label-slider>
+        <label-select label="Game #" id="game_i" multiple></label-select>
+        <label-slider label="Game length" id="game_length" format="time"></label-slider>
         <label-select label="Win" id="win" multiple></label-select>
+        <label-slider label="KDA ratio" id="kda_ratio"></label-slider>
+        <label-slider label="Kills" id="kills"></label-slider>
+        <label-slider label="Deaths" id="deaths"></label-slider>
+        <label-slider label="Assists" id="assists"></label-slider>
         <label-select label="Roles" id="role" multiple></label-select>
         <label-select label="Teams" id="team1" multiple></label-select>
         <label-select label="Players" id="player1" multiple></label-select>
-        <label-select label="Gods"  id="god1" multiple></label-select>
+        <label-select label="Gods" id="god1" multiple></label-select>
         <label-select label="Opponent teams" id="team2" multiple></label-select>
         <label-select label="Opponent players" id="player2" multiple></label-select>
-        <label-select label="Opponent gods"  id="god2" multiple></label-select>
+        <label-select label="Opponent gods" id="god2" multiple></label-select>
         <label-select label="Relics" id="relic" multiple and></label-select>
-        <label-select label="Items"  id="item" multiple and></label-select>
+        <label-select label="Items" id="item" multiple and></label-select>
         <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
       <div v-show="build_count !== null" class="build-count">Found {{ build_count }} builds.</div>
@@ -41,13 +48,15 @@
 <script>
   import Build from './Build.vue'
   import LabelSelect from './LabelSelect.vue'
+  import LabelSlider from './LabelSlider.vue'
   import empty_url from '/images/empty.png'
-  import { SelectJsSingle, SelectJsMultiple } from './Controls.js'
+  import { SelectJsSingle, SelectJsMultiple, SliderJs } from './Controls.js'
 
   export default {
     components: {
-      'build': Build,
-        LabelSelect
+      Build,
+      LabelSelect,
+      LabelSlider
     },
     data() {
       return {
@@ -236,10 +245,14 @@
       this.select_basic_role = new SelectJsSingle('basic-role')
       this.controls = {}
       const nodes = document.querySelectorAll('#advanced-row > *')
-      for (const node of nodes) {
-        if (node.className == 'label-select') {
-          const select_node = node.children[1]
-          this.controls[select_node.id] = new SelectJsMultiple(select_node)
+      for (let node of nodes) {
+        if (node.className === 'label-select') {
+          node = node.children[1]
+          this.controls[node.id] = new SelectJsMultiple(node)
+        }
+        else if (node.className === 'label-slider') {
+          node = node.children[1].children[0]
+          this.controls[node.id] = new SliderJs(node)
         }
       }
 
@@ -307,5 +320,34 @@
 }
 #advanced-row input {
   min-width: 2.2rem;
+}
+/* https://refreshless.com/nouislider/examples/#section-styling */
+.slider-styled,
+.slider-styled .noUi-handle {
+    box-shadow: none;
+}
+.slider-styled .noUi-handle::before,
+.slider-styled .noUi-handle::after {
+    display: none;
+}
+.slider-styled .noUi-handle .noUi-touch-area {
+    border: 1px solid transparent;
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    width: auto;
+    height: auto;
+}
+.slider-styled {
+    height: 10px;
+}
+.slider-styled .noUi-handle {
+    height: 18px;
+    width: 18px;
+    top: -5px;
+    right: -9px; /* half the width */
+    border-radius: 9px;
 }
 </style>
