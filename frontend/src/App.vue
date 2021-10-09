@@ -236,10 +236,8 @@
       this.select_basic_god1 = new SelectJsSingle('god1')
       this.select_basic_role = new SelectJsSingle('role')
       this.controls = {}
-      this.id_to_label = {}
       const nodes = document.querySelectorAll('#advanced-row select')
       for (const node of nodes) {
-        this.id_to_label[node.id] = node.previousElementSibling.textContent
         this.controls[node.id] = new SelectJsMultiple(node)
       }
 
