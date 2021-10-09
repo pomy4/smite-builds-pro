@@ -119,7 +119,7 @@ class PostBuildSchema(pydantic.BaseModel):
     month: Myint
     day: Myint
     match_id: Myint
-    game_i: conint(ge=1, le=7, strict=True)
+    game_i: Myint
     win: StrictBool
     minutes: Myint
     seconds: Myint
@@ -134,8 +134,8 @@ class PostBuildSchema(pydantic.BaseModel):
     player2: Mystr
     god2: Mystr
     team2: Mystr
-    relics: conlist(min_items=0, max_items=2, item_type=Myitem)
-    items: conlist(min_items=0, max_items=6, item_type=Myitem)
+    relics: conlist(Myitem, min_items=0, max_items=2)
+    items: conlist(Myitem, min_items=0, max_items=6)
 
 class PostBuildsSchema(pydantic.BaseModel):
     __root__: List[PostBuildSchema]
@@ -164,22 +164,18 @@ def options():
     return get_options()
 
 class GetBuildsSchema(pydantic.BaseModel):
-    page: conlist(Myint, min_items=0, max_items=1) = [1]
+    page: conlist(Myint, min_items=0, max_items=1)
     season: Annotated[Optional[List[Myint]], WhereStrat.match]
     league: Annotated[Optional[List[Mystr]], WhereStrat.match]
     phase: Annotated[Optional[List[Mystr]], WhereStrat.match]
-    # year: Myint
-    # month: Myint
-    # day: Myint
-    # match_id: Myint
-    # game_i: conint(ge=1, le=7, strict=True)
+    date: Annotated[Optional[conlist(datetime.date, min_items=2, max_items=2)], WhereStrat.range]
+    game_i: Annotated[Optional[List[Myint]], WhereStrat.match]
+    game_length: Annotated[Optional[conlist(datetime.time, min_items=2, max_items=2)], WhereStrat.range]
     win: Annotated[Optional[List[bool]], WhereStrat.match]
-    # minutes: Myint
-    # seconds: Myint
-    # kda_ratio: Myfloat
-    # kills: Myint
-    # deaths: Myint
-    # assists: Myint
+    kda_ratio: Annotated[Optional[conlist(Myfloat, min_items=2, max_items=2)], WhereStrat.range]
+    kills: Annotated[Optional[conlist(Myint, min_items=2, max_items=2)], WhereStrat.range]
+    deaths: Annotated[Optional[conlist(Myint, min_items=2, max_items=2)], WhereStrat.range]
+    assists: Annotated[Optional[conlist(Myint, min_items=2, max_items=2)], WhereStrat.range]
     role: Annotated[Optional[List[Mystr]], WhereStrat.match]
     player1: Annotated[Optional[List[Mystr]], WhereStrat.match]
     god1: Annotated[Optional[List[Mystr]], WhereStrat.match]

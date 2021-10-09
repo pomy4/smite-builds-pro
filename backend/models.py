@@ -147,7 +147,8 @@ def get_builds(builds_request):
             if where_strat == WhereStrat.match:
                 where = where & getattr(Build, key).in_(vals)
             else: # where_strat == WhereStrat.range:
-                raise NotImplementedError
+                tmp = getattr(Build, key)
+                where = where & (vals[0] <= tmp) & (tmp <= vals[1])
 
     query = Build.select(Build, *no_img(Relic1), *no_img(Relic2),
             *no_img(Item1), *no_img(Item2), *no_img(Item3),
