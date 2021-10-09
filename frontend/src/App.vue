@@ -8,25 +8,25 @@
         </ul>
       </div>
       <div v-show="is_in_basic_view" class="select-row" id="basic-row">
-        <label-select label="God"  id="god1"></label-select>
-        <label-select label="Role" id="role"></label-select>
+        <label-select label="God"  id="basic-god1"></label-select>
+        <label-select label="Role" id="basic-role"></label-select>
         <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
       <div v-show="!is_in_basic_view" class="select-row" id="advanced-row">
         <button class="button" style="margin-right: 2rem" v-on:click="clear_all_button">Clear all</button>
         <!-- <label-select label="Seasons"  id="seasons" multiple></label-select>
         <label-select label="Leagues"  id="leagues" multiple></label-select> -->
-        <label-select label="Phases"  id="phases" multiple></label-select>
-        <label-select label="Win" id="wins" multiple></label-select>
-        <label-select label="Roles" id="roles" multiple></label-select>
-        <label-select label="Teams" id="team1s" multiple></label-select>
-        <label-select label="Players" id="player1s" multiple></label-select>
-        <label-select label="Gods"  id="god1s" multiple></label-select>
-        <label-select label="Opponent teams" id="team2s" multiple></label-select>
-        <label-select label="Opponent players" id="player2s" multiple></label-select>
-        <label-select label="Opponent gods"  id="god2s" multiple></label-select>
-        <label-select label="Relics" id="relics" multiple and></label-select>
-        <label-select label="Items"  id="items" multiple and></label-select>
+        <label-select label="Phases"  id="phase" multiple></label-select>
+        <label-select label="Win" id="win" multiple></label-select>
+        <label-select label="Roles" id="role" multiple></label-select>
+        <label-select label="Teams" id="team1" multiple></label-select>
+        <label-select label="Players" id="player1" multiple></label-select>
+        <label-select label="Gods"  id="god1" multiple></label-select>
+        <label-select label="Opponent teams" id="team2" multiple></label-select>
+        <label-select label="Opponent players" id="player2" multiple></label-select>
+        <label-select label="Opponent gods"  id="god2" multiple></label-select>
+        <label-select label="Relics" id="relic" multiple and></label-select>
+        <label-select label="Items"  id="item" multiple and></label-select>
         <button class="button" style="margin-left: 2rem" v-on:click="refresh(true)">Find builds</button>
       </div>
       <div v-show="build_count !== null" class="build-count">Found {{ build_count }} builds.</div>
@@ -124,7 +124,7 @@
         } else {
           for (const [key, vals] of Object.entries(this.filters)) {
             for (const val of vals) {
-              url += `&${key.slice(0, -1)}=${val}`
+              url += `&${key}=${val}`
             }
           }
         }
@@ -166,13 +166,13 @@
           this.filter_basic_role = basic_role
         }
 
-        for (const [keys, control] of Object.entries(this.controls)) {
+        for (const [key, control] of Object.entries(this.controls)) {
           const vals = control.get()
           for (const val of vals) {
-            url_fragment += `&${keys.slice(0, -1)}=${val}`
+            url_fragment += `&${key}=${val}`
           }
           if (vals.length > 0) {
-            this.filters[keys] = vals
+            this.filters[key] = vals
           }
         }
 
@@ -213,11 +213,10 @@
         search_params.delete('role~')
 
         for (const key of search_params.keys()) {
-          const keys = `${key}s`
-          if (this.controls[keys]) {
+          if (this.controls[key]) {
             const vals = search_params.getAll(key)
-            this.controls[keys].add(vals)
-            this.filters[keys] = vals
+            this.controls[key].add(vals)
+            this.filters[key] = vals
           }
         }
       },
@@ -233,8 +232,8 @@
       let options_future = this.get_options()
 
       // Construction.
-      this.select_basic_god1 = new SelectJsSingle('god1')
-      this.select_basic_role = new SelectJsSingle('role')
+      this.select_basic_god1 = new SelectJsSingle('basic-god1')
+      this.select_basic_role = new SelectJsSingle('basic-role')
       this.controls = {}
       const nodes = document.querySelectorAll('#advanced-row select')
       for (const node of nodes) {
@@ -243,8 +242,8 @@
 
       // Initialization.
       const options = await options_future
-      this.select_basic_god1.init(options['god1s'])
-      this.select_basic_role.init(options['roles'])
+      this.select_basic_god1.init(options['god1'])
+      this.select_basic_role.init(options['role'])
       for (const node of nodes) {
         this.controls[node.id].init(options[node.id])
       }
