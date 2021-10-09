@@ -41,9 +41,8 @@
 <script>
   import Build from './Build.vue'
   import LabelSelect from './LabelSelect.vue'
-  import TomSelect from 'tom-select'
-  import 'tom-select/dist/css/tom-select.css'
   import empty_url from '/images/empty.png'
+  import { SelectJsSingle, SelectJsMultiple } from './Controls.js'
 
   export default {
     components: {
@@ -59,17 +58,17 @@
     },
     methods: {
       clear_all_button() {
-        for (const select of Object.values(this.selects)) {
-          select.clear()
+        for (const control of Object.values(this.controls)) {
+          control.clear()
         }
       },
       refresh(prompted_by_button_click) {
         clearTimeout(this.watch_for_intersections_timeout)
         this.watch_for_intersections = false
         if (prompted_by_button_click) {
-          this.selects_to_filters_and_client_url()
+          this.controls_to_filters_and_client_url()
         } else {
-          this.client_url_to_selects_and_filters()
+          this.client_url_to_controls_and_filters()
         }
         this.reset_builds()
         this.get_builds()
@@ -142,7 +141,7 @@
         this.watch_for_intersections_timeout = setTimeout(()=>
           this.watch_for_intersections=true, 50)
       },
-      selects_to_filters_and_client_url() {
+      controls_to_filters_and_client_url() {
         this.filter_basic_god1 = undefined
         this.filter_basic_role = undefined
         this.filters = {}
@@ -156,19 +155,19 @@
           this.is_next_search_basic = false
         }
 
-        const basic_god1 = this.select_basic_god1.getValue()
+        const basic_god1 = this.select_basic_god1.get()
         if (basic_god1) {
           url_fragment += `&god1~=${basic_god1}`
           this.filter_basic_god1 = basic_god1
         }
-        const basic_role = this.select_basic_role.getValue()
+        const basic_role = this.select_basic_role.get()
         if (basic_role) {
           url_fragment += `&role~=${basic_role}`
           this.filter_basic_role = basic_role
         }
 
-        for (const [keys, select] of Object.entries(this.selects)) {
-          const vals = select.getValue()
+        for (const [keys, control] of Object.entries(this.controls)) {
+          const vals = control.get()
           for (const val of vals) {
             url_fragment += `&${keys.slice(0, -1)}=${val}`
           }
@@ -180,13 +179,13 @@
         let url_object = new URL(url_fragment, window.location.origin)
         history.pushState(undefined, '' , url_object.href)
       },
-      client_url_to_selects_and_filters() {
+      client_url_to_controls_and_filters() {
         this.select_basic_god1.clear()
         this.select_basic_role.clear()
         this.filter_basic_god1 = undefined
         this.filter_basic_role = undefined
-        for (const select of Object.values(this.selects)) {
-          select.clear()
+        for (const control of Object.values(this.controls)) {
+          control.clear()
         }
         this.filters = {}
 
@@ -202,31 +201,26 @@
 
         const basic_god1 = search_params.get('god1~')
         if (basic_god1) {
-          this.select_basic_god1.addItem(basic_god1)
+          this.select_basic_god1.add(basic_god1)
           this.filter_basic_god1 = basic_god1
         }
         search_params.delete('god1~')
         const basic_role = search_params.get('role~')
         if (basic_role) {
-          this.select_basic_role.addItem(basic_role)
+          this.select_basic_role.add(basic_role)
           this.filter_basic_role1 = basic_role
         }
         search_params.delete('role~')
 
         for (const key of search_params.keys()) {
           const keys = `${key}s`
-          if (this.selects[keys]) {
+          if (this.controls[keys]) {
             const vals = search_params.getAll(key)
-            for (const val of vals) {
-              this.selects[keys].addItem(val)
-            }
+            this.controls[keys].add(vals)
             this.filters[keys] = vals
           }
         }
       },
-      // ---
-      // The rest of these functions is called only on page load.
-      // ---
       async get_options() {
         let response = await fetch('/api/options')
         if (! response.ok) {
@@ -234,72 +228,27 @@
         }
         return await response.json()
       },
-      create_select(select) {
-        const and = select.getAttribute('and')
-        const placeholder = and === null ? 'or ...' : 'and ...'
-        return new TomSelect(`#${select.id}`, {
-          options: [{value: 1, text: 'Loading ...', disabled: true}],
-          placeholder: 'All',
-          hidePlaceholder: false,
-          plugins: ['no_active_items', 'remove_button', 'caret_position', 'clear_button'],
-          maxOptions: 999,
-          onItemAdd: function() {
-            this.settings.placeholder = placeholder
-            // Tom-select expects that the user will want to keep adding similar options.
-            this.setTextboxValue('')
-            this.refreshOptions(false)
-          },
-          onItemRemove: function() {
-            if (this.getValue().length === 0) {
-              this.settings.placeholder = 'All'
-              // Fix for the remove_button plugin.
-              document.getElementById(`${select.id}-ts-control`).setAttribute('placeholder', 'All')
-            }
-          }
-        })
-      },
-      create_select_single(id) {
-        return new TomSelect(`#${id}`, {
-          options: [{value: 1, text: 'Loading ...', disabled: true}],
-          placeholder: 'All',
-          hidePlaceholder: true,
-          plugins: ['no_active_items', 'remove_button'],
-          maxOptions: 999,
-          onItemRemove: function() {
-            if (this.getValue().length === 0) {
-              // Fix for the remove_button plugin AND the squishening when out of focus.
-              this.inputState()
-            }
-          }
-        })
-      },
-      update_select(select, options) {
-        options = options.map(option => {return {value: option, text: option}})
-        select.removeOption(1)
-        select.addOptions(options)
-        select.refreshOptions(false)
-      },
     },
     async mounted() {
       let options_future = this.get_options()
 
-      // Tom-selects.
-      this.select_basic_god1 = this.create_select_single('god1')
-      this.select_basic_role = this.create_select_single('role')
-      this.selects = {}
+      // Construction.
+      this.select_basic_god1 = new SelectJsSingle('god1')
+      this.select_basic_role = new SelectJsSingle('role')
+      this.controls = {}
       this.id_to_label = {}
-      const select_nodes = document.querySelectorAll('select[multiple]')
-      for (const node of select_nodes) {
+      const nodes = document.querySelectorAll('#advanced-row select')
+      for (const node of nodes) {
         this.id_to_label[node.id] = node.previousElementSibling.textContent
-        this.selects[node.id] = this.create_select(node)
+        this.controls[node.id] = new SelectJsMultiple(node)
       }
 
-      // Select options.
+      // Initialization.
       const options = await options_future
-      this.update_select(this.select_basic_god1, options['god1s'])
-      this.update_select(this.select_basic_role, options['roles'])
-      for (const node of select_nodes) {
-        this.update_select(this.selects[node.id], options[node.id])
+      this.select_basic_god1.init(options['god1s'])
+      this.select_basic_role.init(options['roles'])
+      for (const node of nodes) {
+        this.controls[node.id].init(options[node.id])
       }
 
       // Pagination.
