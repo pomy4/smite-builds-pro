@@ -39,7 +39,7 @@
       <div v-show="build_count !== null" class="build-count">Found {{ build_count }} builds.</div>
       <div class="build-column">
         <build v-for="build in builds" v-bind:key="build.id" v-bind:data="build"></build>
-        <div id="bottom-of-page"></div>
+        <div id="bottom-of-page">Loading options ...</div>
       </div>
     </div>
   </div>
