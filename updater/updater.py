@@ -78,7 +78,7 @@ def send_builds(config, builds):
     hmac_key = bytearray.fromhex(config[HMAC_KEY_HEX])
     builds_bytes = json.dumps(builds).encode('utf-8')
     hmac_obj = hmac.new(hmac_key, builds_bytes, hashlib.sha256)
-    headers = {'Authorization': hmac_obj.hexdigest()}
+    headers = {'X-HMAC-DIGEST-HEX': hmac_obj.hexdigest()}
     builds_resp = requests.post(f'{config[BACKEND_URL]}/api/builds', data=builds_bytes, headers=headers)
     better_raise_for_status(builds_resp)
 
