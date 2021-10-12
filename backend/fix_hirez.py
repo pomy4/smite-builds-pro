@@ -48,6 +48,14 @@ spear_of_deso = get_item('spear-of-desolation.jpg')
 divine_ruin = get_item('divine-ruin.jpg')
 soul_reaver = get_item('soul-reaver.jpg')
 spellbook = get_item('spellbook.jpg')
+manikin = get_item('manikin-scepter.jpg')
+pythags = get_item('pythagorems-piece.jpg')
+magus = get_item('spear-of-the-magus.jpg')
+bancroft_t2 = get_item('talon-trinket.jpg')
+conduit = get_item('conduit-gem.jpg')
+chronos = get_item('chronos-pendant.jpg')
+soul_gem = get_item('soul-gem.jpg')
+obs_shard = get_item('obsidian-shard.jpg')
 
 bss = get_image('blood-soaked-shroud.jpg')
 eps = get_image('8-pointed-shuriken.jpg')
@@ -124,3 +132,36 @@ if not Build.select().where((Build.match_id == 2736) & (Build.game_i == 2) & (Bu
         item3=divine_ruin, item4=spear_of_deso, item5=spellbook, item6=None)
     new.save()
 db.close()
+
+if not Build.select().where((Build.match_id == 2981) & (Build.game_i == 1) & (Build.player1 == 'oBoronic')).exists():
+    default = Build.select().where((Build.match_id == 2981) & (Build.game_i == 1) & (Build.player1 == 'Stuart')).get()
+    new = Build(season=default.season, league=default.league, phase=default.phase,
+        date=default.date, match_id=default.match_id, game_i=default.game_i,
+        win=default.win, game_length=default.game_length, kda_ratio=1,
+        kills=1, deaths=4, assists=3, role='Mid', god1='Sol', player1='oBoronic',
+        team1=default.team1, god2='Raijin', player2='Hurriwind', team2=default.team2,
+        relic1=beads, relic2=aegis, item1=manikin, item2=pythags,
+        item3=magus, item4=divine_ruin, item5=bancroft_t2, item6=None)
+    new.save()
+
+if not Build.select().where((Build.match_id == 2981) & (Build.game_i == 2) & (Build.player1 == 'oBoronic')).exists():
+    default = Build.select().where((Build.match_id == 2981) & (Build.game_i == 2) & (Build.player1 == 'Stuart')).get()
+    new = Build(season=default.season, league=default.league, phase=default.phase,
+        date=default.date, match_id=default.match_id, game_i=default.game_i,
+        win=default.win, game_length=default.game_length, kda_ratio=10,
+        kills=3, deaths=1, assists=7, role='Mid', god1='Raijin', player1='oBoronic',
+        team1=default.team1, god2='Tiamat', player2='Hurriwind', team2=default.team2,
+        relic1=beads, relic2=aegis, item1=conduit, item2=chronos,
+        item3=soul_gem, item4=soul_reaver, item5=obs_shard, item6=None)
+    new.save()
+
+if not Build.select().where((Build.match_id == 2981) & (Build.game_i == 3) & (Build.player1 == 'oBoronic')).exists():
+    default = Build.select().where((Build.match_id == 2981) & (Build.game_i == 3) & (Build.player1 == 'Stuart')).get()
+    new = Build(season=default.season, league=default.league, phase=default.phase,
+        date=default.date, match_id=default.match_id, game_i=default.game_i,
+        win=default.win, game_length=default.game_length, kda_ratio=5/3,
+        kills=2, deaths=3, assists=3, role='Mid', god1='Tiamat', player1='oBoronic',
+        team1=default.team1, god2='Sol', player2='Hurriwind', team2=default.team2,
+        relic1=beads, relic2=aegis, item1=conduit, item2=chronos,
+        item3=divine_ruin, item4=soul_reaver, item5=obs_shard, item6=None)
+    new.save()
