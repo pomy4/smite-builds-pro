@@ -1,6 +1,9 @@
 <template>
   <div class="section">
     <div class="container">
+      <div class="header-thing">
+        <div class="contact-info">Contact info:<br><a id="foo"></a></div>
+      </div>
       <div class="tabs is-centered is-medium is-boxed">
         <ul>
           <li v-on:click="is_in_basic_view=true"  v-bind:class="{ 'is-active':  is_in_basic_view }"><a>Basic search</a></li>
@@ -236,8 +239,17 @@
         }
         return await response.json()
       },
+      antispam() {
+        return ('hey' + 'there' + 'smite' + 'fans' + '.' + 'aggro' + 'here'
+          + 'alienware' + 'gmail' + '.' + 'com').replace('alienware', '@')
+      }
     },
     async mounted() {
+      const foo = document.getElementById('foo')
+      const bar = this.antispam()
+      foo.href = `mailto:${bar}`
+      foo.textContent = bar
+
       let options_future = this.get_options()
 
       // Construction.
@@ -284,6 +296,25 @@
 </script>
 
 <style>
+.header-thing {
+  display: flex;
+  margin-bottom: 1rem;
+  justify-content: center;
+}
+.contact-info {
+  text-align: center;
+}
+@media screen and (min-width: 1000px) {
+  .header-thing {
+    margin-bottom: 0rem;
+    justify-content: right;
+  }
+  .contact-info {
+    text-align: right;
+    position: relative;
+    top: 2.667rem;
+  }
+}
 .select-row {
   display: flex;
   column-gap: 1.333rem;
