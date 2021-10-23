@@ -2,6 +2,7 @@
   <div class="section">
     <div class="container">
       <div class="header-thing">
+        <div class="update-info"><a href="https://www.smiteproleague.com/schedule/">https://www.smiteproleague.com/schedule/</a><br>Last check: {{ last_check }}</div>
         <div class="contact-info">Contact info:<br><a id="foo"></a></div>
       </div>
       <div class="tabs is-centered is-medium is-boxed">
@@ -63,12 +64,20 @@
     },
     data() {
       return {
+        last_check: 'loading ...',
         is_in_basic_view: true,
         builds: [],
         build_count: null,
       }
     },
     methods: {
+      async fetch_or_throw(url) {
+        let response = await fetch(url)
+        if (! response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`)
+        }
+        return response
+      },
       clear_all_button() {
         for (const control of Object.values(this.controls)) {
           control.clear()
@@ -95,10 +104,7 @@
         let bottom_of_page = document.getElementById('bottom-of-page')
         bottom_of_page.textContent = 'Loading builds ...'
         let url = `/api/builds${this.filters_to_server_url_fragment()}`
-        let response = await fetch(url)
-        if (! response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`)
-        }
+        let response = await this.fetch_or_throw(url)
         let builds = await response.json()
         if (this.page === 1) {
           this.build_count = builds['count']
@@ -233,11 +239,12 @@
         }
       },
       async get_options() {
-        let response = await fetch('/api/options')
-        if (! response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`)
-        }
-        return await response.json()
+        let response = await this.fetch_or_throw('/api/options')
+        return response.json()
+      },
+      async get_and_update_last_check() {
+        let response = await this.fetch_or_throw('/api/last_check')
+        this.last_check = await response.text()
       },
       antispam() {
         return ('hey' + 'there' + 'smite' + 'fans' + '.' + 'aggro' + 'here'
@@ -245,12 +252,13 @@
       }
     },
     async mounted() {
+      let options_future = this.get_options()
+      this.get_and_update_last_check()
+
       const foo = document.getElementById('foo')
       const bar = this.antispam()
       foo.href = `mailto:${bar}`
       foo.textContent = bar
-
-      let options_future = this.get_options()
 
       // Construction.
       this.select_basic_god1 = new SelectJsSingle('basic-god1')
@@ -297,20 +305,38 @@
 
 <style>
 .header-thing {
+  margin-bottom: 3rem;
   display: flex;
-  margin-bottom: 1rem;
-  justify-content: center;
+  flex-direction: column;
+  row-gap: 0.667rem;
+}
+.update-info {
+  text-align: center;
 }
 .contact-info {
   text-align: center;
 }
-@media screen and (min-width: 1000px) {
+@media screen and (min-width: 750px) {
   .header-thing {
-    margin-bottom: 0rem;
-    justify-content: right;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  .update-info {
+    text-align: left;
   }
   .contact-info {
     text-align: right;
+  }
+}
+@media screen and (min-width: 1216px) {
+  .header-thing {
+    margin-bottom: 0rem;
+  }
+    .update-info {
+    position: relative;
+    top: 2.667rem;
+  }
+  .contact-info {
     position: relative;
     top: 2.667rem;
   }

@@ -22,7 +22,17 @@ Myitem = conlist(min_items=2, max_items=2, item_type=Mystr)
 app = Bottle()
 app.config['json.enable'] = False
 
-last_modified = datetime.datetime.now(datetime.timezone.utc)
+last_modified = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+
+def my_strftime(d):
+    return d.strftime('%d %b %Y %I:%M:%S %p (%Z)')
+
+last_check_filename = 'last_check.txt'
+try:
+    with open(last_check_filename, encoding='utf8') as f:
+        last_check_cached = my_strftime(datetime.datetime.fromisoformat(f.read().rstrip('\n')))
+except FileNotFoundError:
+    last_check_cached = 'unknown'
 
 @app.hook('before_request')
 def before():
@@ -145,24 +155,34 @@ class PostBuildsSchema(pydantic.BaseModel):
 @verify_integrity
 @validate_request_body(PostBuildsSchema)
 def builds_post(builds):
-    global last_modified
     if not builds:
         response.status = 204
-        return
-    try:
-        post_builds(builds)
-        last_modified = datetime.datetime.now(datetime.timezone.utc)
-        response.status = 201
-        return
-    except MyError as e:
-        response.status = 400
-        return str(e)
+    else:
+        try:
+            response.status = 201
+            post_builds(builds)
+        except MyError as e:
+            response.status = 400
+            return str(e)
+
+    datetime_now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+    with open(last_check_filename, 'w', encoding='utf8') as f:
+        f.write(datetime_now.isoformat())
+    global last_check_cached
+    last_check_cached = my_strftime(datetime_now)
+    if builds:
+        global last_modified
+        last_modified = datetime_now
 
 @app.get('/api/options')
 @cache_with_last_modified
 @jsonify
 def options():
     return get_options()
+
+@app.get('/api/last_check')
+def last_check():
+    return last_check_cached
 
 class GetBuildsSchema(pydantic.BaseModel):
     page: conlist(Myint, min_items=0, max_items=1)
