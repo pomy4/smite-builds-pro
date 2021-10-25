@@ -268,10 +268,3 @@ def post_builds(builds_request):
                 Build.create(**build)
         except IntegrityError:
             raise MyError('At least one of the builds is already in the database.')
-
-if __name__ == '__main__':
-    tables = [Item, Build]
-    db.connect()
-    db.drop_tables(tables)
-    db.create_tables(tables)
-    db.close()
