@@ -52,7 +52,7 @@ def cache_with_last_modified(func):
                     response.status = 304
                     return
             # Log this, but don't reject the request over it.
-            except ValueError:
+            except:
                 traceback.print_exc()
         result = func(*args, **kwargs)
         if response.status_code < 400:
