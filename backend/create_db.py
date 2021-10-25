@@ -1,7 +1,7 @@
-from models import Item, Build, db
+from models import LastModified, LastChecked, Item, Build, db
 
 if __name__ == '__main__':
-    tables = [Item, Build]
+    tables = [LastModified, LastChecked, Item, Build]
     db.connect()
     db.drop_tables(tables)
     db.create_tables(tables)

@@ -12,7 +12,8 @@ import pydantic
 from pydantic .types import *
 from dotenv import load_dotenv
 
-from models import STR_MAX_LEN, MyError, db, get_match_ids, post_builds, get_options, get_builds, WhereStrat
+from models import (STR_MAX_LEN, MyError, db, get_last_modified, update_last_modified,
+    get_last_checked, update_last_checked, get_match_ids, post_builds, get_options, get_builds, WhereStrat)
 
 Mystr = constr(min_length=1, max_length=STR_MAX_LEN, strict=False)
 Myint = conint(ge=0, strict=False)
@@ -22,17 +23,11 @@ Myitem = conlist(min_items=2, max_items=2, item_type=Mystr)
 app = Bottle()
 app.config['json.enable'] = False
 
-last_modified = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+def what_time_is_it():
+    return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
 
-def my_strftime(d):
+def format_last_checked(d):
     return d.strftime('%d %b %Y %I:%M:%S %p (%Z)')
-
-last_check_filename = 'last_check.txt'
-try:
-    with open(last_check_filename, encoding='utf8') as f:
-        last_check_cached = my_strftime(datetime.datetime.fromisoformat(f.read().rstrip('\n')))
-except FileNotFoundError:
-    last_check_cached = 'unknown'
 
 @app.hook('before_request')
 def before():
@@ -45,6 +40,9 @@ def after():
 def cache_with_last_modified(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
+        if not (last_modified := get_last_modified()):
+            return func(*args, **kwargs)
+        last_modified = last_modified.data
         if if_modified_since := request.get_header('If-Modified-Since'):
             try:
                 if_modified_since = datetime.datetime.fromisoformat(if_modified_since)
@@ -165,14 +163,10 @@ def builds_post(builds):
             response.status = 400
             return str(e)
 
-    datetime_now = datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
-    with open(last_check_filename, 'w', encoding='utf8') as f:
-        f.write(datetime_now.isoformat())
-    global last_check_cached
-    last_check_cached = my_strftime(datetime_now)
+    now = what_time_is_it()
+    update_last_checked(format_last_checked(now))
     if builds:
-        global last_modified
-        last_modified = datetime_now
+        update_last_modified(now)
 
 @app.get('/api/options')
 @cache_with_last_modified
@@ -182,7 +176,7 @@ def options():
 
 @app.get('/api/last_check')
 def last_check():
-    return last_check_cached
+    return last_checked.data if (last_checked := get_last_checked()) else 'unknown'
 
 class GetBuildsSchema(pydantic.BaseModel):
     page: conlist(Myint, min_items=0, max_items=1)

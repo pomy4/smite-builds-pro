@@ -29,6 +29,16 @@ class Base(Model):
         legacy_table_names = False
         database = db
 
+# Metadata tables.
+
+class LastModified(Base):
+    data = DateTimeField()
+
+class LastChecked(Base):
+    data = CharField(100)
+
+# Data tables.
+
 class Item(Base):
     name = CharField(30)
     name_was_modified = SmallIntegerField()
@@ -71,6 +81,19 @@ class Build(Base):
         indexes = (
             (('match_id', 'game_i', 'player1'), True),
         )
+
+def get_last_modified():
+    return LastModified.get_or_none()
+
+def update_last_modified(new_data: datetime.datetime):
+    # Peewee + SQLite does not support timezone aware datetimes.
+    LastModified.replace(id=1, data=new_data.replace(tzinfo=None)).execute()
+
+def get_last_checked():
+    return LastChecked.get_or_none()
+
+def update_last_checked(new_data: str):
+    LastChecked.replace(id=1, data=new_data).execute()
 
 def get_match_ids(phase):
     return [b[0] for b in Build.select(Build.match_id).where(Build.phase == phase).distinct().tuples()]
