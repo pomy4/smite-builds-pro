@@ -4,7 +4,7 @@ import os
 
 import updater
 
-if not (input := sys.argv[1:2]) and not (input := os.environ.get('SYSARG')):
+if not ((len(sys.argv) > 1) and (input := sys.argv[1])) and not (input := os.environ.get('SYSARG')):
   print('Supply filepath of a log please.')
   sys.exit(0)
 
