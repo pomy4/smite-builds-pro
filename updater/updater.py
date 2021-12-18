@@ -192,6 +192,8 @@ if __name__ == '__main__':
         options.add_argument('--lang=en-US')
         # https://stackoverflow.com/a/53970825
         options.add_argument('--disable-dev-shm-usage')
+        # https://stackoverflow.com/a/59724330
+        options.add_argument("window-size=1600,900")
         with webdriver.Chrome(options=options) as driver:
             driver.get(spl_schedule_url)
             driver.implicitly_wait(implicit_wait)
