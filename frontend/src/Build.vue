@@ -1,7 +1,7 @@
 <template>
   <div class="build-row block box">
     <!--<div class="metadata-row">-->
-      <div class="my-column" style="width: 8.333rem">
+      <div class="my-column" style="width: 12rem">
         <span><span>Season </span><span>{{ data.season }}</span></span>
         <span><span>{{ data.league }}</span></span>
         <span><span>{{ data.phase }}</span></span>
