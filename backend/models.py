@@ -16,7 +16,7 @@ upgrade_suffix = ' Upgrade'
 
 min_request_delay = 0.25
 
-STR_MAX_LEN = 30
+STR_MAX_LEN = 50
 PAGE_SIZE = 10
 
 class MyError(Exception):
@@ -40,9 +40,9 @@ class LastChecked(Base):
 # Data tables.
 
 class Item(Base):
-    name = CharField(30)
+    name = CharField(STR_MAX_LEN)
     name_was_modified = SmallIntegerField()
-    image_name = CharField(30)
+    image_name = CharField(STR_MAX_LEN)
     image_data = BlobField(null=True)
     class Meta:
         indexes = (
