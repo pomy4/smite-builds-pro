@@ -189,7 +189,8 @@ if __name__ == '__main__':
         options = webdriver.ChromeOptions()
         options.add_argument('--headless')
         options.add_argument('--disable-gpu')
-        options.add_argument('--lang=en-US')
+        # https://stackoverflow.com/a/55254431
+        options.add_experimental_option('prefs', {'intl.accept_languages': 'en,en_US'})
         # https://stackoverflow.com/a/53970825
         options.add_argument('--disable-dev-shm-usage')
         # https://stackoverflow.com/a/59724330
