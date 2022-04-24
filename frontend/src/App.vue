@@ -18,8 +18,8 @@
       </div>
       <div v-show="!is_in_basic_view" class="select-row" id="advanced-row">
         <button class="button" style="margin-right: 2rem" v-on:click="clear_all_button">Clear all</button>
-        <!-- <label-select label="Seasons" id="seasons" multiple></label-select>
-        <label-select label="Leagues" id="leagues" multiple></label-select> -->
+        <label-select label="Seasons" id="season" multiple></label-select>
+        <label-select label="Leagues" id="league" multiple></label-select>
         <label-select label="Phases" id="phase" multiple></label-select>
         <label-slider label="Date" id="date" format="date"></label-slider>
         <label-select label="Game #" id="game_i" multiple></label-select>

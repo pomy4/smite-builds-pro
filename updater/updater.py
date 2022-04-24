@@ -8,14 +8,29 @@ import hmac
 import hashlib
 import os
 import math
+import dataclasses
 
 import requests
 from selenium import webdriver
 import tqdm
 from dotenv import dotenv_values
 
-spl_schedule_url = 'https://www.smiteproleague.com/schedule'
-spl_matches_url = 'https://www.smiteproleague.com/matches'
+@dataclasses.dataclass
+class League:
+    name: str
+    schedule_url: str
+    matches_url: str
+
+spl = League(
+    name="SPL",
+    schedule_url="https://www.smiteproleague.com/schedule",
+    matches_url="https://www.smiteproleague.com/matches",
+)
+scc = League(
+    name="SCC",
+    schedule_url="https://scc.smiteproleague.com/schedule",
+    matches_url="https://scc.smiteproleague.com/matches",
+)
 cdn_images_url = 'https://webcdn.hirezstudios.com/smite/item-icons'
 min_click_delay = 0.5
 implicit_wait = 3
@@ -82,10 +97,11 @@ def send_builds(config, builds):
     builds_resp = requests.post(f'{config[BACKEND_URL]}/api/builds', data=builds_bytes, headers=headers)
     better_raise_for_status(builds_resp)
 
-def scrape_match(driver, phase, month, day, match_url, match_id):
+def scrape_match(league, driver, phase, month, day, match_url, match_id):
+    builds_all = []
+    games = []
     for _ in range(match_url_retries):
         driver.get(match_url)
-        builds_all = []
         games = driver.find_elements_by_class_name('game-btn')
         if games:
             break
@@ -138,7 +154,7 @@ def scrape_match(driver, phase, month, day, match_url, match_id):
                 relics = [item(x) for x in relics.find_elements_by_tag_name('img')]
                 items = [item(x) for x in items.find_elements_by_tag_name('img')]
                 # Optional values: year, season.
-                new_build = {'league': 'SPL', 'phase': phase, 'month': month, 'day': day, 'game_i': game_i,
+                new_build = {'league': league, 'phase': phase, 'month': month, 'day': day, 'game_i': game_i,
                     'match_id': match_id, 'win' : wins[table_i], 'hours': hours, 'minutes': minutes, 'seconds': seconds,
                     'kda_ratio': (kills + assists) / (deaths if deaths > 0 else 1),
                     'kills': kills, 'deaths': deaths, 'assists': assists, 'role': role,
@@ -198,57 +214,58 @@ if __name__ == '__main__':
         # https://stackoverflow.com/a/59724330
         options.add_argument("window-size=1600,900")
         with webdriver.Chrome(options=options) as driver:
-            driver.get(spl_schedule_url)
-            driver.implicitly_wait(implicit_wait)
+            for league in [spl, scc]:
+                driver.get(league.schedule_url)
+                driver.implicitly_wait(implicit_wait)
 
-            cookie_accept_button = driver.find_element_by_class_name('approve')
-            cookie_accept_button.click()
-            time.sleep(0.1)
+                cookie_accept_button = driver.find_element_by_class_name('approve')
+                cookie_accept_button.click()
+                time.sleep(0.1)
 
-            phase_elems = driver.find_elements_by_class_name('phase')
-            phases = [text(phase_elem) for phase_elem in phase_elems]
+                phase_elems = driver.find_elements_by_class_name('phase')
+                phases = [text(phase_elem) for phase_elem in phase_elems]
 
-            # Backend stuff.
-            all_match_ids_resp = requests.post(f'{config[BACKEND_URL]}/api/phases', json=phases)
-            better_raise_for_status(all_match_ids_resp)
-            all_match_ids = all_match_ids_resp.json()
-            assert len(phases) == len(all_match_ids)
+                # Backend stuff.
+                all_match_ids_resp = requests.post(f'{config[BACKEND_URL]}/api/phases', json=phases)
+                better_raise_for_status(all_match_ids_resp)
+                all_match_ids = all_match_ids_resp.json()
+                assert len(phases) == len(all_match_ids)
 
-            # Some more scraping stuff.
-            to_scrape = []
-            for phase_elem, phase, match_ids in zip(phase_elems, phases, all_match_ids):
-                match_ids = set(match_ids)
-                phase_elem.click()
-                start = time.time()
-                day_elems = driver.find_elements_by_class_name('day')
-                for day_elem in day_elems:
-                    date = text(day_elem.find_element_by_class_name('date'))
-                    _, month, day = date.split(' ')
-                    month = month_to_i[month]
-                    day = number(day)
-                    result_link_elems = day_elem.find_elements_by_class_name('results')
-                    for result_link_elem in result_link_elems:
-                        match_url = result_link_elem.get_attribute('href')
-                        match_id = number(match_url.split('/')[-1])
-                        if match_id not in match_ids:
-                            to_scrape.append((phase, month, day, match_url, match_id))
-                        else:
-                            logging.info(f'Skipping|{phase}|{match_id}')
-                click_delay(start)
+                # Some more scraping stuff.
+                to_scrape = []
+                for phase_elem, phase, match_ids in zip(phase_elems, phases, all_match_ids):
+                    match_ids = set(match_ids)
+                    phase_elem.click()
+                    start = time.time()
+                    day_elems = driver.find_elements_by_class_name('day')
+                    for day_elem in day_elems:
+                        date = text(day_elem.find_element_by_class_name('date'))
+                        _, month, day = date.split(' ')
+                        month = month_to_i[month]
+                        day = number(day)
+                        result_link_elems = day_elem.find_elements_by_class_name('results')
+                        for result_link_elem in result_link_elems:
+                            match_url = result_link_elem.get_attribute('href')
+                            match_id = number(match_url.split('/')[-1])
+                            if match_id not in match_ids:
+                                to_scrape.append((phase, month, day, match_url, match_id))
+                            else:
+                                logging.info(f'Skipping|{phase}|{match_id}')
+                    click_delay(start)
 
-            builds = []
-            for phase, month, day, match_url, match_id in tqdm.tqdm(to_scrape):
-                logging.info(f'Scraping|{phase}|{match_id}')
-                try:
-                    if (base_url := '/'.join(match_url.split('/')[:-1])) != spl_matches_url:
-                        logging.warning(f'Unknown URL for the SPL matches|{base_url}')
-                    new_builds = scrape_match(driver, phase, month, day, match_url, match_id)
-                    builds.extend(new_builds)
-                except Exception as e:
-                    logging.exception(e)
+                builds = []
+                for phase, month, day, match_url, match_id in tqdm.tqdm(to_scrape):
+                    logging.info(f'Scraping|{phase}|{match_id}')
+                    try:
+                        if (base_url := '/'.join(match_url.split('/')[:-1])) != league.matches_url:
+                            logging.warning(f'Unknown URL for the SPL matches|{base_url}')
+                        new_builds = scrape_match(league.name, driver, phase, month, day, match_url, match_id)
+                        builds.extend(new_builds)
+                    except Exception as e:
+                        logging.exception(e)
 
-            # Some more backend stuff.
-            send_builds(config, builds)
+                # Some more backend stuff.
+                send_builds(config, builds)
 
     except BaseException as e:
         logging.exception(e)
