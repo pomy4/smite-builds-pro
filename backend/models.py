@@ -13,6 +13,7 @@ cdn_images_url = 'https://webcdn.hirezstudios.com/smite/item-icons'
 
 evolved_prefix = 'Evolved '
 upgrade_suffix = ' Upgrade'
+greater_prefix = 'Greater '
 
 min_request_delay = 0.25
 
@@ -134,14 +135,20 @@ def no_img(item):
     return item.id, item.name, item.name_was_modified, item.image_name
 
 def unmodify_relic_name(relic):
-    if relic and relic['name_was_modified'] == 1:
+    if not relic or 'name_was_modified' not in relic:
+        return
+    if relic['name_was_modified'] == 1:
         relic['name'] = relic['name'] + upgrade_suffix
-        del relic['name_was_modified']
+    elif relic['name_was_modified'] == 3:
+        relic['name'] = greater_prefix + relic['name']
+    del relic['name_was_modified']
 
 def unmodify_item_name(item):
-    if item and item['name_was_modified'] == 2:
+    if not item or 'name_was_modified' not in item:
+        return
+    if item['name_was_modified'] == 2:
         item['name'] = evolved_prefix + item['name']
-        del item['name_was_modified']
+    del item['name_was_modified']
 
 class WhereStrat(enum.Enum):
     match = enum.auto()
@@ -251,6 +258,9 @@ def post_builds(builds_request):
             elif not is_relic and name.startswith(evolved_prefix):
                 modified_name = name[len(evolved_prefix):]
                 name_was_modified = 2
+            elif is_relic and name.startswith(greater_prefix):
+                modified_name = name[len(greater_prefix):]
+                name_was_modified = 3
             start = time.time()
             try:
                 request = urllib.request.Request(f'{cdn_images_url}/{image_name}', headers={'User-Agent': 'Mozilla'})
