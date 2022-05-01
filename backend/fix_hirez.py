@@ -26,39 +26,37 @@ def get_image(image_name):
         return image_data
     # except urllib.error.URLError as e:
 
-def get_item(image_name):
+def get_item(image_name, index):
     items = list(Item.select().where(Item.image_name==image_name))
-    assert len(items) == 1
-    return items[0]
+    return items[index]
 
 db.connect()
 
-sunder = get_item('sundering-spear.jpg')
-sunder_upgrade = get_item('sundering-spear-upgrade.jpg')
-beads = get_item('purification-beads.jpg')
-beads_upgrade = get_item('purification-beads-upgrade.jpg')
-aegis = get_item('aegis-amulet.jpg')
-blink = get_item('blink-rune.jpg')
-frenzy = get_item('belt-of-frenzy.jpg')
-ankh_upgrade = get_item('cursed-ankh-upgrade.jpg')
-horrific_upgrade = get_item('horrific-emblem-upgrade.jpg')
-vamp_shroud = get_item('vampiric-shroud.jpg')
-charon = get_item('charons-coin.jpg')
-spear_of_deso = get_item('spear-of-desolation.jpg')
-divine_ruin = get_item('divine-ruin.jpg')
-soul_reaver = get_item('soul-reaver.jpg')
-spellbook = get_item('spellbook.jpg')
-manikin = get_item('manikin-scepter.jpg')
-pythags = get_item('pythagorems-piece.jpg')
-magus = get_item('spear-of-the-magus.jpg')
-bancroft_t2 = get_item('talon-trinket.jpg')
-conduit = get_item('conduit-gem.jpg')
-chronos = get_item('chronos-pendant.jpg')
-soul_gem = get_item('soul-gem.jpg')
-obs_shard = get_item('obsidian-shard.jpg')
+# SEASON 8
 
-bss = get_image('blood-soaked-shroud.jpg')
-eps = get_image('8-pointed-shuriken.jpg')
+sunder = get_item('sundering-spear.jpg', 0)
+sunder_upgrade = get_item('sundering-spear-upgrade.jpg', 0)
+beads = get_item('purification-beads.jpg', 0)
+beads_upgrade = get_item('purification-beads-upgrade.jpg', 0)
+aegis = get_item('aegis-amulet.jpg', 0)
+blink = get_item('blink-rune.jpg', 0)
+frenzy = get_item('belt-of-frenzy.jpg', 0)
+ankh_upgrade = get_item('cursed-ankh-upgrade.jpg', 0)
+horrific_upgrade = get_item('horrific-emblem-upgrade.jpg', 0)
+vamp_shroud = get_item('vampiric-shroud.jpg', 0)
+charon = get_item('charons-coin.jpg', 0)
+spear_of_deso = get_item('spear-of-desolation.jpg', 0)
+divine_ruin = get_item('divine-ruin.jpg', 0)
+soul_reaver = get_item('soul-reaver.jpg', 0)
+spellbook = get_item('spellbook.jpg', 0)
+manikin = get_item('manikin-scepter.jpg', 0)
+pythags = get_item('pythagorems-piece.jpg', 0)
+magus = get_item('spear-of-the-magus.jpg', 0)
+bancroft_t2 = get_item('talon-trinket.jpg', 0)
+conduit = get_item('conduit-gem.jpg', 0)
+chronos = get_item('chronos-pendant.jpg', 0)
+soul_gem = get_item('soul-gem.jpg', 0)
+obs_shard = get_item('obsidian-shard.jpg', 0)
 
 rename(Item,
     Item.image_name == 'bloodsoaked-shroud.jpg',
@@ -68,10 +66,10 @@ rename(Item,
     'image_name', '8-pointed-shuriken.jpg')
 rename(Item,
     (Item.image_name == 'blood-soaked-shroud.jpg') & (Item.image_data == None),
-    'image_data', bss)
+    'image_data', get_image('blood-soaked-shroud.jpg'))
 rename(Item,
     (Item.image_name == '8-pointed-shuriken.jpg') & (Item.image_data == None),
-    'image_data', eps)
+    'image_data', get_image('8-pointed-shuriken.jpg'))
 rename(Build,
     Build.player1 == 'AwesomeJake408',
     'player1', 'Awesomejake408')
@@ -177,5 +175,80 @@ if not Build.select().where((Build.match_id == 2981) & (Build.game_i == 3) & (Bu
         relic1=beads, relic2=aegis, item1=conduit, item2=chronos,
         item3=divine_ruin, item4=soul_reaver, item5=obs_shard, item6=None)
     new.save()
+
+# Too lazy to fix
+# Boronic missing
+# 1445|8|SPL|Phase 2|2021-07-23|2736|1|1|00:24:37|12.0|8|0|4|Mid|Tiamat|Venenu|BOLTS|Missing data|Missing data|SOLAR|1|2|186|64|163|62|97|153
+# 1454|8|SPL|Phase 2|2021-07-23|2736|2|1|00:20:20|11.0|6|0|5|Mid|Vulcan|Venenu|BOLTS|Missing data|Missing data|SOLAR|1|2|192|64|163|97|7|
+# 2980|8|SPL|Phase 3|2021-10-02|2981|1|1|00:23:39|4.5|3|2|6|Mid|Raijin|Hurriwind|JADE|Missing data|Missing data|SOLAR|1|2|135|102|65|82|7|
+# 2993|8|SPL|Phase 3|2021-10-02|2981|2|0|00:24:49|8.0|3|1|5|Mid|Tiamat|Hurriwind|JADE|Missing data|Missing data|SOLAR|1|2|135|102|65|7|82|44
+# 2998|8|SPL|Phase 3|2021-10-02|2981|3|1|00:26:01|6.5|4|2|9|Mid|Sol|Hurriwind|JADE|Missing data|Missing data|SOLAR|1|2|232|64|163|62|63|
+# duck3y missing
+# 4188|8|SPL|SWC Placements - Group B|2021-12-16|3376|1|1|00:21:06|14.0|7|1|7|Jungle|Gilgamesh|LASBRA|BOLTS|Missing data|Missing data|VALKS|1|9|60|229|105|51|15|180
+# 4197|8|SPL|SWC Placements - Group B|2021-12-16|3376|2|1|00:23:10|6.0|3|0|3|Jungle|Cliodhna|LASBRA|BOLTS|Missing data|Missing data|VALKS|1|2|93|105|122|77|108|78
+# 4202|8|SPL|SWC Placements - Group B|2021-12-16|3376|3|1|00:27:35|10.0|3|0|7|Jungle|Loki|LASBRA|BOLTS|Missing data|Missing data|VALKS|1|9|15|132|77|54|106|
+
+# SEASON 9
+
+rename_v2(Build,
+    (Build.match_id == 3528) & (Build.game_i == 1) & (Build.player1 == 'Benji') & (Build.role == 'Coach'),
+    role='Solo', player2='Jarcorrr', god2='Bellona')
+rename_v2(Build,
+    (Build.match_id == 3528) & (Build.game_i == 1) & (Build.player1 == 'Jarcorrr') & (Build.player2 == 'Missing data'),
+    player2='Benji', god2='Cthulhu')
+rename_v2(Build,
+    (Build.match_id == 3559) & (Build.game_i == 1) & (Build.player1 == 'JinguBang') & (Build.role == 'Sub'),
+    role='Jungle', player2='Oathhh', god2='Susano')
+rename_v2(Build,
+    (Build.match_id == 3559) & (Build.game_i == 1) & (Build.player1 == 'ChinFu') & (Build.role == 'Jungle'),
+    role='ADC', player2='dudemanbro429', god2='Medusa')
+rename_v2(Build,
+    (Build.match_id == 3559) & (Build.game_i == 1) & (Build.player1 == 'dudemanbro429') & (Build.player2 == 'Missing data'),
+    player2='ChinFu', god2='Jing Wei')
+rename_v2(Build,
+    (Build.match_id == 3567) & (Build.game_i == 1) & (Build.player1 == 'dudemanbro429') & (Build.role == 'Sub'),
+    role='ADC', player2='oGryph', god2='Heimdallr')
+rename_v2(Build,
+    (Build.match_id == 3567) & (Build.game_i == 1) & (Build.player1 == 'oGryph') & (Build.player2 == 'Missing data'),
+    player2='dudemanbro429', god2='Medusa')
+rename_v2(Build,
+    (Build.match_id == 3567) & (Build.game_i == 2) & (Build.player1 == 'dudemanbro429') & (Build.role == 'Sub'),
+    role='ADC', player2='oGryph', god2='Heimdallr')
+rename_v2(Build,
+    (Build.match_id == 3567) & (Build.game_i == 2) & (Build.player1 == 'oGryph') & (Build.player2 == 'Missing data'),
+    player2='dudemanbro429', god2='Medusa')
+rename_v2(Build,
+    (Build.match_id == 3567) & (Build.game_i == 3) & (Build.player1 == 'dudemanbro429') & (Build.role == 'Sub'),
+    role='ADC', player2='oGryph', god2='Chiron')
+rename_v2(Build,
+    (Build.match_id == 3567) & (Build.game_i == 3) & (Build.player1 == 'oGryph') & (Build.player2 == 'Missing data'),
+    player2='dudemanbro429', god2='Medusa')
+rename_v2(Build,
+    (Build.match_id == 3569) & (Build.game_i == 1) & (Build.player1 == 'dudemanbro429') & (Build.role == 'Sub'),
+    role='ADC', player2='Hydrogen', god2='Charybdis')
+rename_v2(Build,
+    (Build.match_id == 3569) & (Build.game_i == 1) & (Build.player1 == 'Hydrogen') & (Build.player2 == 'Missing data'),
+    player2='dudemanbro429', god2='Medusa')
+rename_v2(Build,
+    (Build.match_id == 3569) & (Build.game_i == 2) & (Build.player1 == 'dudemanbro429') & (Build.role == 'Sub'),
+    role='ADC', player2='Hydrogen', god2='Jing Wei')
+rename_v2(Build,
+    (Build.match_id == 3569) & (Build.game_i == 2) & (Build.player1 == 'Hydrogen') & (Build.player2 == 'Missing data'),
+    player2='dudemanbro429', god2='Medusa')
+
+# Too lazy to fix
+# Set missing
+# Pre-Season Friday, March 25 Atlantis Leviathans VS Valhalla Valkyries LVTHN 2 - 0 VALKS (match_id 3472)
+# slaaaaaaasH missing
+# 5622|9|SCC|NA Phase 1|2022-03-31|3550|1|0|00:34:55|0.0|0|5|0|Solo|Cliodhna|Remakami|HOUND|Missing data|Missing data|SAGES|258|256|29|70|257|31|51|15
+# 5635|9|SCC|NA Phase 1|2022-03-31|3550|2|1|00:28:26|5.0|1|0|4|Solo|Odin|Remakami|HOUND|Missing data|Missing data|SAGES|258|260|202|229|257|31|124|155
+# 5644|9|SCC|NA Phase 1|2022-03-31|3550|3|1|00:24:09|5.0|1|0|4|Solo|Osiris|Remakami|HOUND|Missing data|Missing data|SAGES|258|260|171|229|30|47|115|124
+# 5757|9|SCC|NA Phase 1|2022-04-09|3561|1|1|00:39:04|2.25|2|4|7|Solo|Jormungandr|Uzzy|STORM|Missing data|Missing data|SAGES|278|287|139|257|219|176|87|124
+# 5770|9|SCC|NA Phase 1|2022-04-09|3561|2|1|00:31:25|7.0|1|1|6|Solo|Camazotz|Uzzy|STORM|Missing data|Missing data|SAGES|273|275|202|47|229|51|70|32
+# 5805|9|SCC|NA Phase 1|2022-04-14|3562|1|1|00:22:33|8.0|2|1|6|Solo|Sun Wukong|RelentlessOne|WRDNS|Missing data|Missing data|SAGES|273|269|29|70|229|32|214|
+# 5818|9|SCC|NA Phase 1|2022-04-14|3562|2|1|00:23:51|6.5|4|2|9|Solo|Amaterasu|RelentlessOne|WRDNS|Missing data|Missing data|SAGES|282|275|190|47|128|140|51|
+# CaptainQuig missing
+# 5706|9|SCC|NA Phase 1|2022-04-07|3559|1|0|00:31:59|1.75|2|4|5|Support|Atlas|Dashboarřd|WEAVE|Missing data|Missing data|HOUND|264|258|17|19|87|128|20|
+# 5715|9|SCC|NA Phase 1|2022-04-07|3559|2|0|00:31:20|0.625|0|8|5|Support|Khepri|Dashboarřd|WEAVE|Missing data|Missing data|HOUND|268|264|34|19|20|128||
 
 import update_last_modified
