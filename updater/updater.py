@@ -11,6 +11,7 @@ import math
 import dataclasses
 
 import requests
+import selenium.common.exceptions
 from selenium import webdriver
 import tqdm
 from dotenv import dotenv_values
@@ -102,6 +103,19 @@ def scrape_match(league, driver, phase, month, day, match_url, match_id):
     games = []
     for _ in range(match_url_retries):
         driver.get(match_url)
+
+        # Sometimes the match page is just a single h1 element saying there are no
+        # stats, so this code attempts to idenfity this situation to avoid a false
+        # positive Scraped zero builds exception.
+        try:
+            match_details = driver.find_element_by_class_name('match-details')
+            no_stats = match_details.find_element_by_tag_name('h1')
+            if text(no_stats) == 'There are no stats for this match':
+                logging.info('There are no stats for this match')
+                return []
+        except selenium.common.exceptions.NoSuchElementException:
+            pass
+
         games = driver.find_elements_by_class_name('game-btn')
         if games:
             break

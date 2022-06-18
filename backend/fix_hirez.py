@@ -238,7 +238,9 @@ rename_v2(Build,
 
 # Too lazy to fix
 # Set missing
-# Pre-Season Friday, March 25 Atlantis Leviathans VS Valhalla Valkyries LVTHN 2 - 0 VALKS (match_id 3472)
+# Pre-Season Friday, 2022 March 25 Atlantis Leviathans VS Valhalla Valkyries LVTHN 2 - 0 VALKS (match_id 3472)
+# and also all 2022 SCC EU Phase 1 matches from April 14 onwards
+# and also all 2022 SCC Phase 2 matches which happened so far (June 9 - 17)
 # slaaaaaaasH missing
 # 5622|9|SCC|NA Phase 1|2022-03-31|3550|1|0|00:34:55|0.0|0|5|0|Solo|Cliodhna|Remakami|HOUND|Missing data|Missing data|SAGES|258|256|29|70|257|31|51|15
 # 5635|9|SCC|NA Phase 1|2022-03-31|3550|2|1|00:28:26|5.0|1|0|4|Solo|Odin|Remakami|HOUND|Missing data|Missing data|SAGES|258|260|202|229|257|31|124|155
