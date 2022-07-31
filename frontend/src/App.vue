@@ -150,7 +150,11 @@
       },
       handle_img(item) {
         if (item) {
-          return {'name': item.name, 'src': 'https://webcdn.hirezstudios.com/smite/item-icons/' + item.image_name}
+          if (item.image_data) {
+            return {'name': item.name, 'src': 'data:image/png;base64,' + item.image_data}
+          } else {
+            return {'name': item.name, 'src': 'https://webcdn.hirezstudios.com/smite/item-icons/' + item.image_name}
+          }
         } else {
           return {'name': 'Empty', 'src': empty_url}
         }

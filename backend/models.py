@@ -1,12 +1,16 @@
 from peewee import *
 from peewee import Expression
 from playhouse.shortcuts import model_to_dict, dict_to_model
+from PIL import Image, UnidentifiedImageError
 import datetime
 import urllib.request
 import urllib.error
 import time
 import enum
 import typing
+import base64
+import io
+from pathlib import Path
 
 spl_matches_url = 'https://www.smiteproleague.com/matches'
 cdn_images_url = 'https://webcdn.hirezstudios.com/smite/item-icons'
@@ -180,9 +184,8 @@ def get_builds(builds_request):
                 tmp = getattr(Build, key)
                 where = where & (vals[0] <= tmp) & (tmp <= vals[1])
 
-    query = Build.select(Build, *no_img(Relic1), *no_img(Relic2),
-            *no_img(Item1), *no_img(Item2), *no_img(Item3),
-            *no_img(Item4), *no_img(Item5), *no_img(Item6)) \
+    query = Build.select(
+        Build, Relic1, Relic2, Item1, Item2, Item3, Item4, Item5, Item6) \
         .join_from(Build, Relic1, JOIN.LEFT_OUTER, Build.relic1) \
         .join_from(Build, Relic2, JOIN.LEFT_OUTER, Build.relic2) \
         .join_from(Build, Item1, JOIN.LEFT_OUTER, Build.item1) \
@@ -271,8 +274,23 @@ def post_builds(builds_request):
             except urllib.error.URLError:
                 image_data = None
             request_delay(start)
-            item, _ = Item.get_or_create(name=modified_name, name_was_modified=name_was_modified,
-                image_name=image_name, image_data=image_data)
+
+            try:
+                b64_image_data, was_compressed = compress_and_base64_image(image_data)
+            # OSError can be thrown while saving as JPEG.
+            except (UnidentifiedImageError, OSError):
+                b64_image_data, was_compressed = None, False
+
+            item, was_new = Item.get_or_create(
+                name=modified_name,
+                name_was_modified=name_was_modified,
+                image_name=image_name,
+                image_data=b64_image_data
+            )
+
+            if was_compressed and was_new:
+                save_item_icon_to_archive(item, image_data)
+
             items_request[(name, image_name)] = item.id
         # Create builds.
         for build in builds_request:
@@ -303,3 +321,28 @@ def post_builds(builds_request):
                 Build.create(**build)
         except IntegrityError:
             raise MyError('At least one of the builds is already in the database.')
+
+
+def compress_and_base64_image(image_data: bytes) -> typing.Tuple[bytes, bool]:
+    image = Image.open(io.BytesIO(image_data))
+    min_side = min(image.size)
+    if image.format != "JPEG" or min_side > 128:
+        multiplier = min_side / 128
+        new_size = round(image.size[0] / multiplier), round(image.size[1] / multiplier)
+        image = image.resize(new_size, Image.Resampling.LANCZOS)
+        if image.mode == "RGBA":
+            image = image.convert("RGB")
+        b = io.BytesIO()
+        image.save(b, 'JPEG')
+        image_data = b.getvalue()
+        was_compressed = True
+    else:
+        was_compressed = False
+    return base64.b64encode(image_data), was_compressed
+
+
+def save_item_icon_to_archive(item: Item, image_data: bytes) -> None:
+    item_icons_archive_dir = Path("item_icons_archive")
+    item_icons_archive_dir.mkdir(exist_ok=True)
+    image_path = item_icons_archive_dir / f"{item.id}-{item.image_name}"
+    image_path.write_bytes(image_data)

@@ -105,10 +105,16 @@ def jsonify(func):
     def wrapper(*args, **kwargs):
         result = func(*args, **kwargs)
         if response.status_code < 400 and result is not None:
-            result = json.dumps(result, indent=2)
+            result = json.dumps(result, indent=2, cls=BytesEncoder)
             response.content_type = 'application/json'
         return result
     return wrapper
+
+class BytesEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            return obj.decode("ascii")
+        return json.JSONEncoder.default(self, obj)
 
 class PhasesSchema(pydantic.BaseModel):
     __root__: List[Mystr]
