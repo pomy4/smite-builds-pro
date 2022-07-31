@@ -141,7 +141,6 @@ if not Build.select().where((Build.match_id == 2736) & (Build.game_i == 2) & (Bu
         relic1=beads, relic2=aegis, item1=vamp_shroud, item2=charon,
         item3=divine_ruin, item4=spear_of_deso, item5=spellbook, item6=None)
     new.save()
-db.close()
 
 if not Build.select().where((Build.match_id == 2981) & (Build.game_i == 1) & (Build.player1 == 'oBoronic')).exists():
     default = Build.select().where((Build.match_id == 2981) & (Build.game_i == 1) & (Build.player1 == 'Stuart')).get()
@@ -254,3 +253,4 @@ rename_v2(Build,
 # 5715|9|SCC|NA Phase 1|2022-04-07|3559|2|0|00:31:20|0.625|0|8|5|Support|Khepri|Dashboarřd|WEAVE|Missing data|Missing data|HOUND|268|264|34|19|20|128||
 
 import update_last_modified
+db.close()

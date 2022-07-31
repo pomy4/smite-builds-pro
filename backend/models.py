@@ -23,7 +23,7 @@ PAGE_SIZE = 10
 class MyError(Exception):
     pass
 
-db = SqliteDatabase('backend.db')
+db = SqliteDatabase('backend.db', autoconnect=False)
 
 class Base(Model):
     class Meta:
