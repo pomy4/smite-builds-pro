@@ -1,12 +1,7 @@
 import sys
 
-from models import (
-    Item,
-    compress_and_base64_image,
-    db,
-    no_img,
-    save_item_icon_to_archive,
-)
+from models import (Item, compress_and_base64_image, db, no_img,
+                    save_item_icon_to_archive)
 
 
 def images_to_base64():
