@@ -235,6 +235,13 @@ rename_v2(Build,
     (Build.match_id == 3569) & (Build.game_i == 2) & (Build.player1 == 'Hydrogen') & (Build.player2 == 'Missing data'),
     player2='dudemanbro429', god2='Medusa')
 
+rename(Item,
+    Item.image_name == 'faeblessed-hoops.jpg',
+    'image_name', 'fae-blessed-hoops.jpg')
+rename(Item,
+    (Item.image_name == 'fae-blessed-hoops.jpg') & (Item.image_data == None),
+    'image_data', get_image('fae-blessed-hoops.jpg'))
+
 # Too lazy to fix
 # Set missing
 # Pre-Season Friday, 2022 March 25 Atlantis Leviathans VS Valhalla Valkyries LVTHN 2 - 0 VALKS (match_id 3472)

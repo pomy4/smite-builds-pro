@@ -228,6 +228,8 @@ def fix_image_name(image_name):
         return 'blood-soaked-shroud.jpg'
     elif image_name == 'pointed-shuriken.jpg':
         return '8-pointed-shuriken.jpg'
+    elif image_name == "faeblessed-hoops.jpg":
+        return "fae-blessed-hoops.jpg"
     else:
         return image_name
 
