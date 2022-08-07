@@ -622,6 +622,216 @@ rename(
     get_image("fae-blessed-hoops.jpg"),
 )
 
+rename_v2(
+    Build,
+    (Build.match_id == 3599)
+    & (Build.game_i == 1)
+    & (Build.player1 == "dudemanbro429")
+    & (Build.role == "Sub"),
+    role="ADC",
+    player2="TottiGR",
+    god2="Rama",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3599)
+    & (Build.game_i == 1)
+    & (Build.player1 == "TottiGR")
+    & (Build.player2 == "Missing data"),
+    player2="dudemanbro429",
+    god2="Artemis",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3599)
+    & (Build.game_i == 2)
+    & (Build.player1 == "dudemanbro429")
+    & (Build.role == "Sub"),
+    role="ADC",
+    player2="TottiGR",
+    god2="Rama",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3599)
+    & (Build.game_i == 2)
+    & (Build.player1 == "TottiGR")
+    & (Build.player2 == "Missing data"),
+    player2="dudemanbro429",
+    god2="Artemis",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3602)
+    & (Build.game_i == 1)
+    & (Build.player1 == "dudemanbro429")
+    & (Build.role == "Sub"),
+    role="ADC",
+    player2="VaporishCoast",
+    god2="Heimdallr",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3602)
+    & (Build.game_i == 1)
+    & (Build.player1 == "VaporishCoast")
+    & (Build.player2 == "Missing data"),
+    player2="dudemanbro429",
+    god2="Artemis",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3602)
+    & (Build.game_i == 2)
+    & (Build.player1 == "dudemanbro429")
+    & (Build.role == "Sub"),
+    role="ADC",
+    player2="VaporishCoast",
+    god2="Rama",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3602)
+    & (Build.game_i == 2)
+    & (Build.player1 == "VaporishCoast")
+    & (Build.player2 == "Missing data"),
+    player2="dudemanbro429",
+    god2="Izanami",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3603)
+    & (Build.game_i == 1)
+    & (Build.player1 == "dudemanbro429")
+    & (Build.role == "Sub"),
+    role="ADC",
+    player2="TottiGR",
+    god2="Rama",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3603)
+    & (Build.game_i == 1)
+    & (Build.player1 == "TottiGR")
+    & (Build.player2 == "Missing data"),
+    player2="dudemanbro429",
+    god2="Jing Wei",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3603)
+    & (Build.game_i == 2)
+    & (Build.player1 == "dudemanbro429")
+    & (Build.role == "Sub"),
+    role="ADC",
+    player2="TottiGR",
+    god2="Chernobog",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3603)
+    & (Build.game_i == 2)
+    & (Build.player1 == "TottiGR")
+    & (Build.player2 == "Missing data"),
+    player2="dudemanbro429",
+    god2="Rama",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3610)
+    & (Build.game_i == 1)
+    & (Build.player1 == "dudemanbro429")
+    & (Build.role == "Sub"),
+    role="ADC",
+    player2="Echrome",
+    god2="Hachiman",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3610)
+    & (Build.game_i == 1)
+    & (Build.player1 == "Echrome")
+    & (Build.player2 == "Missing data"),
+    player2="dudemanbro429",
+    god2="Rama",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3610)
+    & (Build.game_i == 2)
+    & (Build.player1 == "dudemanbro429")
+    & (Build.role == "Sub"),
+    role="ADC",
+    player2="Echrome",
+    god2="Hachiman",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3610)
+    & (Build.game_i == 2)
+    & (Build.player1 == "Echrome")
+    & (Build.player2 == "Missing data"),
+    player2="dudemanbro429",
+    god2="Rama",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3611)
+    & (Build.game_i == 1)
+    & (Build.player1 == "dudemanbro429")
+    & (Build.role == "Sub"),
+    role="ADC",
+    player2="oGryph",
+    god2="Rama",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3611)
+    & (Build.game_i == 1)
+    & (Build.player1 == "oGryph")
+    & (Build.player2 == "Missing data"),
+    player2="dudemanbro429",
+    god2="Chernobog",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3611)
+    & (Build.game_i == 2)
+    & (Build.player1 == "dudemanbro429")
+    & (Build.role == "Sub"),
+    role="ADC",
+    player2="oGryph",
+    god2="Heimdallr",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3611)
+    & (Build.game_i == 2)
+    & (Build.player1 == "oGryph")
+    & (Build.player2 == "Missing data"),
+    player2="dudemanbro429",
+    god2="Rama",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3611)
+    & (Build.game_i == 3)
+    & (Build.player1 == "dudemanbro429")
+    & (Build.role == "Sub"),
+    role="ADC",
+    player2="oGryph",
+    god2="Heimdallr",
+)
+rename_v2(
+    Build,
+    (Build.match_id == 3611)
+    & (Build.game_i == 3)
+    & (Build.player1 == "oGryph")
+    & (Build.player2 == "Missing data"),
+    player2="dudemanbro429",
+    god2="Jing Wei",
+)
+
 # Too lazy to fix
 # Set missing
 # Pre-Season Friday, 2022 March 25 Atlantis Leviathans VS Valhalla Valkyries LVTHN 2 - 0 VALKS (match_id 3472)
