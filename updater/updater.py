@@ -248,6 +248,19 @@ def scrape_match(league, driver, phase, month, day, match_url, match_id):
 
 
 if __name__ == "__main__":
+
+    def match_to_json_str():
+        return json.dumps(
+            {
+                "league": league.name,
+                "phase": phase,
+                "month": month,
+                "day": day,
+                "match_id": match_id,
+            },
+            ensure_ascii=False,
+        )
+
     try:
         # Set up logging.
         log_folder = pathlib.Path("logs")
@@ -328,12 +341,12 @@ if __name__ == "__main__":
                                     (phase, month, day, match_url, match_id)
                                 )
                             else:
-                                logging.info(f"Skipping|{phase}|{match_id}")
+                                logging.info(f"Skipping|{match_to_json_str()}")
                     click_delay(start)
 
                 builds = []
                 for phase, month, day, match_url, match_id in tqdm.tqdm(to_scrape):
-                    logging.info(f"Scraping|{phase}|{match_id}")
+                    logging.info(f"Scraping|{match_to_json_str()}")
                     try:
                         if (
                             base_url := "/".join(match_url.split("/")[:-1])
