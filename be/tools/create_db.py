@@ -1,8 +1,8 @@
-from models import Build, Item, LastChecked, LastModified, db
+import be.models
+from be.models import Build, Item, LastChecked, LastModified
 
 if __name__ == "__main__":
-    tables = [LastModified, LastChecked, Item, Build]
-    db.connect()
-    db.drop_tables(tables)
-    db.create_tables(tables)
-    db.close()
+    tables = [Build, Item, LastChecked, LastModified]
+    with be.models.db:
+        be.models.db.drop_tables(tables)
+        be.models.db.create_tables(tables)

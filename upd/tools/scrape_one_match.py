@@ -1,34 +1,41 @@
 import logging
-import os
 import pprint
 import sys
 
-from selenium import webdriver
+import selenium.webdriver
 
-import updater
+import shared
+import upd.updater
+from upd.updater import Match
 
-league = updater.spl
-phase = "just a phase"
-month = 9
-day = 9
 
-if not ((len(sys.argv) > 1) and (input := sys.argv[1])) and not (
-    input := os.environ.get("SYSARG")
-):
-    print("Supply a match id please (e.g. 2455).")
-    sys.exit(0)
+def main() -> None:
+    if len(sys.argv) < 2:
+        print("Missing match ID argument", file=sys.stderr)
+        sys.exit(1)
+    match_id = int(sys.argv[1])
 
-match_id = int(input)
-match_url = f"{league.matches_url}/{match_id}"
-logging.basicConfig(
-    filename="logs/tmp.log",
-    level=logging.INFO,
-    format="%(asctime)s|%(levelname)s|%(message)s",
-)
-builds = []
-with webdriver.Chrome() as driver:
-    driver.implicitly_wait(updater.implicit_wait)
-    builds = updater.scrape_match(
-        league.name, driver, phase, month, day, match_url, match_id
+    league = shared.SPL
+    logging.basicConfig(
+        filename=f"{match_id}.log",
+        level=logging.INFO,
+        format=upd.updater.LOG_FORMAT,
     )
-    pprint.pprint(builds)
+
+    with selenium.webdriver.Chrome() as driver:
+        driver.implicitly_wait(upd.updater.IMPLICIT_WAIT)
+        match = Match(
+            league=league,
+            phase="a phase",
+            month=9,
+            day=9,
+            id=match_id,
+            url=f"{league.match_url}/{match_id}",
+            last_slash_i=len(league.match_url),
+        )
+        builds = upd.updater.scrape_match(driver, match)
+        pprint.pprint(builds)
+
+
+if __name__ == "__main__":
+    main()

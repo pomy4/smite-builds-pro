@@ -1,6 +1,5 @@
-from models import db, update_last_modified
+import be.backend
+import be.models
 
-from backend import what_time_is_it
-
-with db:
-    update_last_modified(what_time_is_it())
+with be.models.db:
+    be.models.update_last_modified(be.backend.what_time_is_it())

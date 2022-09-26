@@ -1,54 +1,18 @@
 import json
-import math
 
-
-# TODO: move to updater.
-def parse_game_length(game_length: str) -> tuple[int, int, int]:
-    game_length = game_length.split(":")
-    if len(game_length) == 2:
-        minutes, seconds = game_length
-        minutes, seconds = int(minutes), int(seconds)
-        if minutes < 60:
-            hours = 0
-        else:
-            hours = math.floor(minutes / 60)
-            minutes = minutes % 60
-    elif len(game_length) == 3:
-        hours, minutes, seconds = game_length
-        hours, minutes, seconds = int(hours), int(minutes), int(seconds)
-    else:
-        raise RuntimeError(f"Could not parse game length: {game_length}")
-    return hours, minutes, seconds
-
-
-def do_items(name_to_img_url: dict, old_items: list[str]) -> list[tuple[str, str]]:
-    new_items = []
-    for name in old_items:
-        if name == "null":
-            continue
-        elif name in name_to_img_url:
-            img_url = name_to_img_url[name]
-        # Removed items.
-        elif name == "Jotunn's Ferocity":
-            img_url = "jotunns-ferocity.jpg"
-        elif name == "Nimble Rod of Tahuti":
-            img_url = "nimble-rod-of-tahuti.jpg"
-        else:
-            raise RuntimeError(f"Unknown item: {name}")
-        new_items.append((name, img_url))
-    return new_items
+import shared
+import upd.updater
 
 
 def main() -> None:
     with open("2b_items.json", "r", encoding="utf8") as f:
         all_items = json.load(f)
-    cdn_images_url = "https://webcdn.hirezstudios.com/smite/item-icons"
     name_to_img_url = {}
     for item in all_items:
         img_url = item["itemIcon_URL"]
         last = img_url.rfind("/")
-        if (base_url := img_url[:last]) != cdn_images_url:
-            raise RuntimeError(f"Unknown URL for the CDN with images: {base_url}")
+        if (base_url := img_url[:last]) != shared.IMG_URL:
+            raise RuntimeError(f"Unknown image URL: {base_url}")
         name_to_img_url[item["DeviceName"]] = img_url[last + 1 :]
 
     with open("2a_raw_builds.json", "r", encoding="utf8") as f:
@@ -62,7 +26,9 @@ def main() -> None:
             day = match["day"]
             match_id = match["match_id"]
             for game_i, game in enumerate(match["data"]["games"], 1):
-                hours, minutes, seconds = parse_game_length(game["game_duration"])
+                hours, minutes, seconds = upd.updater.parse_game_length(
+                    game["game_duration"]
+                )
                 team1 = game["team_totals"][0]["team"]
                 team2 = game["team_totals"][1]["team"]
                 if game["winning_team"] == 0:
@@ -72,7 +38,7 @@ def main() -> None:
                 else:
                     raise RuntimeError(f"Unknown winning_team: {game['winning_team']}")
                 other_teams = {team1: team2, team2: team1}
-                teams = {team1: {}, team2: {}}
+                teams: dict = {team1: {}, team2: {}}
                 for player in game["players"]:
                     teams[player["team"]][player["role"]] = (
                         player["name"],
@@ -81,8 +47,7 @@ def main() -> None:
                 for player in game["players"]:
                     team, role = player["team"], player["role"]
                     other_team = other_teams[team]
-                    if role == "Hunter":
-                        role = "ADC"
+                    role = upd.updater.fix_role(role)
                     if role in teams[other_team]:
                         player2, god2 = teams[other_team][role]
                     else:
@@ -106,8 +71,7 @@ def main() -> None:
                             "hours": hours,
                             "minutes": minutes,
                             "seconds": seconds,
-                            "kda_ratio": (kills + assists)
-                            / (deaths if deaths > 0 else 1),
+                            "kda_ratio": upd.updater.kda_ratio(kills, deaths, assists),
                             "kills": kills,
                             "deaths": deaths,
                             "assists": assists,
@@ -131,6 +95,24 @@ def main() -> None:
     ]
     with open("3_builds.log", "w", encoding="utf8") as f:
         f.write("\n".join(builds_log))
+
+
+def do_items(name_to_img_url: dict, old_items: list[str]) -> list[tuple[str, str]]:
+    new_items = []
+    for name in old_items:
+        if name == "null":
+            continue
+        elif name in name_to_img_url:
+            img_url = name_to_img_url[name]
+        # Removed items.
+        elif name == "Jotunn's Ferocity":
+            img_url = "jotunns-ferocity.jpg"
+        elif name == "Nimble Rod of Tahuti":
+            img_url = "nimble-rod-of-tahuti.jpg"
+        else:
+            raise RuntimeError(f"Unknown item: {name}")
+        new_items.append((name, img_url))
+    return new_items
 
 
 if __name__ == "__main__":

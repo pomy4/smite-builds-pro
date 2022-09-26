@@ -8,12 +8,12 @@ def main() -> None:
     match_stats_url = (
         "https://esports.hirezstudios.com/esportsAPI/smite/matchstats/{}/{}"
     )
-    match_i = int(sys.argv[1])
-    start_event_i = sys.argv[2] if len(sys.argv) > 2 else 7250
-    end_event_i = sys.argv[3] if len(sys.argv) > 3 else 9999
-    for event_i in range(start_event_i, end_event_i + 1):
-        url = match_stats_url.format(event_i, match_i)
-        print(f"Trying {event_i}! ", end="")
+    match_id = int(sys.argv[1])
+    start_event_id = int(sys.argv[2]) if len(sys.argv) > 2 else 7250
+    end_event_id = int(sys.argv[3]) if len(sys.argv) > 3 else 9999
+    for event_id in range(start_event_id, end_event_id + 1):
+        url = match_stats_url.format(event_id, match_id)
+        print(f"Trying {event_id}! ", end="")
         resp = requests.get(url)
         if resp.text == '{"error":"Match does not belong to this event."}':
             print("No dice")

@@ -24,7 +24,7 @@ def main() -> None:
     for league_and_phase, matches in empty_matches.items():
         print(league_and_phase)
         if league_and_phase not in fixed_event_ids:
-            raise RuntimeError(f"Unknown leageu and phase")
+            raise RuntimeError("Unknown league and phase")
         event_id = fixed_event_ids[league_and_phase]
         if event_id is None:
             to_remove.append(league_and_phase)
@@ -38,7 +38,7 @@ def main() -> None:
             match["data"] = resp.json()
             if "error" in match["data"]:
                 raise RuntimeError(str(match["data"]))
-            print(f"OK")
+            print("OK")
             time.sleep(0.1)
 
     for league_and_phase in to_remove:

@@ -1,0 +1,19 @@
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+namespace_packages = true
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = [
+    "dotenv.*",
+    "selenium.*",
+    "tqdm.*",
+    "bottle.*",
+    "peewee.*",
+    "playhouse.*",
+    "pydantic.*",
+    "PIL.*",
+]
+ignore_missing_imports = true

@@ -2,8 +2,18 @@ import json
 import sys
 
 
+def main() -> None:
+    with open(sys.argv[1], "r", encoding="utf8") as f:
+        lines = f.read().splitlines()
+
+    empty_matches = get_empty_matches(lines)
+
+    with open("1_empty_matches.json", "w", encoding="utf8") as f:
+        json.dump(empty_matches, f, indent=2, ensure_ascii=False)
+
+
 def get_empty_matches(lines: list[str]) -> dict:
-    empty_matches = {}
+    empty_matches: dict = {}
     for i, line in enumerate(lines):
         line_split = line.split("|")
         if line_split[2] == "There are no stats for this match":
@@ -17,16 +27,6 @@ def get_empty_matches(lines: list[str]) -> dict:
             }
             empty_matches.setdefault(empty_match_key, []).append(empty_match_value)
     return empty_matches
-
-
-def main() -> None:
-    with open(sys.argv[1], "r", encoding="utf8") as f:
-        lines = f.read().splitlines()
-
-    empty_matches = get_empty_matches(lines)
-
-    with open("1_empty_matches.json", "w", encoding="utf8") as f:
-        json.dump(empty_matches, f, indent=2, ensure_ascii=False)
 
 
 if __name__ == "__main__":

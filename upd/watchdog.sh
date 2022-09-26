@@ -1,21 +1,20 @@
 #!/bin/bash
 
-if [ -z ${WATCHDOG_TIMER_SECONDS+x} ]
-then
-  WATCHDOG_TIMER_SECONDS=300
-fi
+SECONDS=3600
+echo "WATCHDOG: Sleeping for $SECONDS seconds ..."
+sleep $SECONDS
 
-echo "Sleeping for ${WATCHDOG_TIMER_SECONDS} seconds ..."
-sleep ${WATCHDOG_TIMER_SECONDS}
-
-echo "Gently killing Chrome ..."
+echo "WATCHDOG: Killing Chrome ..."
 pkill -f chrome
 sleep 10
-echo "Killing Chrome ..."
+
+echo "WATCHDOG: Force killing Chrome ..."
 pkill -9 -f chrome
 sleep 10
-echo "Gently killing Python ..."
+
+echo "WATCHDOG: Killing Python ..."
 pkill -f python
 sleep 10
-echo "Killing Python ..."
+
+echo "WATCHDOG: Force killing Python ..."
 pkill -9 -f python

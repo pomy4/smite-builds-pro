@@ -5,111 +5,76 @@ import hmac
 import json
 import os
 import traceback
-from typing import Annotated, List, Optional
+from typing import TYPE_CHECKING, Annotated, Any, Callable, Optional, Type
 
-import pydantic
-from bottle import Bottle, request, response
-from dotenv import load_dotenv
-from models import (STR_MAX_LEN, MyError, WhereStrat, db, get_builds,
-                    get_last_checked, get_last_modified, get_match_ids,
-                    get_options, post_builds, update_last_checked,
-                    update_last_modified)
-from pydantic.types import *
+import bottle
+import pydantic as pd
+import pydantic.types as pdt
 
-Mystr = constr(min_length=1, max_length=STR_MAX_LEN, strict=False)
-Myint = conint(ge=0, strict=False)
-Myfloat = confloat(ge=0.0, strict=False)
-Myitem = conlist(min_items=2, max_items=2, item_type=Mystr)
+import be.models
+import shared
+from be.models import MyError, WhereStrat
 
-app = Bottle()
+# --------------------------------------------------------------------------------------
+# APP & HOOKS & DECORATORS
+# --------------------------------------------------------------------------------------
+
+
+app = bottle.Bottle()
 app.config["json.enable"] = False
 
 
-def what_time_is_it():
-    return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
-
-
-def format_last_checked(d):
-    return d.strftime("%d %b %Y %I:%M:%S %p (%Z)")
-
-
 @app.hook("before_request")
-def before():
-    db.connect()
+def before() -> None:
+    be.models.db.connect()
 
 
 @app.hook("after_request")
-def after():
-    db.close()
+def after() -> None:
+    be.models.db.close()
 
 
-def cache_with_last_modified(func):
+def verify_integrity(func: Callable) -> Callable:
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        if not (last_modified := get_last_modified()):
-            return func(*args, **kwargs)
-        last_modified = last_modified.data
-        if if_modified_since := request.get_header("If-Modified-Since"):
-            try:
-                if_modified_since = datetime.datetime.fromisoformat(if_modified_since)
-                if last_modified < if_modified_since:
-                    raise ValueError("Request is from the future.")
-                elif last_modified == if_modified_since:
-                    response.status = 304
-                    return
-            # Log this, but don't reject the request over it.
-            except:
-                traceback.print_exc()
-        result = func(*args, **kwargs)
-        if response.status_code < 400:
-            response.add_header("Cache-Control", "public")
-            response.add_header("Last-modified", last_modified.isoformat())
-        return result
-
-    return wrapper
-
-
-def verify_integrity(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        if not (key_hex := os.getenv("HMAC_KEY_HEX")):
-            response.status = 501
-            return "HMAC secret key isn't set on the server."
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        if not (key_hex := os.getenv(shared.HMAC_KEY_HEX)):
+            bottle.response.status = 501
+            return "HMAC secret key isn't set on the server"
         key = bytearray.fromhex(key_hex)
 
         header_name = "X-HMAC-DIGEST-HEX"
-        if not (digest_header := request.get_header(header_name)):
-            response.status = 400
-            return f"HMAC digest was not included in the {header_name} header."
+        if not (digest_header := bottle.request.get_header(header_name)):
+            bottle.response.status = 400
+            return f"HMAC digest was not included in the {header_name} header"
 
-        hmac_obj = hmac.new(key, request.body.read(), hashlib.sha256)
+        hmac_obj = hmac.new(key, bottle.request.body.read(), hashlib.sha256)
         digest_body = hmac_obj.hexdigest()
         if not hmac.compare_digest(digest_header, digest_body):
-            response.status = 403
-            return "Wrong HMAC digest!"
+            bottle.response.status = 403
+            return "Wrong HMAC digest"
 
         return func(*args, **kwargs)
 
     return wrapper
 
 
-def validate_request_body(Schema):
-    def outer_wrapper(func):
+def validate_request_body(model: Type[pd.BaseModel]) -> Callable:
+    def outer_wrapper(func: Callable) -> Callable:
         @functools.wraps(func)
-        def inner_wrapper():
+        def inner_wrapper() -> Any:
             try:
-                body_bytes = request.body.read()
+                body_bytes: bytes = bottle.request.body.read()
                 body_str = body_bytes.decode("utf-8")
                 body_json = json.loads(body_str)
-                body_dict = Schema.parse_obj(body_json).dict()
+                body = model.parse_obj(body_json)
+                body = getattr(body, "__root__", body)
             except (
                 UnicodeDecodeError,
                 json.JSONDecodeError,
-                pydantic.ValidationError,
+                pd.ValidationError,
             ) as e:
-                response.status = 400
+                bottle.response.status = 400
                 return str(e)
-            body = body_dict.get("__root__", body_dict)
             return func(body)
 
         return inner_wrapper
@@ -117,152 +82,204 @@ def validate_request_body(Schema):
     return outer_wrapper
 
 
-def jsonify(func):
+def cache_with_last_modified(func: Callable) -> Callable:
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        last_modified = be.models.get_last_modified()
+        if last_modified is None:
+            return func(*args, **kwargs)
+        if if_modified_since := bottle.request.get_header("If-Modified-Since"):
+            try:
+                if_modified_since = datetime.datetime.fromisoformat(if_modified_since)
+                if last_modified < if_modified_since:
+                    raise ValueError("Request is from the future.")
+                elif last_modified == if_modified_since:
+                    bottle.response.status = 304
+                    return
+            # Log this, but don't reject the request over it.
+            except ValueError:
+                traceback.print_exc()
         result = func(*args, **kwargs)
-        if response.status_code < 400 and result is not None:
+        if bottle.response.status_code < 400:
+            bottle.response.add_header("Cache-Control", "public")
+            bottle.response.add_header("Last-modified", last_modified.isoformat())
+        return result
+
+    return wrapper
+
+
+def jsonify(func: Callable) -> Callable:
+    @functools.wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        result = func(*args, **kwargs)
+        if bottle.response.status_code < 400 and result is not None:
             result = json.dumps(result, indent=2, cls=BytesEncoder)
-            response.content_type = "application/json"
+            bottle.response.content_type = "application/json"
         return result
 
     return wrapper
 
 
 class BytesEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         if isinstance(obj, bytes):
             return obj.decode("ascii")
         return json.JSONEncoder.default(self, obj)
 
 
-class PhasesSchema(pydantic.BaseModel):
-    __root__: List[Mystr]
-
-
-@app.post("/api/phases")
-@validate_request_body(PhasesSchema)
-@jsonify
-def phases(phases):
-    return [get_match_ids(phase) for phase in phases]
-
-
-class PostBuildSchema(pydantic.BaseModel):
-    season: Optional[Mystr]
-    league: Mystr
-    phase: Mystr
-    year: Optional[Myint]
-    month: Myint
-    day: Myint
-    match_id: Myint
-    game_i: Myint
-    win: StrictBool
-    hours: Myint
-    minutes: Myint
-    seconds: Myint
-    kda_ratio: Myfloat
-    kills: Myint
-    deaths: Myint
-    assists: Myint
-    role: Mystr
-    player1: Mystr
-    god1: Mystr
-    team1: Mystr
-    player2: Mystr
-    god2: Mystr
-    team2: Mystr
-    relics: conlist(Myitem, min_items=0, max_items=2)
-    items: conlist(Myitem, min_items=0, max_items=6)
-
-
-class PostBuildsSchema(pydantic.BaseModel):
-    __root__: List[PostBuildSchema]
-
-
-@app.post("/api/builds")
-@verify_integrity
-@validate_request_body(PostBuildsSchema)
-def builds_post(builds):
-    if not builds:
-        response.status = 204
-    else:
-        try:
-            response.status = 201
-            post_builds(builds)
-        except MyError as e:
-            response.status = 400
-            return str(e)
-
-    now = what_time_is_it()
-    update_last_checked(format_last_checked(now))
-    if builds:
-        update_last_modified(now)
+# --------------------------------------------------------------------------------------
+# FRONTEND ROUTES
+# --------------------------------------------------------------------------------------
 
 
 @app.get("/api/options")
 @cache_with_last_modified
 @jsonify
-def options():
-    return get_options()
+def get_options() -> dict:
+    return be.models.get_options()
 
 
 @app.get("/api/last_check")
-def last_check():
-    return last_checked.data if (last_checked := get_last_checked()) else "unknown"
+def get_last_check() -> str:
+    if last_checked := be.models.get_last_checked():
+        return last_checked
+    else:
+        return "unknown"
 
 
-class GetBuildsSchema(pydantic.BaseModel):
-    page: conlist(Myint, min_items=0, max_items=1)
-    season: Annotated[Optional[List[Myint]], WhereStrat.match]
-    league: Annotated[Optional[List[Mystr]], WhereStrat.match]
-    phase: Annotated[Optional[List[Mystr]], WhereStrat.match]
-    date: Annotated[
-        Optional[conlist(datetime.date, min_items=2, max_items=2)], WhereStrat.range
-    ]
-    game_i: Annotated[Optional[List[Myint]], WhereStrat.match]
+if TYPE_CHECKING:
+    MyStr = str
+    MyInt = int
+    MyFloat = float
+else:
+    MyStr = pdt.constr(min_length=1, max_length=be.models.STR_MAX_LEN, strict=False)
+    MyInt = pdt.conint(ge=0, strict=False)
+    MyFloat = pdt.confloat(ge=0.0, strict=False)
+
+
+class GetBuildsRequest(pd.BaseModel):
+    page: tuple[MyInt]
+    season: Annotated[Optional[list[MyInt]], WhereStrat.match]
+    league: Annotated[Optional[list[MyStr]], WhereStrat.match]
+    phase: Annotated[Optional[list[MyStr]], WhereStrat.match]
+    date: Annotated[Optional[tuple[datetime.date, datetime.date]], WhereStrat.range]
+    game_i: Annotated[Optional[list[MyInt]], WhereStrat.match]
     game_length: Annotated[
-        Optional[conlist(datetime.time, min_items=2, max_items=2)], WhereStrat.range
+        Optional[tuple[datetime.time, datetime.time]], WhereStrat.range
     ]
-    win: Annotated[Optional[List[bool]], WhereStrat.match]
-    kda_ratio: Annotated[
-        Optional[conlist(Myfloat, min_items=2, max_items=2)], WhereStrat.range
-    ]
-    kills: Annotated[
-        Optional[conlist(Myint, min_items=2, max_items=2)], WhereStrat.range
-    ]
-    deaths: Annotated[
-        Optional[conlist(Myint, min_items=2, max_items=2)], WhereStrat.range
-    ]
-    assists: Annotated[
-        Optional[conlist(Myint, min_items=2, max_items=2)], WhereStrat.range
-    ]
-    role: Annotated[Optional[List[Mystr]], WhereStrat.match]
-    player1: Annotated[Optional[List[Mystr]], WhereStrat.match]
-    god1: Annotated[Optional[List[Mystr]], WhereStrat.match]
-    team1: Annotated[Optional[List[Mystr]], WhereStrat.match]
-    player2: Annotated[Optional[List[Mystr]], WhereStrat.match]
-    god2: Annotated[Optional[List[Mystr]], WhereStrat.match]
-    team2: Annotated[Optional[List[Mystr]], WhereStrat.match]
-    relic: Optional[List[Mystr]]
-    item: Optional[List[Mystr]]
+    win: Annotated[Optional[list[bool]], WhereStrat.match]
+    kda_ratio: Annotated[Optional[tuple[float, float]], WhereStrat.range]
+    kills: Annotated[Optional[tuple[int, int]], WhereStrat.range]
+    deaths: Annotated[Optional[tuple[int, int]], WhereStrat.range]
+    assists: Annotated[Optional[tuple[int, int]], WhereStrat.range]
+    role: Annotated[Optional[list[MyStr]], WhereStrat.match]
+    player1: Annotated[Optional[list[MyStr]], WhereStrat.match]
+    god1: Annotated[Optional[list[MyStr]], WhereStrat.match]
+    team1: Annotated[Optional[list[MyStr]], WhereStrat.match]
+    player2: Annotated[Optional[list[MyStr]], WhereStrat.match]
+    god2: Annotated[Optional[list[MyStr]], WhereStrat.match]
+    team2: Annotated[Optional[list[MyStr]], WhereStrat.match]
+    relic: Optional[list[MyStr]]
+    item: Optional[list[MyStr]]
 
 
 @app.get("/api/builds")
 @cache_with_last_modified
 @jsonify
-def builds_get():
-    form_dict = request.query.decode()
+def get_builds() -> Any:
+    form_dict = bottle.request.query.decode()
     dict_with_lists = {key: form_dict.getall(key) for key in form_dict.keys()}
 
     try:
-        model = GetBuildsSchema.parse_obj(dict_with_lists)
-    except (pydantic.ValidationError) as e:
-        response.status = 400
+        builds_query = GetBuildsRequest.parse_obj(dict_with_lists)
+    except pd.ValidationError as e:
+        bottle.response.status = 400
         return str(e)
 
-    return get_builds(model)
+    return be.models.get_builds(builds_query)
 
 
-if __name__ == "__main__":
-    load_dotenv("../.env")
-    app.run(host="localhost", port=8080, reloader=True, debug=True)
+# --------------------------------------------------------------------------------------
+# UPDATER ROUTES
+# --------------------------------------------------------------------------------------
+
+
+class PhasesRequest(pd.BaseModel):
+    __root__: list[MyStr]
+
+
+@app.post("/api/phases")
+@validate_request_body(PhasesRequest)
+@jsonify
+def post_phases(phases: list[MyStr]) -> list[list[int]]:
+    return [be.models.get_match_ids(phase) for phase in phases]
+
+
+MyItem = tuple[MyStr, MyStr]
+if TYPE_CHECKING:
+    MyRelics = list[MyItem]
+    MyItems = list[MyItem]
+else:
+    MyRelics = pdt.conlist(MyItem, min_items=0, max_items=2)
+    MyItems = pdt.conlist(MyItem, min_items=0, max_items=6)
+
+
+class PostBuildRequest(pd.BaseModel):
+    season: Optional[MyStr]
+    league: MyStr
+    phase: MyStr
+    year: Optional[MyInt]
+    month: MyInt
+    day: MyInt
+    match_id: MyInt
+    game_i: MyInt
+    win: pdt.StrictBool
+    hours: MyInt
+    minutes: MyInt
+    seconds: MyInt
+    kda_ratio: MyFloat
+    kills: MyInt
+    deaths: MyInt
+    assists: MyInt
+    role: MyStr
+    player1: MyStr
+    god1: MyStr
+    team1: MyStr
+    player2: MyStr
+    god2: MyStr
+    team2: MyStr
+    relics: MyRelics
+    items: MyItems
+
+
+class PostBuildsRequest(pd.BaseModel):
+    __root__: list[PostBuildRequest]
+
+
+@app.post("/api/builds")
+@verify_integrity
+@validate_request_body(PostBuildsRequest)
+def post_builds(builds: list[PostBuildRequest]) -> str | None:
+    if not builds:
+        bottle.response.status = 204
+    else:
+        try:
+            bottle.response.status = 201
+            be.models.post_builds(builds)
+        except MyError as e:
+            bottle.response.status = 400
+            return str(e)
+
+    now = what_time_is_it()
+    be.models.update_last_checked(format_last_checked(now))
+    if builds:
+        be.models.update_last_modified(now)
+    return None
+
+
+def what_time_is_it() -> datetime.datetime:
+    return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+
+
+def format_last_checked(d: datetime.datetime) -> str:
+    return d.strftime("%d %b %Y %I:%M:%S %p (%Z)")
