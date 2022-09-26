@@ -12,6 +12,7 @@ updater/chromedriver.exe
 # Project specific.
 __pycache__/
 backend/**/*.db
+backend/**/*.jpg
 frontend/.parcel-cache
 frontend/dist/
 frontend/node_modules/
