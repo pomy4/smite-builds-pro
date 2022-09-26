@@ -16,4 +16,5 @@ frontend/.parcel-cache
 frontend/dist/
 frontend/node_modules/
 frontend/package-lock.json
-updater/logs/*.log
+updater/**/*.log
+updater/**/*.json
