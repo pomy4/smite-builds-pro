@@ -38,6 +38,54 @@ def get_item(image_name, index):
     return items[index]
 
 
+def fix_role(match_id, game_i, player1, wrong_role, correct_role):
+    build = (
+        Build.select()
+        .where(
+            (Build.match_id == match_id)
+            & (Build.game_i == game_i)
+            & (Build.player1 == player1)
+            & (Build.role == wrong_role)
+        )
+        .first()
+    )
+    if build is None:
+        return
+    build.role = correct_role
+    build.save()
+    fix_player2_and_god2(match_id, game_i, player1, build.player2)
+
+
+def fix_player2_and_god2(match_id, game_i, player1, wrong_player2):
+    build = (
+        Build.select()
+        .where(
+            (Build.match_id == match_id)
+            & (Build.game_i == game_i)
+            & (Build.player1 == player1)
+            & (Build.player2 == wrong_player2)
+        )
+        .first()
+    )
+    if build is None:
+        return
+    role = build.role
+    opp_team = build.team2
+    opp_build = (
+        Build.select()
+        .where(
+            (Build.match_id == match_id)
+            & (Build.game_i == game_i)
+            & (Build.role == role)
+            & (Build.team1 == opp_team)
+        )
+        .first()
+    )
+    build.player2 = opp_build.player1
+    build.god2 = opp_build.god1
+    build.save()
+
+
 db.connect()
 
 # SEASON 8
@@ -451,13 +499,13 @@ if (
     )
     new.save()
 
+fix_player2_and_god2(2736, 1, "Venenu", "Missing data")
+fix_player2_and_god2(2736, 2, "Venenu", "Missing data")
+fix_player2_and_god2(2981, 1, "Hurriwind", "Missing data")
+fix_player2_and_god2(2981, 2, "Hurriwind", "Missing data")
+fix_player2_and_god2(2981, 3, "Hurriwind", "Missing data")
+
 # Too lazy to fix
-# Boronic missing
-# 1445|8|SPL|Phase 2|2021-07-23|2736|1|1|00:24:37|12.0|8|0|4|Mid|Tiamat|Venenu|BOLTS|Missing data|Missing data|SOLAR|1|2|186|64|163|62|97|153
-# 1454|8|SPL|Phase 2|2021-07-23|2736|2|1|00:20:20|11.0|6|0|5|Mid|Vulcan|Venenu|BOLTS|Missing data|Missing data|SOLAR|1|2|192|64|163|97|7|
-# 2980|8|SPL|Phase 3|2021-10-02|2981|1|1|00:23:39|4.5|3|2|6|Mid|Raijin|Hurriwind|JADE|Missing data|Missing data|SOLAR|1|2|135|102|65|82|7|
-# 2993|8|SPL|Phase 3|2021-10-02|2981|2|0|00:24:49|8.0|3|1|5|Mid|Tiamat|Hurriwind|JADE|Missing data|Missing data|SOLAR|1|2|135|102|65|7|82|44
-# 2998|8|SPL|Phase 3|2021-10-02|2981|3|1|00:26:01|6.5|4|2|9|Mid|Sol|Hurriwind|JADE|Missing data|Missing data|SOLAR|1|2|232|64|163|62|63|
 # duck3y missing
 # 4188|8|SPL|SWC Placements - Group B|2021-12-16|3376|1|1|00:21:06|14.0|7|1|7|Jungle|Gilgamesh|LASBRA|BOLTS|Missing data|Missing data|VALKS|1|9|60|229|105|51|15|180
 # 4197|8|SPL|SWC Placements - Group B|2021-12-16|3376|2|1|00:23:10|6.0|3|0|3|Jungle|Cliodhna|LASBRA|BOLTS|Missing data|Missing data|VALKS|1|2|93|105|122|77|108|78
@@ -832,22 +880,48 @@ rename_v2(
     god2="Jing Wei",
 )
 
+fix_role(3795, 2, "thebestotter", "Coach", "Support")
+fix_role(3795, 2, "Privative", "Support", "Solo")
+fix_player2_and_god2(3795, 2, "NotGeno", "Privative")
+fix_player2_and_god2(3795, 2, "RelentlessOne", "Missing data")
+
+fix_role(3792, 1, "Biteyyy", "Sub", "ADC")
+fix_role(3792, 2, "Biteyyy", "Sub", "ADC")
+fix_role(3792, 3, "Biteyyy", "Sub", "ADC")
+fix_player2_and_god2(3792, 1, "Diesel", "Missing data")
+fix_player2_and_god2(3792, 2, "Diesel", "Missing data")
+fix_player2_and_god2(3792, 3, "Diesel", "Missing data")
+
+fix_role(3794, 1, "MagicFeet", "Sub", "Jungle")
+fix_role(3794, 2, "MagicFeet", "Sub", "Jungle")
+fix_player2_and_god2(3794, 1, "Oathhh", "Missing data")
+fix_player2_and_god2(3794, 2, "Oathhh", "Missing data")
+
+fix_role(3804, 1, "Baskin", "Sub", "Support")
+fix_role(3804, 2, "Baskin", "Sub", "Support")
+fix_player2_and_god2(3804, 1, "Hurriwind", "Missing data")
+fix_player2_and_god2(3804, 2, "Hurriwind", "Missing data")
+
 # Too lazy to fix
 # Set missing
 # Pre-Season Friday, 2022 March 25 Atlantis Leviathans VS Valhalla Valkyries LVTHN 2 - 0 VALKS (match_id 3472)
-# and also all 2022 SCC EU Phase 1 matches from April 14 onwards
-# and also all 2022 SCC Phase 2 matches which happened so far (June 9 - 17)
 # slaaaaaaasH missing
-# 5622|9|SCC|NA Phase 1|2022-03-31|3550|1|0|00:34:55|0.0|0|5|0|Solo|Cliodhna|Remakami|HOUND|Missing data|Missing data|SAGES|258|256|29|70|257|31|51|15
-# 5635|9|SCC|NA Phase 1|2022-03-31|3550|2|1|00:28:26|5.0|1|0|4|Solo|Odin|Remakami|HOUND|Missing data|Missing data|SAGES|258|260|202|229|257|31|124|155
-# 5644|9|SCC|NA Phase 1|2022-03-31|3550|3|1|00:24:09|5.0|1|0|4|Solo|Osiris|Remakami|HOUND|Missing data|Missing data|SAGES|258|260|171|229|30|47|115|124
-# 5757|9|SCC|NA Phase 1|2022-04-09|3561|1|1|00:39:04|2.25|2|4|7|Solo|Jormungandr|Uzzy|STORM|Missing data|Missing data|SAGES|278|287|139|257|219|176|87|124
-# 5770|9|SCC|NA Phase 1|2022-04-09|3561|2|1|00:31:25|7.0|1|1|6|Solo|Camazotz|Uzzy|STORM|Missing data|Missing data|SAGES|273|275|202|47|229|51|70|32
-# 5805|9|SCC|NA Phase 1|2022-04-14|3562|1|1|00:22:33|8.0|2|1|6|Solo|Sun Wukong|RelentlessOne|WRDNS|Missing data|Missing data|SAGES|273|269|29|70|229|32|214|
-# 5818|9|SCC|NA Phase 1|2022-04-14|3562|2|1|00:23:51|6.5|4|2|9|Solo|Amaterasu|RelentlessOne|WRDNS|Missing data|Missing data|SAGES|282|275|190|47|128|140|51|
+# 5702|9|SCC|NA Phase 1|2022-03-31|3550|1|0|00:34:55|0.0|0|5|0|Solo|Cliodhna|Remakami|HOUND|Missing data|Missing data|SAGES|258|256|29|70|257|31|51|15
+# 5715|9|SCC|NA Phase 1|2022-03-31|3550|2|1|00:28:26|5.0|1|0|4|Solo|Odin|Remakami|HOUND|Missing data|Missing data|SAGES|258|260|202|229|257|31|124|155
+# 5724|9|SCC|NA Phase 1|2022-03-31|3550|3|1|00:24:09|5.0|1|0|4|Solo|Osiris|Remakami|HOUND|Missing data|Missing data|SAGES|258|260|171|229|30|47|115|124
+# 5837|9|SCC|NA Phase 1|2022-04-09|3561|1|1|00:39:04|2.25|2|4|7|Solo|Jormungandr|Uzzy|STORM|Missing data|Missing data|SAGES|278|285|139|257|219|176|87|124
+# 5850|9|SCC|NA Phase 1|2022-04-09|3561|2|1|00:31:25|7.0|1|1|6|Solo|Camazotz|Uzzy|STORM|Missing data|Missing data|SAGES|273|275|202|47|229|51|70|32
+# 5885|9|SCC|NA Phase 1|2022-04-14|3562|1|1|00:22:33|8.0|2|1|6|Solo|Sun Wukong|RelentlessOne|WRDNS|Missing data|Missing data|SAGES|273|269|29|70|229|32|214|
+# 5898|9|SCC|NA Phase 1|2022-04-14|3562|2|1|00:23:51|6.5|4|2|9|Solo|Amaterasu|RelentlessOne|WRDNS|Missing data|Missing data|SAGES|282|275|190|47|128|140|51|
 # CaptainQuig missing
-# 5706|9|SCC|NA Phase 1|2022-04-07|3559|1|0|00:31:59|1.75|2|4|5|Support|Atlas|Dashboarřd|WEAVE|Missing data|Missing data|HOUND|264|258|17|19|87|128|20|
-# 5715|9|SCC|NA Phase 1|2022-04-07|3559|2|0|00:31:20|0.625|0|8|5|Support|Khepri|Dashboarřd|WEAVE|Missing data|Missing data|HOUND|268|264|34|19|20|128||
+# 5786|9|SCC|NA Phase 1|2022-04-07|3559|1|0|00:31:59|1.75|2|4|5|Support|Atlas|Dashboarřd|WEAVE|Missing data|Missing data|HOUND|264|258|17|19|87|128|20|
+# 5795|9|SCC|NA Phase 1|2022-04-07|3559|2|0|00:31:20|0.625|0|8|5|Support|Khepri|Dashboarřd|WEAVE|Missing data|Missing data|HOUND|268|264|34|19|20|128||
+# Rapio missing
+# 9334|9|SCC|EU Phase 2|2022-06-16|3803|2|1|00:34:25|21.0|10|1|11|Jungle|Awilix|Dzoni|MAMBO|Missing data|Missing data|RAVEN|276|270|10|78|46|106|77|107
+# BIGSLIMTIMMYJIM missing
+# 9649|9|SCC|NA Phase 2|2022-06-16|3792|1|0|00:35:05|1.0|1|4|3|Support|Khepri|Hurriwind|YOMI|Missing data|Missing data|WEAVE|282|262|17|21|87|128|35|
+# delnyy missing
+# 9685|9|SCC|NA Phase 2|2022-06-16|3795|1|1|00:26:42|12.0|6|1|6|Solo|Bastet|RelentlessOne|WRDNS|Missing data|Missing data|SAGES|276|258|227|70|30|87|15|
 
 import update_last_modified
 
