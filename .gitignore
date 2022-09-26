@@ -5,17 +5,17 @@
 
 # Something in the middle.
 .env
-updater/geckodriver.exe
-updater/geckodriver.log
-updater/chromedriver.exe
+upd/geckodriver.exe
+upd/geckodriver.log
+upd/chromedriver.exe
 
 # Project specific.
 __pycache__/
-backend/**/*.db
-backend/**/*.jpg
-frontend/.parcel-cache
-frontend/dist/
-frontend/node_modules/
-frontend/package-lock.json
-updater/**/*.log
-updater/**/*.json
+be/**/*.db
+be/**/*.jpg
+fe/.parcel-cache
+fe/dist/
+fe/node_modules/
+fe/package-lock.json
+upd/**/*.log
+upd/**/*.json
