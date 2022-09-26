@@ -86,6 +86,15 @@ def fix_player2_and_god2(match_id, game_i, player1, wrong_player2):
     build.save()
 
 
+def fix_name(old_name, new_name):
+    for build in Build.select().where(Build.player1 == old_name):
+        build.player1 = new_name
+        build.save()
+    for build in Build.select().where(Build.player2 == old_name):
+        build.player2 = new_name
+        build.save()
+
+
 db.connect()
 
 # SEASON 8
@@ -901,6 +910,16 @@ fix_role(3804, 1, "Baskin", "Sub", "Support")
 fix_role(3804, 2, "Baskin", "Sub", "Support")
 fix_player2_and_god2(3804, 1, "Hurriwind", "Missing data")
 fix_player2_and_god2(3804, 2, "Hurriwind", "Missing data")
+
+fix_name("LeMoGoW", "LeMoGow")
+fix_name("ErupTCrimson", "EruptCrimson")
+fix_name("ELLEON", "Elleon")
+fix_name("MastKiII", "MastkiII")
+fix_name("MagicFeet", "Magicfeet")
+fix_name("ChinFu", "Chinfu")
+fix_name("Calvìn", "Calvin")
+fix_name("Briz", "Brìz")
+
 
 # Too lazy to fix
 # Set missing
