@@ -1,0 +1,15 @@
+# The deps are kept in a single venv for convenience
+
+# Shared
+python-dotenv
+
+# Backend
+bottle
+peewee
+pydantic
+pillow
+
+# Updater
+selenium
+requests
+tqdm
