@@ -19,6 +19,7 @@ import selenium.webdriver
 import tqdm
 from selenium.webdriver import ChromeOptions
 from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 
 import shared
@@ -158,11 +159,11 @@ class Match:
 def scrape_league(driver: WebDriver, league: League) -> list[Match]:
     driver.get(league.schedule_url)
 
-    cookie_accept_button = driver.find_element_by_class_name("approve")
+    cookie_accept_button = driver.find_element(By.CLASS_NAME, "approve")
     cookie_accept_button.click()
     time.sleep(0.1)
 
-    phase_elems = driver.find_elements_by_class_name("phase")
+    phase_elems = driver.find_elements(By.CLASS_NAME, "phase")
     phases = [text(phase_elem) for phase_elem in phase_elems]
 
     all_match_ids = get_all_match_ids(phases)
@@ -173,14 +174,14 @@ def scrape_league(driver: WebDriver, league: League) -> list[Match]:
         phase_elem.click()
         start = time.time()
 
-        day_elems = driver.find_elements_by_class_name("day")
+        day_elems = driver.find_elements(By.CLASS_NAME, "day")
         for day_elem in day_elems:
-            date = text(day_elem.find_element_by_class_name("date"))
+            date = text(day_elem.find_element(By.CLASS_NAME, "date"))
             _, month_, day_s = date.split(" ")
             month = MONTH_TO_I[month_]
             day = int(day_s)
 
-            result_link_elems = day_elem.find_elements_by_class_name("results")
+            result_link_elems = day_elem.find_elements(By.CLASS_NAME, "results")
             for result_link_elem in result_link_elems:
                 match_url = result_link_elem.get_attribute("href")
                 last_slash_i, match_id_s = split_on_last_slash(match_url)
@@ -234,15 +235,15 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
         # stats, so this code attempts to idenfity this situation to avoid a false
         # positive Scraped zero builds exception.
         try:
-            match_details = driver.find_element_by_class_name("match-details")
-            no_stats = match_details.find_element_by_tag_name("h1")
+            match_details = driver.find_element(By.CLASS_NAME, "match-details")
+            no_stats = match_details.find_element(By.TAG_NAME, "h1")
             if text(no_stats) == "There are no stats for this match":
                 logging.info("There are no stats for this match")
                 return []
         except selenium.common.exceptions.NoSuchElementException:
             pass
 
-        games = driver.find_elements_by_class_name("game-btn")
+        games = driver.find_elements(By.CLASS_NAME, "game-btn")
         if games:
             break
 
@@ -251,12 +252,12 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
         start = time.time()
 
         # Find out teams, game length & which team won.
-        tmp = driver.find_elements_by_class_name("content-wrapper")[1]
-        teams = tmp.find_elements_by_tag_name("strong")
+        tmp = driver.find_elements(By.CLASS_NAME, "content-wrapper")[1]
+        teams = tmp.find_elements(By.TAG_NAME, "strong")
         teams = (text(teams[0]), text(teams[1]))
-        game_length = text(tmp.find_element_by_class_name("game-duration"))
+        game_length = text(tmp.find_element(By.CLASS_NAME, "game-duration"))
         hours, minutes, seconds = parse_game_length(game_length)
-        win_or_loss = tmp.find_element_by_class_name("team-score").text
+        win_or_loss = tmp.find_element(By.CLASS_NAME, "team-score").text
         if win_or_loss == "W":
             wins = (True, False)
         elif win_or_loss == "L":
@@ -265,7 +266,7 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
             raise RuntimeError(f"Could not ascertain victory or loss: {win_or_loss}")
 
         # Get everything else.
-        tables = driver.find_elements_by_class_name("c-PlayerStatsTable")
+        tables = driver.find_elements(By.CLASS_NAME, "c-PlayerStatsTable")
         if len(tables) != 2:
             raise RuntimeError(
                 f"Wrong number of tables with player stats: {len(tables)}"
@@ -273,7 +274,7 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
         builds: tuple[list[dict], list[dict]] = ([], [])
         roles: tuple[dict, dict] = ({}, {})
         for table_i, table in enumerate(tables):
-            stats = table.find_elements_by_class_name("item")
+            stats = table.find_elements(By.CLASS_NAME, "item")
             if not stats or len(stats) % 9 != 0:
                 raise RuntimeError(
                     f"Wrong number of player stats in a table: {len(stats)}"
@@ -293,8 +294,8 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
                     int(assists.text),
                 )
                 role = fix_role(role)
-                relics = [item(x) for x in relics.find_elements_by_tag_name("img")]
-                items = [item(x) for x in items.find_elements_by_tag_name("img")]
+                relics = [item(x) for x in relics.find_elements(By.TAG_NAME, "img")]
+                items = [item(x) for x in items.find_elements(By.TAG_NAME, "img")]
                 # Optional values: year, season.
                 new_build = {
                     "league": match.league.name,
