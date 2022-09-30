@@ -90,7 +90,7 @@ def get_all_match_ids(phases: list[str]) -> list[list[int]]:
     )
     better_raise_for_status(all_match_ids_resp)
     all_match_ids = all_match_ids_resp.json()
-    if not len(phases) != len(all_match_ids):
+    if len(phases) != len(all_match_ids):
         raise RuntimeError(f"/api/phases returned wrong list: {all_match_ids}")
     return all_match_ids
 
