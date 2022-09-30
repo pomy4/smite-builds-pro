@@ -264,7 +264,7 @@ class PostBuildsRequest(pd.BaseModel):
 @app.post("/api/builds")
 @verify_integrity
 @validate_request_body(PostBuildsRequest)
-def post_builds(builds: list[PostBuildRequest]) -> str | None:
+def post_builds(builds: list[PostBuildRequest]) -> Optional[str]:
     if not builds:
         bottle.response.status = 204
     else:

@@ -96,7 +96,7 @@ class Build(Base):
 # --------------------------------------------------------------------------------------
 
 
-def get_last_modified() -> datetime.datetime | None:
+def get_last_modified() -> Optional[datetime.datetime]:
     try:
         return LastModified.get().data
     except LastModified.DoesNotExist:
@@ -108,7 +108,7 @@ def update_last_modified(new_data: datetime.datetime) -> None:
     LastModified.replace(id=1, data=new_data.replace(tzinfo=None)).execute()
 
 
-def get_last_checked() -> str | None:
+def get_last_checked() -> Optional[str]:
     try:
         return LastChecked.get().data
     except LastChecked.DoesNotExist:
