@@ -92,7 +92,12 @@ def cache_with_last_modified(func: Callable) -> Callable:
             try:
                 if_modified_since = datetime.datetime.fromisoformat(if_modified_since)
                 if last_modified < if_modified_since:
-                    raise ValueError("Request is from the future.")
+                    raise ValueError(
+                        (
+                            "Request is from the future: "
+                            f"{last_modified} < {if_modified_since}"
+                        )
+                    )
                 elif last_modified == if_modified_since:
                     bottle.response.status = 304
                     return
