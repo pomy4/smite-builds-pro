@@ -16,6 +16,5 @@ be/**/*.jpg
 fe/.parcel-cache
 fe/dist/
 fe/node_modules/
-fe/package-lock.json
 upd/**/*.log
 upd/**/*.json
