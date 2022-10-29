@@ -7,8 +7,8 @@
 
 <script>
 export default {
-  props: ['label', 'id', 'multiple', 'and']
-}
+  props: ["label", "id", "multiple", "and"],
+};
 </script>
 
 <style>

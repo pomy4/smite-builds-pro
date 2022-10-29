@@ -1,21 +1,21 @@
 <template>
-    <div class="label-slider">
-      <label class="label">{{ label }}</label>
-      <div class="label-slider-column">
-        <div class="slider-styled" :id="id" :format="format">Loading ...</div>
-        <div class="label-slider-row">
-          <div></div>
-          -
-          <div></div>
-        </div>
+  <div class="label-slider">
+    <label class="label">{{ label }}</label>
+    <div class="label-slider-column">
+      <div class="slider-styled" :id="id" :format="format">Loading ...</div>
+      <div class="label-slider-row">
+        <div></div>
+        -
+        <div></div>
       </div>
     </div>
+  </div>
 </template>
 
 <script>
 export default {
-  props: ['label', 'id', 'format']
-}
+  props: ["label", "id", "format"],
+};
 </script>
 
 <style>
