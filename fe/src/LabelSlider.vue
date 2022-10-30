@@ -2,7 +2,9 @@
   <div class="label-slider">
     <label class="label">{{ label }}</label>
     <div class="label-slider-column">
-      <div class="slider-styled" :id="id" :format="format">Loading ...</div>
+      <div v-bind:id="id" class="slider-styled" v-bind:format="format">
+        Loading ...
+      </div>
       <div class="label-slider-row">
         <div></div>
         -

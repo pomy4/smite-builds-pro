@@ -12,22 +12,22 @@
       <div class="tabs is-centered is-medium is-boxed">
         <ul>
           <li
-            v-on:click="is_in_basic_view = true"
             v-bind:class="{ 'is-active': is_in_basic_view }"
+            v-on:click="is_in_basic_view = true"
           >
             <a>Basic search</a>
           </li>
           <li
-            v-on:click="is_in_basic_view = false"
             v-bind:class="{ 'is-active': !is_in_basic_view }"
+            v-on:click="is_in_basic_view = false"
           >
             <a>Advanced search</a>
           </li>
         </ul>
       </div>
-      <div v-show="is_in_basic_view" class="select-row" id="basic-row">
-        <label-select label="God" id="basic-god1"></label-select>
-        <label-select label="Role" id="basic-role"></label-select>
+      <div v-show="is_in_basic_view" id="basic-row" class="select-row">
+        <label-select id="basic-god1" label="God"></label-select>
+        <label-select id="basic-role" label="Role"></label-select>
         <button
           class="button"
           style="margin-left: 2rem"
@@ -36,7 +36,7 @@
           Find builds
         </button>
       </div>
-      <div v-show="!is_in_basic_view" class="select-row" id="advanced-row">
+      <div v-show="!is_in_basic_view" id="advanced-row" class="select-row">
         <button
           class="button"
           style="margin-right: 2rem"
@@ -44,34 +44,34 @@
         >
           Clear all
         </button>
-        <label-select label="Seasons" id="season" multiple></label-select>
-        <label-select label="Leagues" id="league" multiple></label-select>
-        <label-select label="Phases" id="phase" multiple></label-select>
-        <label-slider label="Date" id="date" format="date"></label-slider>
-        <label-select label="Game #" id="game_i" multiple></label-select>
+        <label-select id="season" label="Seasons" multiple></label-select>
+        <label-select id="league" label="Leagues" multiple></label-select>
+        <label-select id="phase" label="Phases" multiple></label-select>
+        <label-slider id="date" label="Date" format="date"></label-slider>
+        <label-select id="game_i" label="Game #" multiple></label-select>
         <label-slider
-          label="Game length"
           id="game_length"
+          label="Game length"
           format="time"
         ></label-slider>
-        <label-select label="Win" id="win" multiple></label-select>
-        <label-slider label="KDA ratio" id="kda_ratio"></label-slider>
-        <label-slider label="Kills" id="kills"></label-slider>
-        <label-slider label="Deaths" id="deaths"></label-slider>
-        <label-slider label="Assists" id="assists"></label-slider>
-        <label-select label="Roles" id="role" multiple></label-select>
-        <label-select label="Teams" id="team1" multiple></label-select>
-        <label-select label="Players" id="player1" multiple></label-select>
-        <label-select label="Gods" id="god1" multiple></label-select>
-        <label-select label="Opponent teams" id="team2" multiple></label-select>
+        <label-select id="win" label="Win" multiple></label-select>
+        <label-slider id="kda_ratio" label="KDA ratio"></label-slider>
+        <label-slider id="kills" label="Kills"></label-slider>
+        <label-slider id="deaths" label="Deaths"></label-slider>
+        <label-slider id="assists" label="Assists"></label-slider>
+        <label-select id="role" label="Roles" multiple></label-select>
+        <label-select id="team1" label="Teams" multiple></label-select>
+        <label-select id="player1" label="Players" multiple></label-select>
+        <label-select id="god1" label="Gods" multiple></label-select>
+        <label-select id="team2" label="Opponent teams" multiple></label-select>
         <label-select
-          label="Opponent players"
           id="player2"
+          label="Opponent players"
           multiple
         ></label-select>
-        <label-select label="Opponent gods" id="god2" multiple></label-select>
-        <label-select label="Relics" id="relic" multiple and></label-select>
-        <label-select label="Items" id="item" multiple and></label-select>
+        <label-select id="god2" label="Opponent gods" multiple></label-select>
+        <label-select id="relic" label="Relics" multiple and></label-select>
+        <label-select id="item" label="Items" multiple and></label-select>
         <button
           class="button"
           style="margin-left: 2rem"
@@ -115,6 +115,54 @@ export default {
       builds: [],
       build_count: null,
     };
+  },
+  async mounted() {
+    let options_future = this.get_options();
+    this.get_and_update_last_check();
+
+    const foo = document.getElementById("foo");
+    const bar = this.antispam();
+    foo.href = `mailto:${bar}`;
+    foo.textContent = bar;
+
+    // Construction.
+    this.select_basic_god1 = new SelectJsSingle("basic-god1");
+    this.select_basic_role = new SelectJsSingle("basic-role");
+    this.controls = {};
+    const nodes = document.querySelectorAll("#advanced-row > *");
+    for (let node of nodes) {
+      if (node.className === "label-select") {
+        node = node.children[1];
+        this.controls[node.id] = new SelectJsMultiple(node);
+      } else if (node.className === "label-slider") {
+        node = node.children[1].children[0];
+        this.controls[node.id] = new SliderJs(node);
+      }
+    }
+
+    // Initialization.
+    const options = await options_future;
+    this.select_basic_god1.init(options["god1"]);
+    this.select_basic_role.init(options["role"]);
+    for (const [key, control] of Object.entries(this.controls)) {
+      control.init(options[key]);
+    }
+
+    // Pagination.
+    let observer = new IntersectionObserver(() => {
+      if (this.watch_for_intersections && !this.is_on_last_page) {
+        this.watch_for_intersections = false;
+        this.get_builds();
+      }
+    });
+    observer.observe(document.getElementById("bottom-of-page"));
+
+    // History/navigation.
+    window.addEventListener("popstate", () => {
+      this.refresh(false);
+    });
+
+    this.refresh(false);
   },
   methods: {
     async fetch_or_throw(url) {
@@ -322,54 +370,6 @@ export default {
         "com"
       ).replace("alienware", "@");
     },
-  },
-  async mounted() {
-    let options_future = this.get_options();
-    this.get_and_update_last_check();
-
-    const foo = document.getElementById("foo");
-    const bar = this.antispam();
-    foo.href = `mailto:${bar}`;
-    foo.textContent = bar;
-
-    // Construction.
-    this.select_basic_god1 = new SelectJsSingle("basic-god1");
-    this.select_basic_role = new SelectJsSingle("basic-role");
-    this.controls = {};
-    const nodes = document.querySelectorAll("#advanced-row > *");
-    for (let node of nodes) {
-      if (node.className === "label-select") {
-        node = node.children[1];
-        this.controls[node.id] = new SelectJsMultiple(node);
-      } else if (node.className === "label-slider") {
-        node = node.children[1].children[0];
-        this.controls[node.id] = new SliderJs(node);
-      }
-    }
-
-    // Initialization.
-    const options = await options_future;
-    this.select_basic_god1.init(options["god1"]);
-    this.select_basic_role.init(options["role"]);
-    for (const [key, control] of Object.entries(this.controls)) {
-      control.init(options[key]);
-    }
-
-    // Pagination.
-    let observer = new IntersectionObserver(() => {
-      if (this.watch_for_intersections && !this.is_on_last_page) {
-        this.watch_for_intersections = false;
-        this.get_builds();
-      }
-    });
-    observer.observe(document.getElementById("bottom-of-page"));
-
-    // History/navigation.
-    window.addEventListener("popstate", () => {
-      this.refresh(false);
-    });
-
-    this.refresh(false);
   },
 };
 </script>

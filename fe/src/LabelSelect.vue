@@ -1,7 +1,12 @@
 <template>
   <div class="label-select">
     <label class="label">{{ label }}</label>
-    <select :id="id" autocomplete="on" :multiple="multiple" :and="and"></select>
+    <select
+      v-bind:id="id"
+      autocomplete="on"
+      v-bind:multiple="multiple"
+      v-bind:and="and"
+    ></select>
   </div>
 </template>
 
