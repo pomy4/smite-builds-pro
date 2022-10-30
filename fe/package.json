@@ -11,6 +11,14 @@
     "vue": "^3.2.41",
     "wnumb": "^1.2.0"
   },
+  "//devDependencies": {
+    "@vitejs/plugin-vue": "Makes vite understand vue.",
+    "eslint": "Linter.",
+    "eslint-config-prettier": "Removes ESLint rules that conflict with prettier.",
+    "eslint-plugin-vue": "Makes ESLint understand vue.",
+    "prettier": "Formatter.",
+    "vite": "Build system."
+  },
   "devDependencies": {
     "@vitejs/plugin-vue": "^3.2.0",
     "eslint": "^8.26.0",
