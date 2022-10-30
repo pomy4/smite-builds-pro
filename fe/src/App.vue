@@ -335,7 +335,7 @@ export default {
       const basic_role = search_params.get("role~");
       if (basic_role) {
         this.select_basic_role.add(basic_role);
-        this.filter_basic_role1 = basic_role;
+        this.filter_basic_role = basic_role;
       }
       search_params.delete("role~");
 
