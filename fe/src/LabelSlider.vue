@@ -2,7 +2,7 @@
   <div class="label-slider">
     <label class="label">{{ label }}</label>
     <div class="label-slider-column">
-      <div v-bind:id="id" class="slider-styled" v-bind:format="format">
+      <div v-bind:id="id" class="slider-styled" v-bind:type="type">
         Loading ...
       </div>
       <div class="label-slider-row">
@@ -16,7 +16,7 @@
 
 <script>
 export default {
-  props: ["label", "id", "format"],
+  props: ["label", "id", "type"],
 };
 </script>
 

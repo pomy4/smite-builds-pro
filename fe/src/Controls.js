@@ -82,98 +82,122 @@ class SelectJsMultiple extends SelectJs {
 
 import noUiSlider from "nouislider";
 import "nouislider/dist/nouislider.css";
-import wNumb from "wnumb";
-
-function parse_date(s) {
-  const split = s.split("-");
-  return Date.UTC(
-    parseInt(split[0]),
-    parseInt(split[1]) - 1,
-    parseInt(split[2])
-  );
-}
-function format_date(timestamp) {
-  return new Date(parseInt(timestamp)).toISOString().split("T")[0];
-}
-function parse_time(s) {
-  const split = s.split(":");
-  return Date.UTC(
-    0,
-    0,
-    1,
-    parseInt(split[0]),
-    parseInt(split[1]),
-    parseInt(split[2])
-  );
-}
-function format_time(timestamp) {
-  return new Date(parseInt(timestamp))
-    .toISOString()
-    .split("T")[1]
-    .split(".")[0];
-}
 
 class SliderJs {
   constructor(node) {
     this.node = node;
   }
   init(range) {
-    this.min = range[0];
-    this.max = range[1];
+    const type = this.node.getAttribute("type");
+    const { width, n_to_s, s_to_n, min_s, max_s, min_n, max_n, step } =
+      init_based_on_type(type, range);
     this.node.textContent = "";
-    this.node.style.width = "6.667rem";
+    this.node.style.width = width;
     this.node.style.margin = "0 1rem";
-    this.tooltips = this.node.nextElementSibling.children;
-    const format = this.node.getAttribute("format");
-    let options = {
+    this.min_s = min_s;
+    this.max_s = max_s;
+    const options = {
       connect: true,
       animate: false,
+      format: {
+        to: n_to_s,
+        from: s_to_n,
+      },
+      start: [min_s, max_s],
+      range: {
+        min: min_n,
+        max: max_n,
+      },
+      step: step,
     };
-    if (format == "date") {
-      this.node.style.width = "12rem";
-      this.min = parse_date(range[0]);
-      this.max = parse_date(range[1]);
-      options["step"] = 1000 * 60 * 60 * 24;
-      options["format"] = wNumb({ decimals: 0 });
-      this.format = format_date;
-    } else if (format == "time") {
-      this.node.style.width = "9.3rem";
-      this.min = parse_time(range[0]);
-      this.max = parse_time(range[1]);
-      options["step"] = 1000;
-      options["format"] = wNumb({ decimals: 0 });
-      this.format = format_time;
-    } else {
-      this.min = range[0];
-      this.max = range[1];
-      if (this.node.id == "kda_ratio") {
-        options["format"] = wNumb({ decimals: 1 });
-        this.format = (s) => (s.length < 4 ? `0${s}` : s);
-      } else {
-        options["step"] = 1;
-        options["format"] = wNumb({ decimals: 0 });
-        this.format = (s) => (s.length < 2 ? `0${s}` : s);
-      }
-    }
-    options["start"] = [this.min, this.max];
-    options["range"] = { min: this.min, max: this.max };
     this.slider = noUiSlider.create(this.node, options);
+    const tooltips = this.node.nextElementSibling.children;
     this.slider.on("update", (values, handle) => {
-      this.tooltips[handle].textContent = this.format(values[handle]);
+      tooltips[handle].textContent = values[handle];
     });
   }
   clear() {
     this.slider.reset();
   }
   get() {
-    const range = this.slider.get();
-    return range[0] > this.min || range[1] < this.max
-      ? [this.format(range[0]), this.format(range[1])]
-      : [];
+    const [min_s, max_s] = this.slider.get();
+    return min_s !== this.min_s || max_s !== this.max_s ? [min_s, max_s] : [];
   }
   add(range) {
     this.slider.set(range);
   }
+}
+
+function init_based_on_type(type, range) {
+  if (type == "date") {
+    return init_date(range);
+  } else if (type == "time") {
+    return init_time(range);
+  } else if (type.startsWith("number")) {
+    const scale = Number(type.charAt(type.length - 1));
+    return init_number(scale, range);
+  } else {
+    throw Error(`Unknown type: ${type}`);
+  }
+}
+
+function init_date(range) {
+  const width = "12rem";
+  const n_to_s = date_num_to_str;
+  const s_to_n = date_str_to_num;
+  const [min_s, max_s] = range;
+  const min_n = s_to_n(min_s);
+  const max_n = s_to_n(max_s);
+  const step = 1000 * 60 * 60 * 24;
+  return { width, n_to_s, s_to_n, min_s, max_s, min_n, max_n, step };
+}
+
+function init_time(range) {
+  const width = "9.3rem";
+  const n_to_s = time_num_to_str;
+  const s_to_n = time_str_to_num;
+  const [min_s, max_s] = range;
+  const min_n = s_to_n(min_s);
+  const max_n = s_to_n(max_s);
+  const step = 1000;
+  return { width, n_to_s, s_to_n, min_s, max_s, min_n, max_n, step };
+}
+
+function init_number(scale, range) {
+  const width = "6.667rem";
+  const n_to_s = (n) =>
+    n.toFixed(scale).padStart(scale === 0 ? 2 : 3 + scale, "0");
+  const s_to_n = Number;
+  const [min_n, max_n] = range;
+  const min_s = n_to_s(min_n);
+  const max_s = n_to_s(max_n);
+  const step = 1 / (scale + 1);
+  return { width, n_to_s, s_to_n, min_s, max_s, min_n, max_n, step };
+}
+
+function date_str_to_num(s) {
+  const split = s.split("-");
+  return Date.UTC(Number(split[0]), Number(split[1]) - 1, Number(split[2]));
+}
+
+function date_num_to_str(n) {
+  return new Date(n).toISOString().split("T")[0];
+}
+
+function time_str_to_num(s) {
+  const split = s.split(":");
+  return Date.UTC(
+    0,
+    0,
+    1,
+    Number(split[0]),
+    Number(split[1]),
+    Number(split[2])
+  );
+}
+
+function time_num_to_str(n) {
+  return new Date(n).toISOString().split("T")[1].split(".")[0];
 }
 
 export { SelectJsSingle, SelectJsMultiple, SliderJs };

@@ -12,8 +12,7 @@
   "dependencies": {
     "nouislider": "^15.6.1",
     "tom-select": "2.0.3",
-    "vue": "^3.2.41",
-    "wnumb": "^1.2.0"
+    "vue": "^3.2.41"
   },
   "//devDependencies": {
     "@vitejs/plugin-vue": "Makes vite understand vue.",

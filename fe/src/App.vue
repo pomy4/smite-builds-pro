@@ -47,18 +47,26 @@
         <label-select id="season" label="Seasons" multiple></label-select>
         <label-select id="league" label="Leagues" multiple></label-select>
         <label-select id="phase" label="Phases" multiple></label-select>
-        <label-slider id="date" label="Date" format="date"></label-slider>
+        <label-slider id="date" label="Date" type="date"></label-slider>
         <label-select id="game_i" label="Game #" multiple></label-select>
         <label-slider
           id="game_length"
           label="Game length"
-          format="time"
+          type="time"
         ></label-slider>
         <label-select id="win" label="Win" multiple></label-select>
-        <label-slider id="kda_ratio" label="KDA ratio"></label-slider>
-        <label-slider id="kills" label="Kills"></label-slider>
-        <label-slider id="deaths" label="Deaths"></label-slider>
-        <label-slider id="assists" label="Assists"></label-slider>
+        <label-slider
+          id="kda_ratio"
+          label="KDA ratio"
+          type="number1"
+        ></label-slider>
+        <label-slider id="kills" label="Kills" type="number0"></label-slider>
+        <label-slider id="deaths" label="Deaths" type="number0"></label-slider>
+        <label-slider
+          id="assists"
+          label="Assists"
+          type="number0"
+        ></label-slider>
         <label-select id="role" label="Roles" multiple></label-select>
         <label-select id="team1" label="Teams" multiple></label-select>
         <label-select id="player1" label="Players" multiple></label-select>
