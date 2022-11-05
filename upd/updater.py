@@ -164,6 +164,9 @@ def scrape_league(driver: WebDriver, league: League) -> list[Match]:
     time.sleep(0.1)
 
     phase_elems = driver.find_elements(By.CLASS_NAME, "phase")
+    # The filtering is here because in SCC there is (or at least was at one point)
+    # an extraenous phase elem with empty text, which would then crash the script.
+    phase_elems = [phase_elem for phase_elem in phase_elems if text(phase_elem)]
     phases = [text(phase_elem) for phase_elem in phase_elems]
 
     all_match_ids = get_all_match_ids(phases)
