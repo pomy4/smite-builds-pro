@@ -108,7 +108,7 @@ import Build from "./Build.vue";
 import LabelSelect from "./LabelSelect.vue";
 import LabelSlider from "./LabelSlider.vue";
 import empty_url from "/images/empty.png";
-import { SelectJsSingle, SelectJsMultiple, SliderJs } from "./Controls.js";
+import { SelectJsSingle, SelectJsMultiple, SliderJs } from "./Controls.ts";
 
 export default {
   components: {
@@ -133,27 +133,20 @@ export default {
     foo.href = `mailto:${bar}`;
     foo.textContent = bar;
 
-    // Construction.
-    this.select_basic_god1 = new SelectJsSingle("basic-god1");
-    this.select_basic_role = new SelectJsSingle("basic-role");
+    // Initialization.
+    const options = await options_future;
+    this.select_basic_god1 = new SelectJsSingle("basic-god1", options["god1"]);
+    this.select_basic_role = new SelectJsSingle("basic-role", options["role"]);
     this.controls = {};
     const nodes = document.querySelectorAll("#advanced-row > *");
     for (let node of nodes) {
       if (node.className === "label-select") {
         node = node.children[1];
-        this.controls[node.id] = new SelectJsMultiple(node);
+        this.controls[node.id] = new SelectJsMultiple(node, options[node.id]);
       } else if (node.className === "label-slider") {
         node = node.children[1].children[0];
-        this.controls[node.id] = new SliderJs(node);
+        this.controls[node.id] = new SliderJs(node, options[node.id]);
       }
-    }
-
-    // Initialization.
-    const options = await options_future;
-    this.select_basic_god1.init(options["god1"]);
-    this.select_basic_role.init(options["role"]);
-    for (const [key, control] of Object.entries(this.controls)) {
-      control.init(options[key]);
     }
 
     // Pagination.

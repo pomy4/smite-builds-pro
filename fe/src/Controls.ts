@@ -1,13 +1,15 @@
 import TomSelect from "tom-select";
 import "tom-select/dist/css/tom-select.css";
 
-class SelectJs {
-  init(options) {
-    options = options.map((option) => {
+abstract class SelectJs {
+  protected tom: TomSelect;
+  constructor(tom: TomSelect, options: string[]) {
+    this.tom = tom;
+    const tom_options = options.map((option) => {
       return { value: option, text: option };
     });
-    this.tom.removeOption(1);
-    this.tom.addOptions(options);
+    this.tom.removeOption("LOADING");
+    this.tom.addOptions(tom_options);
     this.tom.refreshOptions(false);
   }
   clear() {
@@ -19,34 +21,34 @@ class SelectJs {
 }
 
 class SelectJsSingle extends SelectJs {
-  constructor(id) {
-    super();
-    this.tom = new TomSelect(`#${id}`, {
-      options: [{ value: 1, text: "Loading ...", disabled: true }],
+  constructor(id: string, options: string[]) {
+    const tom = new TomSelect(`#${id}`, {
+      options: [{ value: "LOADING", text: "Loading ...", disabled: true }],
       placeholder: "All",
       hidePlaceholder: true,
       plugins: ["no_active_items", "remove_button"],
       maxOptions: 999,
-      onItemRemove: function () {
+      onItemRemove: function (this: TomSelect) {
         if (this.getValue().length === 0) {
-          // Fix for the remove_button plugin AND the squishening when out of focus.
+          // Fix for the remove_button plugin
+          // AND the squishening when out of focus.
           this.inputState();
         }
       },
     });
+    super(tom, options);
   }
-  add(val) {
+  add(val: string) {
     this.tom.addItem(val);
   }
 }
 
 class SelectJsMultiple extends SelectJs {
-  constructor(select) {
-    super();
+  constructor(select: Element, options: string[]) {
     const and = select.getAttribute("and");
     const placeholder = and === null ? "or ..." : "and ...";
-    this.tom = new TomSelect(`#${select.id}`, {
-      options: [{ value: 1, text: "Loading ...", disabled: true }],
+    const tom = new TomSelect(`#${select.id}`, {
+      options: [{ value: "LOADING", text: "Loading ...", disabled: true }],
       placeholder: "All",
       hidePlaceholder: false,
       plugins: [
@@ -56,44 +58,53 @@ class SelectJsMultiple extends SelectJs {
         "clear_button",
       ],
       maxOptions: 999,
-      onItemAdd: function () {
+      onItemAdd: function (this: TomSelect) {
         this.settings.placeholder = placeholder;
-        // Tom-select expects that the user will want to keep adding similar options.
+        // Tom-select expects that the user
+        // will want to keep adding similar options.
         this.setTextboxValue("");
         this.refreshOptions(false);
       },
-      onItemRemove: function () {
+      onItemRemove: function (this: TomSelect) {
         if (this.getValue().length === 0) {
           this.settings.placeholder = "All";
           // Fix for the remove_button plugin.
-          document
-            .getElementById(`${select.id}-ts-control`)
-            .setAttribute("placeholder", "All");
+          const controlId = `${select.id}-ts-control`;
+          const controlElement = document.getElementById(controlId);
+          if (controlElement === null) {
+            console.log(
+              "TomSelect remove_button plugin " +
+                `workaround failed: ${controlId}`
+            );
+          } else {
+            controlElement.setAttribute("placeholder", "All");
+          }
         }
       },
     });
+    super(tom, options);
   }
-  add(vals) {
+  add(vals: string[]) {
     for (const val of vals) {
       this.tom.addItem(val);
     }
   }
 }
 
-import noUiSlider from "nouislider";
+import noUiSlider, { API } from "nouislider";
 import "nouislider/dist/nouislider.css";
 
 class SliderJs {
-  constructor(node) {
-    this.node = node;
-  }
-  init(range) {
-    const type = this.node.getAttribute("type");
+  private min_s: string;
+  private max_s: string;
+  private slider: API;
+  constructor(node: HTMLElement, range: [string, string] | [number, number]) {
+    const type = node.getAttribute("type")!;
     const { width, n_to_s, s_to_n, min_s, max_s, min_n, max_n, step } =
       init_based_on_type(type, range);
-    this.node.textContent = "";
-    this.node.style.width = width;
-    this.node.style.margin = "0 1rem";
+    node.textContent = "";
+    node.style.width = width;
+    node.style.margin = "0 1rem";
     this.min_s = min_s;
     this.max_s = max_s;
     const options = {
@@ -110,38 +121,41 @@ class SliderJs {
       },
       step: step,
     };
-    this.slider = noUiSlider.create(this.node, options);
-    const tooltips = this.node.nextElementSibling.children;
+    this.slider = noUiSlider.create(node, options);
+    const tooltips = node.nextElementSibling!.children;
     this.slider.on("update", (values, handle) => {
-      tooltips[handle].textContent = values[handle];
+      tooltips[handle].textContent = (values as string[])[handle];
     });
   }
   clear() {
     this.slider.reset();
   }
   get() {
-    const [min_s, max_s] = this.slider.get();
+    const [min_s, max_s] = this.slider.get() as string[];
     return min_s !== this.min_s || max_s !== this.max_s ? [min_s, max_s] : [];
   }
-  add(range) {
+  add(range: [string, string]) {
     this.slider.set(range);
   }
 }
 
-function init_based_on_type(type, range) {
+function init_based_on_type(
+  type: string,
+  range: [string, string] | [number, number]
+) {
   if (type == "date") {
-    return init_date(range);
+    return init_date(range as [string, string]);
   } else if (type == "time") {
-    return init_time(range);
+    return init_time(range as [string, string]);
   } else if (type.startsWith("number")) {
     const scale = Number(type.charAt(type.length - 1));
-    return init_number(scale, range);
+    return init_number(scale, range as [number, number]);
   } else {
     throw Error(`Unknown type: ${type}`);
   }
 }
 
-function init_date(range) {
+function init_date(range: [string, string]) {
   const width = "12rem";
   const n_to_s = date_num_to_str;
   const s_to_n = date_str_to_num;
@@ -152,7 +166,7 @@ function init_date(range) {
   return { width, n_to_s, s_to_n, min_s, max_s, min_n, max_n, step };
 }
 
-function init_time(range) {
+function init_time(range: [string, string]) {
   const width = "9.3rem";
   const n_to_s = time_num_to_str;
   const s_to_n = time_str_to_num;
@@ -163,9 +177,9 @@ function init_time(range) {
   return { width, n_to_s, s_to_n, min_s, max_s, min_n, max_n, step };
 }
 
-function init_number(scale, range) {
+function init_number(scale: number, range: [number, number]) {
   const width = "6.667rem";
-  const n_to_s = (n) =>
+  const n_to_s = (n: number) =>
     n.toFixed(scale).padStart(scale === 0 ? 2 : 3 + scale, "0");
   const s_to_n = Number;
   const [min_n, max_n] = range;
@@ -175,16 +189,16 @@ function init_number(scale, range) {
   return { width, n_to_s, s_to_n, min_s, max_s, min_n, max_n, step };
 }
 
-function date_str_to_num(s) {
+function date_str_to_num(s: string) {
   const split = s.split("-");
   return Date.UTC(Number(split[0]), Number(split[1]) - 1, Number(split[2]));
 }
 
-function date_num_to_str(n) {
+function date_num_to_str(n: number) {
   return new Date(n).toISOString().split("T")[0];
 }
 
-function time_str_to_num(s) {
+function time_str_to_num(s: string) {
   const split = s.split(":");
   return Date.UTC(
     0,
@@ -196,7 +210,7 @@ function time_str_to_num(s) {
   );
 }
 
-function time_num_to_str(n) {
+function time_num_to_str(n: number) {
   return new Date(n).toISOString().split("T")[1].split(".")[0];
 }
 
