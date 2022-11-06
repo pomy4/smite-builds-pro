@@ -14,10 +14,12 @@
   </div>
 </template>
 
-<script>
-export default {
-  props: ["label", "id", "type"],
-};
+<script setup lang="ts">
+const props = defineProps<{
+  label: string;
+  id: string;
+  type: string;
+}>();
 </script>
 
 <style>

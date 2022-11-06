@@ -10,10 +10,16 @@
   </div>
 </template>
 
-<script>
-export default {
-  props: ["label", "id", "multiple", "and"],
-};
+<script setup lang="ts">
+const props = withDefaults(
+  defineProps<{
+    label: string;
+    id: string;
+    multiple?: boolean;
+    and?: boolean;
+  }>(),
+  { multiple: false, and: false }
+);
 </script>
 
 <style>

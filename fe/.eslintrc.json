@@ -5,20 +5,24 @@
     },
     "extends": [
         "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
         "plugin:vue/vue3-recommended",
         "prettier"
     ],
+    "parser": "vue-eslint-parser",
     "parserOptions": {
+        "parser": "@typescript-eslint/parser",
         "sourceType": "module"
     },
     "plugins": [
+        "@typescript-eslint",
         "vue"
     ],
     "rules": {
         "vue/multi-word-component-names": "off",
-        "vue/require-prop-types": "off",
         "vue/v-bind-style": ["warn", "longform"],
         "vue/v-on-style": ["warn", "longform"],
-        "vue/v-slot-style": ["warn", "longform"]
+        "vue/v-slot-style": ["warn", "longform"],
+        "@typescript-eslint/no-unused-vars": "off"
     }
 }
