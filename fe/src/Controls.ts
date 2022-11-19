@@ -46,7 +46,7 @@ class SelectJsSingle extends SelectJs {
 class SelectJsMultiple extends SelectJs {
   constructor(select: Element, options: string[]) {
     const and = select.getAttribute("and");
-    const placeholder = and === null ? "or ..." : "and ...";
+    const placeholder = and === "false" ? "or ..." : "and ...";
     const tom = new TomSelect(`#${select.id}`, {
       options: [{ value: "LOADING", text: "Loading ...", disabled: true }],
       placeholder: "All",
