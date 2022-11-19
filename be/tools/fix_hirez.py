@@ -46,7 +46,12 @@ def get_item(image_name: str, index: int) -> be.models.Item:
 
 
 def fix_role(
-    match_id: int, game_i: int, player1: str, wrong_role: str, correct_role: str
+    match_id: int,
+    game_i: int,
+    player1: str,
+    wrong_role: str,
+    correct_role: str,
+    fix_opp_too: bool = False,
 ) -> None:
     build = (
         Build.select()
@@ -60,14 +65,24 @@ def fix_role(
     )
     if build is None:
         return
+
+    print(
+        f"build: {match_id} {game_i} {player1}",
+        f"role: {build.role} -> {correct_role}",
+        sep="\n\t",
+    )
     build.role = correct_role
     build.save()
-    print("fix_role:", match_id, game_i, player1, wrong_role, "->", correct_role)
-    fix_player2_and_god2(match_id, game_i, player1, build.player2)
+
+    fix_player2_and_god2(match_id, game_i, player1, build.player2, fix_opp_too)
 
 
 def fix_player2_and_god2(
-    match_id: int, game_i: int, player1: str, wrong_player2: str
+    match_id: int,
+    game_i: int,
+    player1: str,
+    wrong_player2: str,
+    fix_opp_too: bool = False,
 ) -> None:
     build = (
         Build.select()
@@ -81,26 +96,93 @@ def fix_player2_and_god2(
     )
     if build is None:
         return
-    role = build.role
-    opp_team = build.team2
+
     opp_build = (
         Build.select()
         .where(
             (Build.match_id == match_id)
             & (Build.game_i == game_i)
-            & (Build.role == role)
-            & (Build.team1 == opp_team)
+            & (Build.role == build.role)
+            & (Build.team1 == build.team2)
         )
         .first()
+    )
+
+    print(
+        f"build: {match_id} {game_i} {player1}",
+        f"player2: {build.player2} -> {opp_build.player1}",
+        f"god2: {build.god2} -> {opp_build.god1}",
+        sep="\n\t",
     )
     build.player2 = opp_build.player1
     build.god2 = opp_build.god1
     build.save()
-    print("fix_player2_and_god2:", match_id, game_i, player1, wrong_player2)
+
+    if not fix_opp_too:
+        return
+
+    print(
+        f"build: {match_id} {game_i} {opp_build.player1}",
+        f"player2: {opp_build.player2} -> {build.player1}",
+        f"god2: {opp_build.god2} -> {build.god1}",
+        sep="\n\t",
+    )
+    opp_build.player2 = build.player1
+    opp_build.god2 = build.god1
+    opp_build.save()
+
+
+def fix_god(
+    match_id: int,
+    game_i: int,
+    player1: str,
+    wrong_god1: str,
+    correct_god1: str,
+) -> None:
+    build = (
+        Build.select()
+        .where(
+            (Build.match_id == match_id)
+            & (Build.game_i == game_i)
+            & (Build.player1 == player1)
+            & (Build.god1 == wrong_god1)
+        )
+        .first()
+    )
+    if build is None:
+        return
+
+    print(
+        f"build: {match_id} {game_i} {player1}",
+        f"god1: {build.god1} -> {correct_god1}",
+        sep="\n\t",
+    )
+    build.god1 = correct_god1
+    build.save()
+
+    opp_build = (
+        Build.select()
+        .where(
+            (Build.match_id == match_id)
+            & (Build.game_i == game_i)
+            & (Build.player2 == build.player1)
+            & (Build.god2 == wrong_god1)
+        )
+        .first()
+    )
+    if opp_build is None:
+        return
+
+    print(
+        f"build: {match_id} {game_i} {opp_build.player1}",
+        f"god2: {opp_build.god2} -> {correct_god1}",
+        sep="\n\t",
+    )
+    opp_build.god2 = correct_god1
+    opp_build.save()
 
 
 be.models.db.connect()
-be.models.db.begin()
 
 # ITEM AND PLAYER NAMES
 
@@ -893,72 +975,82 @@ fix_role(3804, 2, "Baskin", "Sub", "Support")
 fix_player2_and_god2(3804, 1, "Hurriwind", "Missing data")
 fix_player2_and_god2(3804, 2, "Hurriwind", "Missing data")
 
-# Too lazy to fix
+with be.models.db.atomic():
+    fix_role(3951, 1, "Rapio", "Sub", "Jungle", fix_opp_too=True)
+    fix_role(3951, 2, "Rapio", "Sub", "Jungle", fix_opp_too=True)
 
-# Set missing
+    fix_role(3951, 1, "iDavy", "Sub", "ADC", fix_opp_too=True)
+    fix_role(3951, 2, "iDavy", "Sub", "ADC", fix_opp_too=True)
 
-# Pre-Season Friday, 2022 March 25 Atlantis Leviathans VS Valhalla Valkyries
-# LVTHN 2 - 0 VALKS (match_id 3472)
+    fix_god(3876, 2, "CycloneSpin", "g122229481", "Ishtar")
+    fix_god(3880, 1, "CycloneSpin", "g122229481", "Ishtar")
+    fix_god(3926, 2, "Snoopy", "g122229481", "Ishtar")
 
-# slaaaaaaasH missing
+    # Too lazy to fix
 
-# 5702|9|SCC|NA Phase 1|2022-03-31|3550|1|0|00:34:55|0.0|0|5|0|
-# Solo|Cliodhna|Remakami|HOUND|Missing data|Missing data|SAGES|
-# 258|256|29|70|257|31|51|15
+    # Set missing
 
-# 5715|9|SCC|NA Phase 1|2022-03-31|3550|2|1|00:28:26|5.0|1|0|4|
-# Solo|Odin|Remakami|HOUND|Missing data|Missing data|SAGES|
-# 258|260|202|229|257|31|124|155
+    # Pre-Season Friday, 2022 March 25 Atlantis Leviathans VS Valhalla Valkyries
+    # LVTHN 2 - 0 VALKS (match_id 3472)
 
-# 5724|9|SCC|NA Phase 1|2022-03-31|3550|3|1|00:24:09|5.0|1|0|4|
-# Solo|Osiris|Remakami|HOUND|Missing data|Missing data|SAGES|
-# 258|260|171|229|30|47|115|124
+    # slaaaaaaasH missing
 
-# 5837|9|SCC|NA Phase 1|2022-04-09|3561|1|1|00:39:04|2.25|2|4|7|
-# Solo|Jormungandr|Uzzy|STORM|Missing data|Missing data|SAGES|
-# 278|285|139|257|219|176|87|124
+    # 5702|9|SCC|NA Phase 1|2022-03-31|3550|1|0|00:34:55|0.0|0|5|0|
+    # Solo|Cliodhna|Remakami|HOUND|Missing data|Missing data|SAGES|
+    # 258|256|29|70|257|31|51|15
 
-# 5850|9|SCC|NA Phase 1|2022-04-09|3561|2|1|00:31:25|7.0|1|1|6|
-# Solo|Camazotz|Uzzy|STORM|Missing data|Missing data|SAGES|
-# 273|275|202|47|229|51|70|32
+    # 5715|9|SCC|NA Phase 1|2022-03-31|3550|2|1|00:28:26|5.0|1|0|4|
+    # Solo|Odin|Remakami|HOUND|Missing data|Missing data|SAGES|
+    # 258|260|202|229|257|31|124|155
 
-# 5885|9|SCC|NA Phase 1|2022-04-14|3562|1|1|00:22:33|8.0|2|1|6|
-# Solo|Sun Wukong|RelentlessOne|WRDNS|Missing data|Missing data|SAGES|
-# 273|269|29|70|229|32|214|
+    # 5724|9|SCC|NA Phase 1|2022-03-31|3550|3|1|00:24:09|5.0|1|0|4|
+    # Solo|Osiris|Remakami|HOUND|Missing data|Missing data|SAGES|
+    # 258|260|171|229|30|47|115|124
 
-# 5898|9|SCC|NA Phase 1|2022-04-14|3562|2|1|00:23:51|6.5|4|2|9|
-# Solo|Amaterasu|RelentlessOne|WRDNS|Missing data|Missing data|SAGES|
-# 282|275|190|47|128|140|51|
+    # 5837|9|SCC|NA Phase 1|2022-04-09|3561|1|1|00:39:04|2.25|2|4|7|
+    # Solo|Jormungandr|Uzzy|STORM|Missing data|Missing data|SAGES|
+    # 278|285|139|257|219|176|87|124
 
-# CaptainQuig missing
+    # 5850|9|SCC|NA Phase 1|2022-04-09|3561|2|1|00:31:25|7.0|1|1|6|
+    # Solo|Camazotz|Uzzy|STORM|Missing data|Missing data|SAGES|
+    # 273|275|202|47|229|51|70|32
 
-# 5786|9|SCC|NA Phase 1|2022-04-07|3559|1|0|00:31:59|1.75|2|4|5|Support|
-# Atlas|Dashboarřd|WEAVE|Missing data|Missing data|HOUND|
-# 264|258|17|19|87|128|20|
+    # 5885|9|SCC|NA Phase 1|2022-04-14|3562|1|1|00:22:33|8.0|2|1|6|
+    # Solo|Sun Wukong|RelentlessOne|WRDNS|Missing data|Missing data|SAGES|
+    # 273|269|29|70|229|32|214|
 
-# 5795|9|SCC|NA Phase 1|2022-04-07|3559|2|0|00:31:20|0.625|0|8|5|Support|
-# Khepri|Dashboarřd|WEAVE|Missing data|Missing data|HOUND|
-# 268|264|34|19|20|128||
+    # 5898|9|SCC|NA Phase 1|2022-04-14|3562|2|1|00:23:51|6.5|4|2|9|
+    # Solo|Amaterasu|RelentlessOne|WRDNS|Missing data|Missing data|SAGES|
+    # 282|275|190|47|128|140|51|
 
-# Rapio missing
+    # CaptainQuig missing
 
-# 9334|9|SCC|EU Phase 2|2022-06-16|3803|2|1|00:34:25|21.0|10|1|11|
-# Jungle|Awilix|Dzoni|MAMBO|Missing data|Missing data|RAVEN|
-# 276|270|10|78|46|106|77|107
+    # 5786|9|SCC|NA Phase 1|2022-04-07|3559|1|0|00:31:59|1.75|2|4|5|Support|
+    # Atlas|Dashboarřd|WEAVE|Missing data|Missing data|HOUND|
+    # 264|258|17|19|87|128|20|
 
-# BIGSLIMTIMMYJIM missing
+    # 5795|9|SCC|NA Phase 1|2022-04-07|3559|2|0|00:31:20|0.625|0|8|5|Support|
+    # Khepri|Dashboarřd|WEAVE|Missing data|Missing data|HOUND|
+    # 268|264|34|19|20|128||
 
-# 9649|9|SCC|NA Phase 2|2022-06-16|3792|1|0|00:35:05|1.0|1|4|3|
-# Support|Khepri|Hurriwind|YOMI|Missing data|Missing data|WEAVE|
-# 282|262|17|21|87|128|35|
+    # Rapio missing
 
-# delnyy missing
+    # 9334|9|SCC|EU Phase 2|2022-06-16|3803|2|1|00:34:25|21.0|10|1|11|
+    # Jungle|Awilix|Dzoni|MAMBO|Missing data|Missing data|RAVEN|
+    # 276|270|10|78|46|106|77|107
 
-# 9685|9|SCC|NA Phase 2|2022-06-16|3795|1|1|00:26:42|12.0|6|1|6|
-# Solo|Bastet|RelentlessOne|WRDNS|Missing data|Missing data|SAGES|
-# 276|258|227|70|30|87|15|
+    # BIGSLIMTIMMYJIM missing
 
-be.models.update_last_modified(be.backend.what_time_is_it())
+    # 9649|9|SCC|NA Phase 2|2022-06-16|3792|1|0|00:35:05|1.0|1|4|3|
+    # Support|Khepri|Hurriwind|YOMI|Missing data|Missing data|WEAVE|
+    # 282|262|17|21|87|128|35|
 
-be.models.db.commit()
+    # delnyy missing
+
+    # 9685|9|SCC|NA Phase 2|2022-06-16|3795|1|1|00:26:42|12.0|6|1|6|
+    # Solo|Bastet|RelentlessOne|WRDNS|Missing data|Missing data|SAGES|
+    # 276|258|227|70|30|87|15|
+
+    be.models.update_last_modified(be.backend.what_time_is_it())
+
 be.models.db.close()
