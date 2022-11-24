@@ -10,6 +10,8 @@
     "format-check": "prettier --check src"
   },
   "dependencies": {
+    "bulma": "^0.9.4",
+    "bulmaswatch": "^0.8.1",
     "nouislider": "^15.6.1",
     "tom-select": "2.0.3",
     "vue": "^3.2.41"
@@ -22,6 +24,7 @@
     "eslint-config-prettier": "Removes ESLint rules that conflict with prettier.",
     "eslint-plugin-vue": "Makes ESLint understand vue.",
     "prettier": "Formatter.",
+    "sass": "CSS preprocessor.",
     "typescript": "TypeScript.",
     "vite": "Build system."
   },
@@ -33,6 +36,7 @@
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-vue": "^9.6.0",
     "prettier": "^2.7.1",
+    "sass": "^1.56.1",
     "typescript": "^4.8.4",
     "vite": "^3.2.1"
   }
