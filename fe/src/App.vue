@@ -200,9 +200,18 @@ export default {
     async get_builds() {
       let bottom_of_page = document.getElementById("bottom-of-page");
       bottom_of_page.textContent = "Loading builds ...";
+
       let url = `/api/builds${this.filters_to_server_url_fragment()}`;
-      let response = await this.fetch_or_throw(url);
-      let builds = await response.json();
+      let builds = undefined;
+      try {
+        let response = await this.fetch_or_throw(url);
+        builds = await response.json();
+      } catch (e) {
+        let err_msg = "Failed to load builds! Please try refreshing.";
+        bottom_of_page.textContent = err_msg;
+        throw e;
+      }
+
       if (this.page === 1) {
         this.build_count = builds["count"];
         builds = builds["builds"];
@@ -349,8 +358,15 @@ export default {
       }
     },
     async get_options() {
-      let response = await this.fetch_or_throw("/api/options");
-      return response.json();
+      try {
+        let response = await this.fetch_or_throw("/api/options");
+        return await response.json();
+      } catch (e) {
+        let bottom_of_page = document.getElementById("bottom-of-page");
+        let err_msg = "Failed to load options! Please try refreshing.";
+        bottom_of_page.textContent = err_msg;
+        throw e;
+      }
     },
     async get_and_update_last_check() {
       let response = await this.fetch_or_throw("/api/last_check");
