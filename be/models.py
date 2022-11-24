@@ -147,6 +147,8 @@ def get_options() -> dict:
     ]
     res["date"] = [
         date.isoformat()
+        if date
+        else datetime.date(year=2012, month=5, day=31).isoformat()
         for date in Build.select(pw.fn.MIN(Build.date), pw.fn.MAX(Build.date)).scalar(
             as_tuple=True
         )
@@ -159,23 +161,35 @@ def get_options() -> dict:
         b.win for b in Build.select(Build.win).distinct().order_by(Build.win.desc())
     ]
     res["game_length"] = [
-        time.isoformat()
+        time.isoformat() if time else datetime.time().isoformat()
         for time in Build.select(
             pw.fn.MIN(Build.game_length), pw.fn.MAX(Build.game_length)
         ).scalar(as_tuple=True)
     ]
-    res["kda_ratio"] = Build.select(
-        pw.fn.MIN(Build.kda_ratio), pw.fn.MAX(Build.kda_ratio)
-    ).scalar(as_tuple=True)
-    res["kills"] = Build.select(pw.fn.MIN(Build.kills), pw.fn.MAX(Build.kills)).scalar(
-        as_tuple=True
-    )
-    res["deaths"] = Build.select(
-        pw.fn.MIN(Build.deaths), pw.fn.MAX(Build.deaths)
-    ).scalar(as_tuple=True)
-    res["assists"] = Build.select(
-        pw.fn.MIN(Build.assists), pw.fn.MAX(Build.assists)
-    ).scalar(as_tuple=True)
+    res["kda_ratio"] = [
+        kda_ratio if kda_ratio else 0
+        for kda_ratio in Build.select(
+            pw.fn.MIN(Build.kda_ratio), pw.fn.MAX(Build.kda_ratio)
+        ).scalar(as_tuple=True)
+    ]
+    res["kills"] = [
+        kills if kills else 0
+        for kills in Build.select(
+            pw.fn.MIN(Build.kills), pw.fn.MAX(Build.kills)
+        ).scalar(as_tuple=True)
+    ]
+    res["deaths"] = [
+        deaths if deaths else 0
+        for deaths in Build.select(
+            pw.fn.MIN(Build.deaths), pw.fn.MAX(Build.deaths)
+        ).scalar(as_tuple=True)
+    ]
+    res["assists"] = [
+        assists if assists else 0
+        for assists in Build.select(
+            pw.fn.MIN(Build.assists), pw.fn.MAX(Build.assists)
+        ).scalar(as_tuple=True)
+    ]
     res["role"] = [
         b.role for b in Build.select(Build.role).distinct().order_by(Build.role.asc())
     ]
