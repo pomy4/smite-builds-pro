@@ -1,6 +1,5 @@
 <template>
   <div class="build-row block box">
-    <!--<div class="metadata-row">-->
     <div class="my-column" style="width: 12rem">
       <span
         ><span>Season </span><span>{{ data.season }}</span></span
@@ -34,8 +33,6 @@
     <div class="my-column" style="width: 5.667rem">
       <span>{{ data.god1 }}</span>
     </div>
-    <!--</div>-->
-    <!--<div class="data-row">-->
     <div class="item-row">
       <div class="my-column">
         <img
@@ -96,7 +93,6 @@
         />
       </div>
     </div>
-    <!--</div>-->
     <div class="my-column" style="width: 6.667rem">
       <span>Opponent:</span>
       <span>{{ data.god2 }}</span>
@@ -106,43 +102,8 @@
 </template>
 
 <script setup lang="ts">
-// TODO: Use these types in App.vue too.
-interface Item {
-  name: string;
-  src: string;
-}
-interface Build {
-  season: string;
-  league: string;
-  phase: string;
-  date: string;
-  match_url: string;
-  game_i: number;
-  win: boolean;
-  game_length: string;
-  kda_ratio: number;
-  kills: number;
-  deaths: number;
-  assists: number;
-  role: string;
-  player1: string;
-  god1: string;
-  team1: string;
-  player2: string;
-  god2: string;
-  team2: string;
-  relic1: Item;
-  relic2: Item;
-  item1: Item;
-  item2: Item;
-  item3: Item;
-  item4: Item;
-  item5: Item;
-  item6: Item;
-}
-const props = defineProps<{
-  data: Build;
-}>();
+import { Build } from "./types";
+defineProps<{ data: Build }>();
 </script>
 
 <style>
@@ -152,13 +113,6 @@ const props = defineProps<{
   row-gap: 1.333rem;
   flex-wrap: wrap;
   justify-content: center;
-}
-.metadata-row {
-  display: flex;
-}
-.data-row {
-  display: flex;
-  column-gap: 1.333rem;
 }
 .item-row {
   display: flex;

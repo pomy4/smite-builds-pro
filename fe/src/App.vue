@@ -5,29 +5,42 @@
         <div class="update-info">
           <a href="https://www.smiteproleague.com/schedule/"
             >https://www.smiteproleague.com/schedule/</a
-          ><br />Last check: {{ last_check }}
+          ><br />Last check: {{ lastCheck }}
         </div>
-        <div class="contact-info">Contact info:<br /><a id="foo"></a></div>
+        <div class="contact-info">
+          Contact info:<br />
+          <a v-bind:href="`mailto:${antiSpam}`">{{ antiSpam }}</a>
+        </div>
       </div>
       <div class="tabs is-centered is-medium is-boxed">
         <ul>
           <li
-            v-bind:class="{ 'is-active': is_in_basic_view }"
-            v-on:click="is_in_basic_view = true"
+            v-bind:class="{ 'is-active': isInBasicView }"
+            v-on:click="isInBasicView = true"
           >
             <a>Basic search</a>
           </li>
           <li
-            v-bind:class="{ 'is-active': !is_in_basic_view }"
-            v-on:click="is_in_basic_view = false"
+            v-bind:class="{ 'is-active': !isInBasicView }"
+            v-on:click="isInBasicView = false"
           >
             <a>Advanced search</a>
           </li>
         </ul>
       </div>
-      <div v-show="is_in_basic_view" id="basic-row" class="select-row">
-        <label-select id="basic-god1" label="God"></label-select>
-        <label-select id="basic-role" label="Role"></label-select>
+      <div v-show="isInBasicView" id="basic-row" class="select-row">
+        <MySelect
+          id="basic-god"
+          v-model:items="basicControls.god.state"
+          label="God"
+          v-bind:options="options.god1"
+        ></MySelect>
+        <MySelect
+          id="basic-role"
+          v-model:items="basicControls.role.state"
+          v-bind:options="options.role"
+          label="Role"
+        ></MySelect>
         <button
           class="button"
           style="margin-left: 2rem"
@@ -36,50 +49,169 @@
           Find builds
         </button>
       </div>
-      <div v-show="!is_in_basic_view" id="advanced-row" class="select-row">
+      <div v-show="!isInBasicView" id="advanced-row" class="select-row">
         <button
           class="button"
           style="margin-right: 2rem"
-          v-on:click="clear_all_button"
+          v-on:click="clearControls"
         >
           Clear all
         </button>
-        <label-select id="season" label="Seasons" multiple></label-select>
-        <label-select id="league" label="Leagues" multiple></label-select>
-        <label-select id="phase" label="Phases" multiple></label-select>
-        <label-slider id="date" label="Date" type="date"></label-slider>
-        <label-select id="game_i" label="Game #" multiple></label-select>
-        <label-slider
-          id="game_length"
+        <MySelect
+          id="season"
+          v-model:items="advancedControls.season.state"
+          v-bind:options="options.season"
+          label="Seasons"
+          multiple
+        ></MySelect>
+        <MySelect
+          id="league"
+          v-model:items="advancedControls.league.state"
+          v-bind:options="options.league"
+          label="Leagues"
+          multiple
+        ></MySelect>
+        <MySelect
+          id="phase"
+          v-model:items="advancedControls.phase.state"
+          v-bind:options="options.phase"
+          label="Phases"
+          multiple
+        ></MySelect>
+        <MySlider
+          id="date"
+          v-model:current="advancedControls.date.state"
+          label="Date"
+          v-bind:other="{ type: SliderType.Date, unparsedLimit: options.date }"
+        ></MySlider>
+        <MySelect
+          id="game-i"
+          v-model:items="advancedControls.gameI.state"
+          v-bind:options="options.game_i"
+          label="Game #"
+          multiple
+        ></MySelect>
+        <MySlider
+          id="game-length"
+          v-model:current="advancedControls.gameLength.state"
           label="Game length"
-          type="time"
-        ></label-slider>
-        <label-select id="win" label="Win" multiple></label-select>
-        <label-slider
-          id="kda_ratio"
+          v-bind:other="{
+            type: SliderType.Time,
+            unparsedLimit: options.game_length,
+          }"
+        ></MySlider>
+        <MySelect
+          id="win"
+          v-model:items="advancedControls.win.state"
+          v-bind:options="options.win"
+          label="Win"
+          multiple
+        ></MySelect>
+        <MySlider
+          id="kda-ratio"
+          v-model:current="advancedControls.kdaRatio.state"
           label="KDA ratio"
-          type="number1"
-        ></label-slider>
-        <label-slider id="kills" label="Kills" type="number0"></label-slider>
-        <label-slider id="deaths" label="Deaths" type="number0"></label-slider>
-        <label-slider
+          v-bind:other="{
+            type: SliderType.Number,
+            unparsedLimit: options.kda_ratio,
+            scale: 1,
+          }"
+        ></MySlider>
+        <MySlider
+          id="kills"
+          v-model:current="advancedControls.kills.state"
+          label="Kills"
+          v-bind:other="{
+            type: SliderType.Number,
+            unparsedLimit: options.kills,
+            scale: 0,
+          }"
+        ></MySlider>
+        <MySlider
+          id="deaths"
+          v-model:current="advancedControls.deaths.state"
+          label="Deaths"
+          v-bind:other="{
+            type: SliderType.Number,
+            unparsedLimit: options.deaths,
+            scale: 0,
+          }"
+        ></MySlider>
+        <MySlider
           id="assists"
+          v-model:current="advancedControls.assists.state"
           label="Assists"
-          type="number0"
-        ></label-slider>
-        <label-select id="role" label="Roles" multiple></label-select>
-        <label-select id="team1" label="Teams" multiple></label-select>
-        <label-select id="player1" label="Players" multiple></label-select>
-        <label-select id="god1" label="Gods" multiple></label-select>
-        <label-select id="team2" label="Opponent teams" multiple></label-select>
-        <label-select
+          v-bind:other="{
+            type: SliderType.Number,
+            unparsedLimit: options.assists,
+            scale: 0,
+          }"
+        ></MySlider>
+        <MySelect
+          id="role"
+          v-model:items="advancedControls.role.state"
+          v-bind:options="options.role"
+          label="Roles"
+          multiple
+        ></MySelect>
+        <MySelect
+          id="team1"
+          v-model:items="advancedControls.team1.state"
+          v-bind:options="options.team1"
+          label="Teams"
+          multiple
+        ></MySelect>
+        <MySelect
+          id="player1"
+          v-model:items="advancedControls.player1.state"
+          v-bind:options="options.player1"
+          label="Players"
+          multiple
+        ></MySelect>
+        <MySelect
+          id="god1"
+          v-model:items="advancedControls.god1.state"
+          v-bind:options="options.god1"
+          label="Gods"
+          multiple
+        ></MySelect>
+        <MySelect
+          id="team2"
+          v-model:items="advancedControls.team2.state"
+          v-bind:options="options.team2"
+          label="Opponent teams"
+          multiple
+        ></MySelect>
+        <MySelect
           id="player2"
+          v-model:items="advancedControls.player2.state"
+          v-bind:options="options.player2"
           label="Opponent players"
           multiple
-        ></label-select>
-        <label-select id="god2" label="Opponent gods" multiple></label-select>
-        <label-select id="relic" label="Relics" multiple and></label-select>
-        <label-select id="item" label="Items" multiple and></label-select>
+        ></MySelect>
+        <MySelect
+          id="god2"
+          v-model:items="advancedControls.god2.state"
+          v-bind:options="options.god2"
+          label="Opponent gods"
+          multiple
+        ></MySelect>
+        <MySelect
+          id="relic"
+          v-model:items="advancedControls.relic.state"
+          v-bind:options="options.relic"
+          label="Relics"
+          multiple
+          and
+        ></MySelect>
+        <MySelect
+          id="item"
+          v-model:items="advancedControls.item.state"
+          v-bind:options="options.item"
+          label="Items"
+          multiple
+          and
+        ></MySelect>
         <button
           class="button"
           style="margin-left: 2rem"
@@ -88,307 +220,331 @@
           Find builds
         </button>
       </div>
-      <div v-show="build_count !== null" class="build-count">
-        Found {{ build_count }} builds.
+      <div v-show="buildCount !== null" class="build-count">
+        Found {{ buildCount }} builds.
       </div>
       <div class="build-column">
-        <build
+        <MyBuild
           v-for="build in builds"
           v-bind:key="build.id"
           v-bind:data="build"
-        ></build>
-        <div id="bottom-of-page">Loading options ...</div>
+        ></MyBuild>
+        <div ref="bottomElem">{{ bottomText }}</div>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-import Build from "./Build.vue";
-import LabelSelect from "./LabelSelect.vue";
-import LabelSlider from "./LabelSlider.vue";
-import empty_url from "/images/empty.png";
-import { SelectJsSingle, SelectJsMultiple, SliderJs } from "./Controls.ts";
+<script setup lang="ts">
+import { nextTick, onMounted, ref } from "vue";
+import {
+  SliderType,
+  UnparsedBuild,
+  UnparsedItem,
+  Build,
+  Item,
+  BuildsResponse,
+  Options,
+  Nullable,
+} from "./types";
+import MyBuild from "./MyBuild.vue";
+import MySelect from "./MySelect.vue";
+import MySlider from "./MySlider.vue";
+import emptyImageUrl from "/images/empty.png";
 
-export default {
-  components: {
-    Build,
-    LabelSelect,
-    LabelSlider,
-  },
-  data() {
-    return {
-      last_check: "loading ...",
-      is_in_basic_view: true,
-      builds: [],
-      build_count: null,
-    };
-  },
-  async mounted() {
-    let options_future = this.get_options();
-    this.get_and_update_last_check();
-
-    const foo = document.getElementById("foo");
-    const bar = this.antispam();
-    foo.href = `mailto:${bar}`;
-    foo.textContent = bar;
-
-    // Initialization.
-    const options = await options_future;
-    this.select_basic_god1 = new SelectJsSingle("basic-god1", options["god1"]);
-    this.select_basic_role = new SelectJsSingle("basic-role", options["role"]);
-    this.controls = {};
-    const nodes = document.querySelectorAll("#advanced-row > *");
-    for (let node of nodes) {
-      if (node.className === "label-select") {
-        node = node.children[1];
-        this.controls[node.id] = new SelectJsMultiple(node, options[node.id]);
-      } else if (node.className === "label-slider") {
-        node = node.children[1].children[0];
-        this.controls[node.id] = new SliderJs(node, options[node.id]);
-      }
-    }
-
-    // Pagination.
-    let observer = new IntersectionObserver(() => {
-      if (this.watch_for_intersections && !this.is_on_last_page) {
-        this.watch_for_intersections = false;
-        this.get_builds();
-      }
-    });
-    observer.observe(document.getElementById("bottom-of-page"));
-
-    // History/navigation.
-    window.addEventListener("popstate", () => {
-      this.refresh(false);
-    });
-
-    this.refresh(false);
-  },
-  methods: {
-    async fetch_or_throw(url) {
-      let response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(
-          `HTTP error! Status: ${response.status} ${response.statusText}`
-        );
-      }
-      return response;
-    },
-    clear_all_button() {
-      for (const control of Object.values(this.controls)) {
-        control.clear();
-      }
-    },
-    refresh(prompted_by_button_click) {
-      clearTimeout(this.watch_for_intersections_timeout);
-      this.watch_for_intersections = false;
-      if (prompted_by_button_click) {
-        this.controls_to_filters_and_client_url();
-      } else {
-        this.client_url_to_controls_and_filters();
-      }
-      this.reset_builds();
-      this.get_builds();
-    },
-    reset_builds() {
-      this.builds = [];
-      this.build_count = null;
-      this.page = 1;
-      this.is_on_last_page = false;
-    },
-    async get_builds() {
-      let bottom_of_page = document.getElementById("bottom-of-page");
-      bottom_of_page.textContent = "Loading builds ...";
-
-      let url = `/api/builds${this.filters_to_server_url_fragment()}`;
-      let builds = undefined;
-      try {
-        let response = await this.fetch_or_throw(url);
-        builds = await response.json();
-      } catch (e) {
-        let err_msg = "Failed to load builds! Please try refreshing.";
-        bottom_of_page.textContent = err_msg;
-        throw e;
-      }
-
-      if (this.page === 1) {
-        this.build_count = builds["count"];
-        builds = builds["builds"];
-      }
-      for (let build of builds) {
-        build.relic1 = this.handle_img(build.relic1);
-        build.relic2 = this.handle_img(build.relic2);
-        build.item1 = this.handle_img(build.item1);
-        build.item2 = this.handle_img(build.item2);
-        build.item3 = this.handle_img(build.item3);
-        build.item4 = this.handle_img(build.item4);
-        build.item5 = this.handle_img(build.item5);
-        build.item6 = this.handle_img(build.item6);
-      }
-      if (builds.length > 0) {
-        this.builds.push(...builds);
-        this.page += 1;
-      } else {
-        this.is_on_last_page = true;
-      }
-      bottom_of_page.textContent = "";
-      this.start_watching_in_the_future();
-    },
-    filters_to_server_url_fragment() {
-      let url = `?page=${this.page}`;
-      if (this.is_next_search_basic) {
-        if (this.filter_basic_god1) {
-          url += `&god1=${this.filter_basic_god1}`;
-        }
-        if (this.filter_basic_role) {
-          url += `&role=${this.filter_basic_role}`;
-        }
-      } else {
-        for (const [key, vals] of Object.entries(this.filters)) {
-          for (const val of vals) {
-            url += `&${key}=${val}`;
-          }
-        }
-      }
-      return url;
-    },
-    handle_img(item) {
-      if (item) {
-        if (item.image_data) {
-          return {
-            name: item.name,
-            src: "data:image/png;base64," + item.image_data,
-          };
-        } else {
-          return {
-            name: item.name,
-            src:
-              "https://webcdn.hirezstudios.com/smite/item-icons/" +
-              item.image_name,
-          };
-        }
-      } else {
-        return { name: "Empty", src: empty_url };
-      }
-    },
-    start_watching_in_the_future() {
-      this.watch_for_intersections_timeout = setTimeout(
-        () => (this.watch_for_intersections = true),
-        50
-      );
-    },
-    controls_to_filters_and_client_url() {
-      this.filter_basic_god1 = undefined;
-      this.filter_basic_role = undefined;
-      this.filters = {};
-
-      let url_fragment = "?view=";
-      if (this.is_in_basic_view) {
-        url_fragment += "basic";
-        this.is_next_search_basic = true;
-      } else {
-        url_fragment += "advanced";
-        this.is_next_search_basic = false;
-      }
-
-      const basic_god1 = this.select_basic_god1.get();
-      if (basic_god1) {
-        url_fragment += `&god1~=${basic_god1}`;
-        this.filter_basic_god1 = basic_god1;
-      }
-      const basic_role = this.select_basic_role.get();
-      if (basic_role) {
-        url_fragment += `&role~=${basic_role}`;
-        this.filter_basic_role = basic_role;
-      }
-
-      for (const [key, control] of Object.entries(this.controls)) {
-        const vals = control.get();
-        for (const val of vals) {
-          url_fragment += `&${key}=${val}`;
-        }
-        if (vals.length > 0) {
-          this.filters[key] = vals;
-        }
-      }
-
-      let url_object = new URL(url_fragment, window.location.origin);
-      history.pushState(undefined, "", url_object.href);
-    },
-    client_url_to_controls_and_filters() {
-      this.select_basic_god1.clear();
-      this.select_basic_role.clear();
-      this.filter_basic_god1 = undefined;
-      this.filter_basic_role = undefined;
-      for (const control of Object.values(this.controls)) {
-        control.clear();
-      }
-      this.filters = {};
-
-      let search_params = new URL(window.location.href).searchParams;
-      if (search_params.get("view") !== "advanced") {
-        this.is_in_basic_view = true;
-        this.is_next_search_basic = true;
-      } else {
-        this.is_in_basic_view = false;
-        this.is_next_search_basic = false;
-      }
-      search_params.delete("view");
-
-      const basic_god1 = search_params.get("god1~");
-      if (basic_god1) {
-        this.select_basic_god1.add(basic_god1);
-        this.filter_basic_god1 = basic_god1;
-      }
-      search_params.delete("god1~");
-      const basic_role = search_params.get("role~");
-      if (basic_role) {
-        this.select_basic_role.add(basic_role);
-        this.filter_basic_role = basic_role;
-      }
-      search_params.delete("role~");
-
-      for (const key of search_params.keys()) {
-        if (this.controls[key]) {
-          const vals = search_params.getAll(key);
-          this.controls[key].add(vals);
-          this.filters[key] = vals;
-        }
-      }
-    },
-    async get_options() {
-      try {
-        let response = await this.fetch_or_throw("/api/options");
-        return await response.json();
-      } catch (e) {
-        let bottom_of_page = document.getElementById("bottom-of-page");
-        let err_msg = "Failed to load options! Please try refreshing.";
-        bottom_of_page.textContent = err_msg;
-        throw e;
-      }
-    },
-    async get_and_update_last_check() {
-      let response = await this.fetch_or_throw("/api/last_check");
-      this.last_check = await response.text();
-    },
-    antispam() {
-      return (
-        "hey" +
-        "there" +
-        "smite" +
-        "fans" +
-        "." +
-        "aggro" +
-        "here" +
-        "alienware" +
-        "gmail" +
-        "." +
-        "com"
-      ).replace("alienware", "@");
-    },
-  },
+const fetchOrThrow = async (url: string) => {
+  let response = await fetch(url);
+  if (!response.ok) {
+    throw Error(
+      `HTTP error! Status: ${response.status} ${response.statusText}`
+    );
+  }
+  return response;
 };
+
+const lastCheck = ref("loading ...");
+
+(async () => {
+  const lastCheckResponse = await fetchOrThrow("/api/last_check");
+  lastCheck.value = await lastCheckResponse.text();
+})();
+
+const antiSpam = (
+  "hey" +
+  "there" +
+  "smite" +
+  "fans" +
+  "." +
+  "aggro" +
+  "here" +
+  "alienware" +
+  "gmail" +
+  "." +
+  "com"
+).replace("alienware", "@");
+
+const getIsInBasicView = (searchParams: URLSearchParams) => {
+  const view = searchParams.getAll("view");
+  return !(view.length && view[view.length - 1] == "advanced");
+};
+const isInBasicView = ref(
+  getIsInBasicView(new URL(window.location.href).searchParams)
+);
+
+const bottomElem = ref<HTMLElement | null>(null);
+const bottomText = ref("Loading options ...");
+
+const options = ref<Nullable<Options>>({
+  season: null,
+  league: null,
+  phase: null,
+  date: null,
+  game_i: null,
+  win: null,
+  game_length: null,
+  kda_ratio: null,
+  kills: null,
+  deaths: null,
+  assists: null,
+  role: null,
+  team1: null,
+  player1: null,
+  god1: null,
+  team2: null,
+  player2: null,
+  god2: null,
+  relic: null,
+  item: null,
+});
+
+const optionsFuture = (async (): Promise<Options> => {
+  const optionsResponse = await fetchOrThrow("/api/options");
+  return optionsResponse.json();
+})();
+
+onMounted(async () => {
+  if (bottomElem.value === null) {
+    throw Error("Illegal state");
+  }
+
+  try {
+    options.value = await optionsFuture;
+  } catch (e) {
+    bottomText.value = "Failed to load options! Please try refreshing.";
+    throw e;
+  }
+
+  // Wait for options to get initialized in child components.
+  await nextTick();
+
+  window.addEventListener("popstate", () => refresh(false));
+
+  refresh(false);
+});
+
+interface Control {
+  state: string[];
+  readonly url?: string;
+  readonly clientUrl?: string;
+  readonly serverUrl?: string;
+}
+
+const basicControls = ref({
+  god: { state: [], clientUrl: "god~", serverUrl: "god1" } as Control,
+  role: { state: [], clientUrl: "role~" } as Control,
+});
+
+const advancedControls = ref({
+  season: { state: [] } as Control,
+  league: { state: [] } as Control,
+  phase: { state: [] } as Control,
+  date: { state: [] } as Control,
+  gameI: { state: [], url: "game_i" } as Control,
+  gameLength: { state: [], url: "game_length" } as Control,
+  win: { state: [] } as Control,
+  kdaRatio: { state: [], url: "kda_ratio" } as Control,
+  kills: { state: [] } as Control,
+  deaths: { state: [] } as Control,
+  assists: { state: [] } as Control,
+  role: { state: [] } as Control,
+  team1: { state: [] } as Control,
+  player1: { state: [] } as Control,
+  god1: { state: [] } as Control,
+  team2: { state: [] } as Control,
+  player2: { state: [] } as Control,
+  god2: { state: [] } as Control,
+  relic: { state: [] } as Control,
+  item: { state: [] } as Control,
+});
+
+const refresh = async (promptedByButtonClick: boolean) => {
+  observer.disconnect();
+  if (promptedByButtonClick) {
+    controlsToClientUrl();
+  } else {
+    clientUrlToControls();
+    // Wait for the controls to get validated in child components.
+    await nextTick();
+  }
+  resetBuilds();
+  controlsToBuildsSearchParams();
+  updateBuilds();
+};
+
+const controlsToClientUrl = () => {
+  let view: string;
+  let controls: typeof basicControls | typeof advancedControls;
+  if (isInBasicView.value) {
+    view = "basic";
+    controls = basicControls;
+  } else {
+    view = "advanced";
+    controls = advancedControls;
+  }
+
+  const searchParams = new URLSearchParams({ view });
+
+  for (const [controlId, control] of Object.entries(controls.value)) {
+    const urlName = control.clientUrl ?? control.url ?? controlId;
+    for (const value of control.state) {
+      searchParams.append(urlName, value);
+    }
+  }
+
+  history.pushState(undefined, "", "/?" + searchParams);
+};
+
+const clientUrlToControls = () => {
+  const searchparams = new URL(window.location.href).searchParams;
+
+  // When the URL changes with the next/prev button we need to reinitialize
+  // few values (this is unnecessary on page load, but it is done anyway
+  // to simplify code structure).
+  isInBasicView.value = getIsInBasicView(searchparams);
+  clearControls();
+
+  for (const [controlId, control] of Object.entries(getCurrentControls())) {
+    const urlName = control.clientUrl ?? control.url ?? controlId;
+    const newState = searchparams.getAll(urlName);
+    if (newState.length) {
+      control.state = newState;
+    }
+  }
+};
+
+const builds = ref<Build[]>([]);
+const buildCount = ref<number | null>(null);
+let nextPage = 1;
+let buildsSearchParams: URLSearchParams | null = null;
+
+const resetBuilds = () => {
+  builds.value = [];
+  buildCount.value = null;
+  nextPage = 1;
+};
+
+const controlsToBuildsSearchParams = () => {
+  buildsSearchParams = new URLSearchParams();
+
+  for (const [controlId, control] of Object.entries(getCurrentControls())) {
+    const urlName = control.serverUrl ?? control.url ?? controlId;
+    for (const value of control.state) {
+      buildsSearchParams.append(urlName, value);
+    }
+  }
+};
+
+const updateBuilds = async () => {
+  bottomText.value = "Loading builds ...";
+
+  if (buildsSearchParams === null || bottomElem.value === null) {
+    throw Error("Illegal state");
+  }
+
+  const url = `/api/builds?page=${nextPage}&` + buildsSearchParams;
+  let buildsResponse: BuildsResponse;
+  try {
+    let response = await fetchOrThrow(url);
+    buildsResponse = await response.json();
+  } catch (e) {
+    bottomText.value = "Failed to load builds! Please try refreshing.";
+    throw e;
+  }
+
+  let unparsedBuilds: UnparsedBuild[];
+  if ("count" in buildsResponse) {
+    buildCount.value = buildsResponse.count;
+    unparsedBuilds = buildsResponse.builds;
+  } else {
+    unparsedBuilds = buildsResponse;
+  }
+
+  const newBuilds = unparsedBuilds.map(
+    (build): Build => ({
+      ...build,
+      relic1: handleImg(build.relic1),
+      relic2: handleImg(build.relic2),
+      item1: handleImg(build.item1),
+      item2: handleImg(build.item2),
+      item3: handleImg(build.item3),
+      item4: handleImg(build.item4),
+      item5: handleImg(build.item5),
+      item6: handleImg(build.item6),
+    })
+  );
+
+  if (newBuilds.length > 0) {
+    nextPage += 1;
+    builds.value.push(...newBuilds);
+    bottomText.value = "";
+    // Wait for the builds to get shown in child components.
+    await nextTick();
+    observer.observe(bottomElem.value);
+  } else {
+    bottomText.value = buildCount.value ? "End of list." : "";
+  }
+};
+
+let observer = new IntersectionObserver((entries) => {
+  // This function is called once immediately after observe is called,
+  // even if the element is not intersecting,
+  // so we need to check for it here.
+  if (!entries[0].isIntersecting) {
+    return;
+  }
+  observer.disconnect();
+  updateBuilds();
+});
+
+const handleImg = (item: UnparsedItem): Item => {
+  if (item) {
+    if (item.image_data) {
+      return {
+        name: item.name,
+        src: "data:image/png;base64," + item.image_data,
+      };
+    } else {
+      return {
+        name: item.name,
+        src:
+          "https://webcdn.hirezstudios.com/smite/item-icons/" + item.image_name,
+      };
+    }
+  } else {
+    return { name: "Empty", src: emptyImageUrl };
+  }
+};
+
+const clearControls = () => {
+  for (const control of Object.values(getCurrentControls())) {
+    if (control.state.length) {
+      control.state = [];
+    }
+  }
+};
+
+const getCurrentControls = () =>
+  (isInBasicView.value ? basicControls : advancedControls).value;
 </script>
 
 <style>

@@ -19,11 +19,8 @@
         "vue"
     ],
     "rules": {
-        "vue/multi-word-component-names": "off",
         "vue/v-bind-style": ["warn", "longform"],
         "vue/v-on-style": ["warn", "longform"],
-        "vue/v-slot-style": ["warn", "longform"],
-        "@typescript-eslint/no-unused-vars": "off",
-        "@typescript-eslint/no-non-null-assertion": "off"
+        "vue/v-slot-style": ["warn", "longform"]
     }
 }
