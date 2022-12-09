@@ -199,7 +199,9 @@ def get_options() -> dict:
     ]
     res["player1"] = [
         b.player1
-        for b in Build.select(Build.player1).distinct().order_by(Build.player1.asc())
+        for b in Build.select(Build.player1)
+        .distinct()
+        .order_by(pw.fn.Upper(Build.player1).asc())
     ]
     res["god1"] = [
         b.god1 for b in Build.select(Build.god1).distinct().order_by(Build.god1.asc())
@@ -210,7 +212,9 @@ def get_options() -> dict:
     ]
     res["player2"] = [
         b.player2
-        for b in Build.select(Build.player2).distinct().order_by(Build.player2.asc())
+        for b in Build.select(Build.player2)
+        .distinct()
+        .order_by(pw.fn.Upper(Build.player2).asc())
     ]
     res["god2"] = [
         b.god2 for b in Build.select(Build.god2).distinct().order_by(Build.god2.asc())
