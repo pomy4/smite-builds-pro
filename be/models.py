@@ -4,6 +4,7 @@ import enum
 import io
 import time
 import typing
+import unicodedata
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -427,6 +428,11 @@ def post_builds(builds_: list["PostBuildRequest"]) -> None:
 
             items[(name, image_name)] = item.id
 
+        # Get player names.
+        player_names = {
+            b.player1.upper(): b.player1 for b in Build.select(Build.player1).distinct()
+        }
+
         # Create builds.
         today = datetime.date.today()
         for build in builds:
@@ -446,8 +452,8 @@ def post_builds(builds_: list["PostBuildRequest"]) -> None:
                 )
             except ValueError:
                 raise MyError("At least one of the builds has an invalid date")
-            build["player1"] = fix_player_name(build["player1"])
-            build["player2"] = fix_player_name(build["player2"])
+            build["player1"] = fix_player_name(player_names, build["player1"])
+            build["player2"] = fix_player_name(player_names, build["player2"])
             del (
                 build["hours"],
                 build["minutes"],
@@ -482,21 +488,25 @@ def fix_image_name(image_name: str) -> str:
     return FIXED_IMAGE_NAMES.get(image_name, image_name)
 
 
-FIXED_PLAYER_NAMES = {
-    "AwesomeJake408": "Awesomejake408",
-    "LeMoGoW": "LeMoGow",
-    "ErupTCrimson": "EruptCrimson",
-    "ELLEON": "Elleon",
-    "MastKiII": "MastkiII",
-    "MagicFeet": "Magicfeet",
-    "ChinFu": "Chinfu",
-    "Calvìn": "Calvin",
-    "Briz": "Brìz",
-}
+def fix_player_name(player_names: dict[str, str], player_name_with_accents: str) -> str:
+    player_name = remove_accents(player_name_with_accents)
+    player_name_upper = player_name.upper()
+
+    if player_name_upper not in player_names:
+        # Update player_names in case the player name
+        # has different case in the same batch of builds.
+        player_names[player_name_upper] = player_name
+        return player_name
+    else:
+        existing_player_name = player_names[player_name_upper]
+        # TODO log somewhere if existing_player_name != player_name:
+        return existing_player_name
 
 
-def fix_player_name(player_name: str) -> str:
-    return FIXED_PLAYER_NAMES.get(player_name, player_name)
+def remove_accents(s: str) -> str:
+    return "".join(
+        c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c)
+    )
 
 
 def get_image_or_none(image_name: str) -> Optional[bytes]:

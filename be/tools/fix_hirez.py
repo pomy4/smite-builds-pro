@@ -184,13 +184,10 @@ def fix_god(
 
 be.models.db.connect()
 
-# ITEM AND PLAYER NAMES
+# ITEM NAMES
 
 for old_name, new_name in be.models.FIXED_IMAGE_NAMES.items():
     fix_image_name(old_name, new_name, also_download=True)
-
-for old_name, new_name in be.models.FIXED_PLAYER_NAMES.items():
-    fix_player_name(old_name, new_name)
 
 # SEASON 8
 
