@@ -24,12 +24,21 @@ class MyError(Exception):
     pass
 
 
+class DbVersion(enum.Enum):
+    OLD = "0.old"
+    ADD_VERSION_TABLE = "1.add_version_table"
+
+
+DB_VERSIONS = list(DbVersion)
+
+CURRENT_DB_VERSION = DB_VERSIONS[-1]
+
 # --------------------------------------------------------------------------------------
 # TABLES
 # --------------------------------------------------------------------------------------
 
-
-db = pw.SqliteDatabase(Path(__file__).parent / "backend.db", autoconnect=False)
+db_path = Path(__file__).parent / "backend.db"
+db = pw.SqliteDatabase(db_path, autoconnect=False)
 
 
 class Base(pw.Model):
@@ -43,6 +52,10 @@ class LastModified(Base):
 
 
 class LastChecked(Base):
+    data = pw.CharField(100)
+
+
+class Version(Base):
     data = pw.CharField(100)
 
 
