@@ -10,12 +10,20 @@ from upd.updater import Match
 
 
 def main() -> None:
+    # If needed, phase/month/day could be supplied on the command line,
+    # probably using the argparse module. Alternatively, they could be read
+    # from the database, if the match was already scraped in the past.
     if len(sys.argv) < 2:
         print("Missing match ID argument", file=sys.stderr)
         sys.exit(1)
     match_id = int(sys.argv[1])
 
-    league = shared.SPL
+    if match_id >= 0:
+        league = shared.SPL
+    else:
+        league = shared.SCC
+        match_id *= -1
+
     logging.basicConfig(
         filename=f"{match_id}.log",
         level=logging.INFO,
