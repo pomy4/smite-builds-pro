@@ -408,7 +408,7 @@ def parse_game_length(game_length: str) -> tuple[int, int, int]:
         else:
             hours = math.floor(minutes / 60)
             minutes = minutes % 60
-    elif len(game_length) == 3:
+    elif len(game_length_split) == 3:
         hours_s, minutes_s, seconds_s = game_length_split
         hours, minutes, seconds = int(hours_s), int(minutes_s), int(seconds_s)
     else:
