@@ -22,7 +22,7 @@ import { onMounted, ref, toRaw, watch } from "vue";
 import noUiSlider, { API } from "nouislider";
 import "nouislider/dist/nouislider.css";
 import { SliderType } from "./types";
-import { OtherProps, helperFactory } from "./my-select-helper";
+import { OtherProps, helperFactory } from "./my-slider-helper";
 
 // Some of the comments in MySelect are also relevant here.
 
