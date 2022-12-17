@@ -8,4 +8,5 @@ import shared
 shared.load_default_dot_env()
 be.tools.create_db.create_db()
 be.tools.migrate_db.migrate_db()
+be.backend.setup_logging()
 be.backend.app.run(host="localhost", port=8080, reloader=len(sys.argv) < 2, debug=True)

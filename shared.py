@@ -14,6 +14,8 @@ def load_default_dot_env() -> None:
     dotenv.load_dotenv(default_dot_env_path)
 
 
+LOG_FORMAT = "%(asctime)s|%(levelname)s|%(message)s"
+
 IMG_URL = "https://webcdn.hirezstudios.com/smite/item-icons"
 
 

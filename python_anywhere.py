@@ -15,4 +15,5 @@ os.environ["TZ"] = "Europe/Prague"
 time.tzset()
 
 shared.load_default_dot_env()
+be.backend.setup_logging()
 application = be.backend.app

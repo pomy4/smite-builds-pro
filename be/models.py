@@ -2,6 +2,7 @@ import base64
 import datetime
 import enum
 import io
+import logging
 import time
 import typing
 import unicodedata
@@ -32,6 +33,24 @@ class DbVersion(enum.Enum):
 DB_VERSIONS = list(DbVersion)
 
 CURRENT_DB_VERSION = DB_VERSIONS[-1]
+
+auto_fixes_logger = logging.getLogger("auto-fixes")
+
+
+def setup_auto_fixes_logger() -> None:
+    """
+    Keeps track of inconsistencies in the input data that were automatically fixed,
+    e.g. a player name with different casing or incorrect role such as Sub/Coach,
+    but also inconsistencies which require manual fixing, e.g. a missing build (TODO).
+    """
+    handler = logging.FileHandler(
+        "be/logs/auto_fixes.log", mode="a", encoding="utf8", errors="backslashreplace"
+    )
+    handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
+    auto_fixes_logger.setLevel(logging.INFO)
+    auto_fixes_logger.propagate = False
+    auto_fixes_logger.addHandler(handler)
+
 
 # --------------------------------------------------------------------------------------
 # TABLES
@@ -512,7 +531,8 @@ def fix_player_name(player_names: dict[str, str], player_name_with_accents: str)
         return player_name
     else:
         existing_player_name = player_names[player_name_upper]
-        # TODO log somewhere if existing_player_name != player_name:
+        if player_name != existing_player_name:
+            auto_fixes_logger.info(f"{player_name} -> {existing_player_name}")
         return existing_player_name
 
 

@@ -16,12 +16,19 @@ import shared
 from be.models import MyError, WhereStrat
 
 # --------------------------------------------------------------------------------------
-# APP & HOOKS & DECORATORS
+# APP & LOGGING & HOOKS & DECORATORS
 # --------------------------------------------------------------------------------------
 
 
 app = bottle.Bottle()
 app.config["json.enable"] = False
+
+
+def setup_logging() -> None:
+    # access.log and error.log are handled by PythonAnywhere,
+    # and new builds are logged by the updater,
+    # so this is it for now.
+    be.models.setup_auto_fixes_logger()
 
 
 @app.hook("before_request")

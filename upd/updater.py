@@ -55,8 +55,6 @@ def main() -> None:
 # LOGGING & ENV VARS
 # --------------------------------------------------------------------------------------
 
-LOG_FORMAT = "%(asctime)s|%(levelname)s|%(message)s"
-
 
 def setup_logging() -> None:
     log_folder = pathlib.Path("upd/logs")
@@ -69,7 +67,9 @@ def setup_logging() -> None:
         log_path = log_folder / f"{today}{suffix}.log"
         if log_path.is_file():
             continue
-        logging.basicConfig(filename=log_path, level=logging.INFO, format=LOG_FORMAT)
+        logging.basicConfig(
+            filename=log_path, level=logging.INFO, format=shared.LOG_FORMAT
+        )
         break
 
 

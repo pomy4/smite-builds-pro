@@ -27,7 +27,7 @@ def main() -> None:
     logging.basicConfig(
         filename=f"{match_id}.log",
         level=logging.INFO,
-        format=upd.updater.LOG_FORMAT,
+        format=shared.LOG_FORMAT,
     )
 
     with selenium.webdriver.Chrome() as driver:
