@@ -43,7 +43,7 @@ class NumberHelper extends Helper {
     return 0;
   }
   step(): number {
-    return 1 / (this.scale + 1);
+    return 1 / Math.pow(10, this.scale);
   }
   width(): string {
     return "6.667rem";
