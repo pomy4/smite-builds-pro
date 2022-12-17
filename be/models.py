@@ -437,11 +437,19 @@ def post_builds(builds_: list["PostBuildRequest"]) -> None:
                 modified_name = name[len(GREATER_PREFIX) :]
                 name_was_modified = 3
 
-            start = time.time()
             image_data = get_image_or_none(image_name)
-            shared.delay(0.25, start)
+
+            if image_data is None and (
+                backup_image_name := (BACKUP_IMAGE_NAMES).get(image_name)
+            ):
+                auto_fixes_logger.info(f"{image_name} -> {backup_image_name}")
+                # image_name is not updated here, so that if HiRez fixes the URL,
+                # it will not create a new item in the database
+                # (unless HiRez also changes the image).
+                image_data = get_image_or_none(backup_image_name)
 
             if image_data is None:
+                auto_fixes_logger.warning(f"Missing image {image_name}")
                 b64_image_data, was_compressed = None, False
             else:
                 b64_image_data, was_compressed = compress_and_base64_image_or_none(
@@ -509,6 +517,12 @@ def post_builds(builds_: list["PostBuildRequest"]) -> None:
             raise MyError("At least one of the builds is already in the database")
 
 
+# Names which don't work right now, but will probably start working someday.
+# Made for a renamed item whose new url doesn't work.
+BACKUP_IMAGE_NAMES = {
+    "manticores-spikes.jpg": "manticores-spike.jpg",
+}
+
 FIXED_IMAGE_NAMES = {
     "bloodsoaked-shroud.jpg": "blood-soaked-shroud.jpg",
     "pointed-shuriken.jpg": "8-pointed-shuriken.jpg",
@@ -517,7 +531,12 @@ FIXED_IMAGE_NAMES = {
 
 
 def fix_image_name(image_name: str) -> str:
-    return FIXED_IMAGE_NAMES.get(image_name, image_name)
+    if image_name not in FIXED_IMAGE_NAMES:
+        return image_name
+    else:
+        fixed_image_name = FIXED_IMAGE_NAMES[image_name]
+        auto_fixes_logger.info(f"{image_name} -> {fixed_image_name}")
+        return fixed_image_name
 
 
 def fix_player_name(player_names: dict[str, str], player_name_with_accents: str) -> str:
@@ -543,10 +562,13 @@ def remove_accents(s: str) -> str:
 
 
 def get_image_or_none(image_name: str) -> Optional[bytes]:
+    start = time.time()
     try:
-        return get_image(image_name)
+        ret = get_image(image_name)
     except urllib.error.URLError:
-        return None
+        ret = None
+    shared.delay(0.25, start)
+    return ret
 
 
 def get_image(image_name: str) -> bytes:
