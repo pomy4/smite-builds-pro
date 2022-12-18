@@ -15,6 +15,7 @@ def load_default_dot_env() -> None:
 
 
 LOG_FORMAT = "%(asctime)s|%(levelname)s|%(message)s"
+AUTO_FIXES_LOG_FORMAT = "%(asctime)s|%(levelname)s|%(game)s|%(message)s"
 
 IMG_URL = "https://webcdn.hirezstudios.com/smite/item-icons"
 

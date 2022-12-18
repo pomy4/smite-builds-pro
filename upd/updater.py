@@ -276,6 +276,7 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
             )
         builds: tuple[list[dict], list[dict]] = ([], [])
         roles: tuple[dict, dict] = ({}, {})
+        duplicated_roles: tuple[set, set] = (set(), set())
         for table_i, table in enumerate(tables):
             stats = table.find_elements(By.CLASS_NAME, "item")
             if not stats or len(stats) % 9 != 0:
@@ -324,7 +325,15 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
                     "god1": god,
                 }
                 builds[table_i].append(new_build)
+                if role in roles[table_i]:
+                    duplicated_roles[table_i].add(role)
                 roles[table_i][role] = new_build
+
+        # Remove duplicated (or morecated) roles,
+        # so that opponent gets set to Missing data.
+        for table_i in range(2):
+            for duplicated_role in duplicated_roles[table_i]:
+                del roles[table_i][duplicated_role]
 
         for table_i in range(2):
             for build in builds[table_i]:

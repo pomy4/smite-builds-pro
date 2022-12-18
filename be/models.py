@@ -1,4 +1,6 @@
 import base64
+import collections
+import contextlib
 import datetime
 import enum
 import io
@@ -8,8 +10,9 @@ import typing
 import unicodedata
 import urllib.error
 import urllib.request
+from contextvars import ContextVar
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Iterator, Optional
 
 import peewee as pw
 import playhouse.shortcuts
@@ -25,6 +28,56 @@ class MyError(Exception):
     pass
 
 
+# --------------------------------------------------------------------------------------
+# LOGGING
+# --------------------------------------------------------------------------------------
+
+auto_fixes_logger = logging.getLogger("auto-fixes")
+auto_fixes_game_context_default = "x-x"
+auto_fixes_game_context: ContextVar[str] = ContextVar(
+    "auto_fixes_game_context", default=auto_fixes_game_context_default
+)
+
+
+def setup_auto_fixes_logger() -> None:
+    """
+    Keeps track of inconsistencies in the input data that were automatically fixed,
+    e.g. a player name with different casing or incorrect role such as Sub/Coach,
+    but also inconsistencies which require manual fixing, e.g. a missing build.
+    """
+
+    def add_game(record: logging.LogRecord) -> bool:
+        record.game = auto_fixes_game_context.get()
+        return True
+
+    handler = logging.FileHandler(
+        "be/logs/auto_fixes.log", mode="a", encoding="utf8", errors="backslashreplace"
+    )
+    handler.setFormatter(logging.Formatter(shared.AUTO_FIXES_LOG_FORMAT))
+    handler.addFilter(add_game)
+    auto_fixes_logger.setLevel(logging.INFO)
+    auto_fixes_logger.propagate = False
+    auto_fixes_logger.addHandler(handler)
+
+
+@contextlib.contextmanager
+def log_curr_game(build: dict) -> Iterator[None]:
+    game = f"{build['match_id']}-{build['game_i']}"
+    auto_fixes_game_context.set(game)
+    try:
+        yield None
+    except Exception as e:
+        e.args = (f"Game: {game}", *e.args)
+        raise
+    finally:
+        auto_fixes_game_context.set(auto_fixes_game_context_default)
+
+
+# --------------------------------------------------------------------------------------
+# DATABASE DEFINITION
+# --------------------------------------------------------------------------------------
+
+
 class DbVersion(enum.Enum):
     OLD = "0.old"
     ADD_VERSION_TABLE = "1.add_version_table"
@@ -33,28 +86,6 @@ class DbVersion(enum.Enum):
 DB_VERSIONS = list(DbVersion)
 
 CURRENT_DB_VERSION = DB_VERSIONS[-1]
-
-auto_fixes_logger = logging.getLogger("auto-fixes")
-
-
-def setup_auto_fixes_logger() -> None:
-    """
-    Keeps track of inconsistencies in the input data that were automatically fixed,
-    e.g. a player name with different casing or incorrect role such as Sub/Coach,
-    but also inconsistencies which require manual fixing, e.g. a missing build (TODO).
-    """
-    handler = logging.FileHandler(
-        "be/logs/auto_fixes.log", mode="a", encoding="utf8", errors="backslashreplace"
-    )
-    handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
-    auto_fixes_logger.setLevel(logging.INFO)
-    auto_fixes_logger.propagate = False
-    auto_fixes_logger.addHandler(handler)
-
-
-# --------------------------------------------------------------------------------------
-# TABLES
-# --------------------------------------------------------------------------------------
 
 db_path = Path(__file__).parent / "backend.db"
 db = pw.SqliteDatabase(db_path, autoconnect=False)
@@ -407,16 +438,29 @@ def no_img(item: Item) -> tuple:
 # --------------------------------------------------------------------------------------
 
 
-def post_builds(builds_: list["PostBuildRequest"]) -> None:
+def post_builds(builds: list["PostBuildRequest"]) -> None:
+    """Logging wrapper."""
+    try:
+        auto_fixes_logger.info("Start")
+        post_builds_inner(builds)
+    except Exception:
+        auto_fixes_logger.info("End (FAIL)")
+    else:
+        auto_fixes_logger.info("End")
+
+
+def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
     # For now just work with dicts.
     builds = [build.dict() for build in builds_]
 
     # Uniquerize items based upon name and image name.
     items = {}
     for build in builds:
-        build["items"] = [
-            (name, fix_image_name(image_name)) for name, image_name in build["items"]
-        ]
+        with log_curr_game(build):
+            build["items"] = [
+                (name, fix_image_name(image_name))
+                for name, image_name in build["items"]
+            ]
         for name, image_name in build["relics"]:
             items[(name, image_name)] = True
         for name, image_name in build["items"]:
@@ -442,14 +486,14 @@ def post_builds(builds_: list["PostBuildRequest"]) -> None:
             if image_data is None and (
                 backup_image_name := (BACKUP_IMAGE_NAMES).get(image_name)
             ):
-                auto_fixes_logger.info(f"{image_name} -> {backup_image_name}")
+                auto_fixes_logger.info(f"ImageBkp|{image_name} -> {backup_image_name}")
                 # image_name is not updated here, so that if HiRez fixes the URL,
                 # it will not create a new item in the database
                 # (unless HiRez also changes the image).
                 image_data = get_image_or_none(backup_image_name)
 
             if image_data is None:
-                auto_fixes_logger.warning(f"Missing image {image_name}")
+                auto_fixes_logger.warning(f"Missing image: {image_name}")
                 b64_image_data, was_compressed = None, False
             else:
                 b64_image_data, was_compressed = compress_and_base64_image_or_none(
@@ -490,10 +534,11 @@ def post_builds(builds_: list["PostBuildRequest"]) -> None:
                 build["date"] = datetime.date(
                     year=build["year"], month=build["month"], day=build["day"]
                 )
-            except ValueError:
-                raise MyError("At least one of the builds has an invalid date")
-            build["player1"] = fix_player_name(player_names, build["player1"])
-            build["player2"] = fix_player_name(player_names, build["player2"])
+            except ValueError as e:
+                raise MyError("At least one of the builds has an invalid date") from e
+            with log_curr_game(build):
+                build["player1"] = fix_player_name(player_names, build["player1"])
+                build["player2"] = fix_player_name(player_names, build["player2"])
             del (
                 build["hours"],
                 build["minutes"],
@@ -508,13 +553,17 @@ def post_builds(builds_: list["PostBuildRequest"]) -> None:
                 build[f"item{i}"] = items[(name, image_name)]
             del build["relics"], build["items"]
 
+        fix_roles(builds)
+
         try:
             # This is done one by one, since for some reason bulk insertion
             # sometimes causes silent corruption of data (!).
             for build in builds:
                 Build.create(**build)
-        except pw.IntegrityError:
-            raise MyError("At least one of the builds is already in the database")
+        except pw.IntegrityError as e:
+            raise MyError(
+                "At least one of the builds is already in the database"
+            ) from e
 
 
 # Names which don't work right now, but will probably start working someday.
@@ -535,7 +584,7 @@ def fix_image_name(image_name: str) -> str:
         return image_name
     else:
         fixed_image_name = FIXED_IMAGE_NAMES[image_name]
-        auto_fixes_logger.info(f"{image_name} -> {fixed_image_name}")
+        auto_fixes_logger.info(f"Image|{image_name} -> {fixed_image_name}")
         return fixed_image_name
 
 
@@ -551,7 +600,7 @@ def fix_player_name(player_names: dict[str, str], player_name_with_accents: str)
     else:
         existing_player_name = player_names[player_name_upper]
         if player_name != existing_player_name:
-            auto_fixes_logger.info(f"{player_name} -> {existing_player_name}")
+            auto_fixes_logger.info(f"Player|{player_name} -> {existing_player_name}")
         return existing_player_name
 
 
@@ -615,3 +664,161 @@ def save_item_icon_to_archive(item: Item, image_data: bytes) -> None:
     item_icons_archive_dir.mkdir(exist_ok=True)
     image_path = item_icons_archive_dir / f"{item.id}-{item.image_name}"
     image_path.write_bytes(image_data)
+
+
+BuildDict = dict
+
+
+def fix_roles(builds: list[BuildDict]) -> None:
+    game_to_builds = collections.defaultdict(list)
+    for build in builds:
+        game_to_builds[(build["match_id"], build["game_i"])].append(build)
+
+    for game_builds in game_to_builds.values():
+        with log_curr_game(game_builds[0]):
+            fix_roles_in_single_game(game_builds)
+
+
+def fix_roles_in_single_game(builds: list[BuildDict]) -> None:
+    team_to_builds = collections.defaultdict(list)
+    for build in builds:
+        team_to_builds[build["team1"]].append(build)
+
+    teams = list(team_to_builds.keys())
+    if len(teams) != 2:
+        raise MyError(f"Teams must be two: {len(teams), teams}")
+
+    team1, team2 = teams
+    team1_builds, team2_builds = team_to_builds[team1], team_to_builds[team2]
+
+    team1_fixed_builds, role_to_team1_build = fix_roles_in_single_team(team1_builds)
+    team2_fixed_builds, role_to_team2_build = fix_roles_in_single_team(team2_builds)
+
+    # The wrongly specified role almost certainly caused the fields god2 and player2
+    # filled in updater to also be wrong, so we have to also fix them.
+    fix_opp_fields(team1_fixed_builds, role_to_team2_build)
+    fix_opp_fields(team2_fixed_builds, role_to_team1_build)
+
+
+ALLOWED_ROLES = {"ADC", "Jungle", "Mid", "Solo", "Support"}
+
+
+def fix_roles_in_single_team(
+    builds: list[BuildDict],
+) -> tuple[list[BuildDict], dict[str, BuildDict]]:
+    """
+    There are two types of issues that can happen in the input data:
+    1) Build is missing - not much we can do with that.
+    2) Build has the wrong role specified. This happen when there is a sub player,
+    and there are two possible sub-issues:
+    2a) Quite often their role will be specified as Sub or Coach, instead of their
+    actual role.
+    2b) This happened only once, but there was a sub that previously played for a
+    different team, and their displayed role reflected their role in their previous
+    team and not what they actually played. Thus there can be e.g. 2x Mids and 0x Solo.
+    """
+    if len(builds) > 5:
+        raise MyError(f"Too many builds: {len(builds)}")
+
+    correct_roles = []
+    fixable_roles = []
+    unfixable_roles = []
+
+    MISSING_ROLE = "Missing data"
+    for _ in range(5 - len(builds)):
+        # Situation 1.
+        unfixable_roles.append(MISSING_ROLE)
+
+    role_to_builds = collections.defaultdict(list)
+    for build in builds:
+        role_to_builds[build["role"]].append(build)
+
+    for role, role_builds in role_to_builds.items():
+        if len(role_builds) > 2:
+            unfixable_roles.append(role)
+        elif len(role_builds) == 2:
+            if role not in ALLOWED_ROLES:
+                unfixable_roles.append(role)
+            else:
+                # Situation 2b.
+                fixable_roles.append(role)
+        else:
+            if role not in ALLOWED_ROLES:
+                # Situation 2a.
+                fixable_roles.append(role)
+            else:
+                correct_roles.append(role)
+
+    correct_role_to_build: dict[str, BuildDict] = {
+        role: role_to_builds[role][0] for role in correct_roles
+    }
+
+    # We can only auto-fix when there is at most one (fixable) error.
+    # If there is e.g. Coach instead of Solo and Sub instead of Mid, then we don't know
+    # whether we should do Coach -> Solo and Sub -> Mid or Coach -> Mid and Sub -> Solo.
+    if not (len(fixable_roles) == 1 and len(unfixable_roles) == 0):
+        for role in fixable_roles + unfixable_roles:
+            role_builds = role_to_builds[role] if role != MISSING_ROLE else []
+            auto_fixes_logger.warning(f"Wrong role: {role} ({len(role_builds)})")
+        return [], correct_role_to_build
+
+    role_to_fix = fixable_roles[0]
+    builds_to_fix = role_to_builds[role_to_fix]
+    missing_roles = {role for role in ALLOWED_ROLES if role not in correct_roles}
+
+    if role_to_fix not in ALLOWED_ROLES:
+        # Situation 2a - easy.
+        assert len(builds_to_fix) == 1
+        assert len(missing_roles) == 1
+        build_to_fix = builds_to_fix[0]
+        missing_role = next(iter(missing_roles))
+    else:
+        # Situation 2b - more difficult, we have to decide which player is sub, and we
+        # do that based on the number of games either player played with that team.
+        assert len(builds_to_fix) == 2
+        assert len(missing_roles) == 2
+        assert role_to_fix in missing_roles
+        missing_roles.remove(role_to_fix)
+        missing_role = next(iter(missing_roles))
+        build1, build2 = builds_to_fix
+        count1 = get_player_count_with_team(build1)
+        count2 = get_player_count_with_team(build2)
+        if count1 < count2:
+            build_to_fix = build1
+        elif count1 > count2:
+            build_to_fix = build2
+        else:
+            # If both played the same number, we stop here without auto-fixing.
+            auto_fixes_logger.warning(f"Wrong role: {role_to_fix} (2) [{count1}]")
+            return [], correct_role_to_build
+
+    auto_fixes_logger.info(f"Role|{role_to_fix} -> {missing_role}")
+    build_to_fix["role"] = missing_role
+    correct_role_to_build[missing_role] = build_to_fix
+    return [build_to_fix], correct_role_to_build
+
+
+def get_player_count_with_team(build: BuildDict) -> int:
+    return (
+        Build.select()
+        .where((Build.team1 == build["team1"]) & (Build.player1 == build["player1"]))
+        .count()
+    )
+
+
+def fix_opp_fields(
+    fixed_builds: list[BuildDict], role_to_opp_build: dict[str, BuildDict]
+) -> None:
+    for build in fixed_builds:
+        role = build["role"]
+        if role not in role_to_opp_build:
+            # We don't need to log here, since the dictionary contains only correct
+            # roles, and if a role is not there, then its error was already logged in
+            # the function tasked with fixing roles.
+            continue
+        opp_build = role_to_opp_build[role]
+
+        auto_fixes_logger.info(f"God2|{build['god2']} -> {opp_build['god1']}")
+        build["god2"] = opp_build["god1"]
+        auto_fixes_logger.info(f"Player2|{build['player2']} -> {opp_build['player1']}")
+        build["player2"] = opp_build["player1"]
