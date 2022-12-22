@@ -1,6 +1,7 @@
 import copy
 import logging
 import unittest.mock
+from unittest.mock import Mock
 
 import be.models
 from be.models import MyError
@@ -92,12 +93,12 @@ class TestFixRoles(unittest.TestCase):
         },
     ]
 
-    def test_happy(self):
+    def test_happy(self) -> None:
         builds = copy.deepcopy(self.BUILDS)
         be.models.fix_roles_in_single_game(builds)
         self.assertEqual(builds, self.BUILDS)
 
-    def test_illegal(self):
+    def test_illegal(self) -> None:
         # Three teams.
         builds = copy.deepcopy(self.BUILDS)
         builds[0]["team1"] = "C"
@@ -118,7 +119,7 @@ class TestFixRoles(unittest.TestCase):
             be.models.fix_roles_in_single_game(builds)
 
     @unittest.mock.patch("be.models.get_player_count_with_team")
-    def test_fixable_2a(self, mock):
+    def test_fixable_2a(self, mock: Mock) -> None:
         # Situation 2a.
         builds = copy.deepcopy(self.BUILDS)
         builds[0]["role"] = "Coach"
@@ -141,7 +142,7 @@ class TestFixRoles(unittest.TestCase):
         self.assertEqual(builds, self.BUILDS)
 
     @unittest.mock.patch("be.models.get_player_count_with_team")
-    def test_unfixable(self, mock):
+    def test_unfixable(self, mock: Mock) -> None:
         # Coach + Sub.
         builds = copy.deepcopy(self.BUILDS)
         builds[0]["role"] = "Coach"

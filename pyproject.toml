@@ -4,6 +4,7 @@ profile = "black"
 [tool.mypy]
 # So that there doesn't have to be __init__.py in the be/ and upd/ folders.
 explicit_package_bases = true
+disallow_untyped_defs = true
 
 [[tool.mypy.overrides]]
 module = [
