@@ -2,18 +2,13 @@
 profile = "black"
 
 [tool.mypy]
-namespace_packages = true
+# So that there doesn't have to be __init__.py in the be/ and upd/ folders.
 explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = [
-    "dotenv.*",
-    "selenium.*",
-    "tqdm.*",
     "bottle.*",
     "peewee.*",
     "playhouse.*",
-    "pydantic.*",
-    "PIL.*",
 ]
 ignore_missing_imports = true

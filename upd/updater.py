@@ -256,8 +256,8 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
 
         # Find out teams, game length & which team won.
         tmp = driver.find_elements(By.CLASS_NAME, "content-wrapper")[1]
-        teams = tmp.find_elements(By.TAG_NAME, "strong")
-        teams = (text(teams[0]), text(teams[1]))
+        team_elems = tmp.find_elements(By.TAG_NAME, "strong")
+        teams = (text(team_elems[0]), text(team_elems[1]))
         game_length = text(tmp.find_element(By.CLASS_NAME, "game-duration"))
         hours, minutes, seconds = parse_game_length(game_length)
         win_or_loss = tmp.find_element(By.CLASS_NAME, "team-score").text
@@ -286,20 +286,30 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
             stats = stats[:-9]
 
             for player_i in range(len(stats) // 9):
-                player, role, god, kills, deaths, assists, gpm, relics, items = stats[
-                    player_i * 9 : (player_i + 1) * 9
-                ]
+                (
+                    player_elem,
+                    role_elem,
+                    god_elem,
+                    kills_elem,
+                    deaths_elem,
+                    assists_elem,
+                    gpm_elem,
+                    relic_elems,
+                    item_elems,
+                ) = stats[player_i * 9 : (player_i + 1) * 9]
                 player, role, god, kills, deaths, assists = (
-                    text(player),
-                    text(role),
-                    text(god),
-                    int(kills.text),
-                    int(deaths.text),
-                    int(assists.text),
+                    text(player_elem),
+                    text(role_elem),
+                    text(god_elem),
+                    int(kills_elem.text),
+                    int(deaths_elem.text),
+                    int(assists_elem.text),
                 )
                 role = fix_role(role)
-                relics = [item(x) for x in relics.find_elements(By.TAG_NAME, "img")]
-                items = [item(x) for x in items.find_elements(By.TAG_NAME, "img")]
+                relics = [
+                    item(x) for x in relic_elems.find_elements(By.TAG_NAME, "img")
+                ]
+                items = [item(x) for x in item_elems.find_elements(By.TAG_NAME, "img")]
                 # Optional values: year, season.
                 new_build = {
                     "league": match.league.name,

@@ -13,3 +13,12 @@ pillow
 selenium
 requests
 tqdm
+
+# Development
+black
+isort
+flake8
+mypy
+types-pillow
+types-requests
+types-tqdm
