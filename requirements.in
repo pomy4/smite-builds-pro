@@ -8,6 +8,7 @@ bottle
 peewee
 pydantic
 pillow
+charybdis
 
 # Updater
 selenium

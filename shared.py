@@ -7,6 +7,8 @@ import dotenv
 HMAC_KEY_HEX = "HMAC_KEY_HEX"
 BACKEND_URL = "BACKEND_URL"
 USE_WATCHDOG = "USE_WATCHDOG"
+SMITE_DEV_ID = "SMITE_DEV_ID"
+SMITE_AUTH_KEY = "SMITE_AUTH_KEY"
 
 
 def load_default_dot_env() -> None:

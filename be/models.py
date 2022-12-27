@@ -5,6 +5,7 @@ import datetime
 import enum
 import io
 import logging
+import os
 import time
 import typing
 import unicodedata
@@ -14,6 +15,7 @@ from contextvars import ContextVar
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator, Optional
 
+import charybdis
 import peewee as pw
 import playhouse.shortcuts
 from PIL import Image, UnidentifiedImageError
@@ -554,6 +556,7 @@ def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
             del build["relics"], build["items"]
 
         fix_roles(builds)
+        fix_gods(builds)
 
         try:
             # This is done one by one, since for some reason bulk insertion
@@ -667,6 +670,10 @@ def save_item_icon_to_archive(item: Item, image_data: bytes) -> None:
 
 
 BuildDict = dict
+
+# --------------------------------------------------------------------------------------
+# FIX ROLES
+# --------------------------------------------------------------------------------------
 
 
 def fix_roles(builds: list[BuildDict]) -> None:
@@ -822,3 +829,66 @@ def fix_opp_fields(
         build["god2"] = opp_build["god1"]
         auto_fixes_logger.info(f"Player2|{build['player2']} -> {opp_build['player1']}")
         build["player2"] = opp_build["player1"]
+
+
+# --------------------------------------------------------------------------------------
+# FIX GODS
+# --------------------------------------------------------------------------------------
+
+
+def fix_gods(builds: list[BuildDict]) -> None:
+    suspicious_gods1 = []
+    suspicious_gods2 = []
+    for build_i, build in enumerate(builds):
+        if contains_digits(build["god1"]):
+            suspicious_gods1.append((build_i, build["god1"]))
+        if contains_digits(build["god2"]):
+            suspicious_gods2.append((build_i, build["god2"]))
+
+    if not suspicious_gods1 and not suspicious_gods2:
+        return
+
+    try:
+        newest_god = get_newest_god()
+    except Exception:
+        auto_fixes_logger.warning(
+            "Failed to get newest god from Hi-Rez API", exc_info=True
+        )
+        for build_i, god in suspicious_gods1:
+            auto_fixes_logger.warning(f"Suspicious god1: {god} ({build_i})")
+        for build_i, god in suspicious_gods2:
+            auto_fixes_logger.warning(f"Suspicious god2: {god} ({build_i})")
+        return
+
+    for build_i, old_god in suspicious_gods1:
+        auto_fixes_logger.info(f"God1|{old_god} -> {newest_god}")
+        builds[build_i]["god1"] = newest_god
+    for build_i, old_god in suspicious_gods2:
+        auto_fixes_logger.info(f"God2|{old_god} -> {newest_god}")
+        builds[build_i]["god2"] = newest_god
+
+
+def contains_digits(s: str) -> bool:
+    return any("0" <= c <= "9" for c in s)
+
+
+def get_newest_god() -> str:
+    api = charybdis.Api(
+        base_url=charybdis.Api.SMITE_PC_URL,
+        dev_id=os.getenv(shared.SMITE_DEV_ID),
+        auth_key=os.getenv(shared.SMITE_AUTH_KEY),
+    )
+    gods = api.call_method("getgods", "1")
+    newest_god_candidates = [god["Name"] for god in gods if god["latestGod"] == "y"]
+    if len(newest_god_candidates) != 1:
+        raise RuntimeError(
+            f"Failed to ascertain which god is newest: {newest_god_candidates}"
+        )
+    return newest_god_candidates[0]
+
+
+def are_hirez_api_credentials_set() -> bool:
+    return (
+        os.getenv(shared.SMITE_DEV_ID) is not None
+        and os.getenv(shared.SMITE_AUTH_KEY) is not None
+    )
