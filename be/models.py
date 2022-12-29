@@ -52,9 +52,7 @@ def setup_auto_fixes_logger() -> None:
         record.game = auto_fixes_game_context.get()
         return True
 
-    handler = logging.FileHandler(
-        "be/logs/auto_fixes.log", mode="a", encoding="utf8", errors="backslashreplace"
-    )
+    handler = get_file_handler("auto_fixes.log")
     handler.setFormatter(logging.Formatter(shared.AUTO_FIXES_LOG_FORMAT))
     handler.addFilter(add_game)
     auto_fixes_logger.setLevel(logging.INFO)
@@ -73,6 +71,23 @@ def log_curr_game(build: dict) -> Iterator[None]:
         raise
     finally:
         auto_fixes_game_context.set(auto_fixes_game_context_default)
+
+
+cache_logger = logging.getLogger("be-cache")
+
+
+def setup_cache_logger() -> None:
+    handler = get_file_handler("cache.log")
+    handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
+    cache_logger.setLevel(logging.INFO)
+    cache_logger.propagate = False
+    cache_logger.addHandler(handler)
+
+
+def get_file_handler(filename: str) -> logging.Handler:
+    return logging.FileHandler(
+        Path("be/logs") / filename, mode="a", encoding="utf8", errors="backslashreplace"
+    )
 
 
 # --------------------------------------------------------------------------------------
@@ -170,14 +185,35 @@ def update_version(new_data: DbVersion) -> None:
 
 def get_last_modified() -> Optional[datetime.datetime]:
     try:
-        return LastModified.get().data
+        last_modified = LastModified.get().data
+
+        if last_modified.tzinfo is not None:
+            # This should never happen, but if it does, we log and return None
+            # instead of throwing, so that user's request still finishes.
+            cache_logger.warning(
+                f"Last modified returned from db as aware: {repr(last_modified)}"
+            )
+            return None
+
+        # Return Aware datetime in UTC.
+        return last_modified.replace(tzinfo=datetime.timezone.utc)
+
     except LastModified.DoesNotExist:
+        # This should also not happen,
+        # since LastModified is inserted in create_db.
+        cache_logger.warning("Last modified does not exist")
         return None
 
 
 def update_last_modified(new_data: datetime.datetime) -> None:
-    # Peewee + SQLite does not support timezone aware datetimes.
-    LastModified.replace(id=1, data=new_data.replace(tzinfo=None)).execute()
+    cache_logger.info(f"Last modified updated: {new_data.isoformat()}")
+    # This function is only used with output from what_time_is_it(),
+    # which returns aware datetime in UTC. Make sure this assumption holds:
+    assert new_data.tzinfo == datetime.timezone.utc
+
+    # Peewee + SQLite does not support aware datetimes.
+    new_data_naive = new_data.replace(tzinfo=None)
+    LastModified.replace(id=1, data=new_data_naive).execute()
 
 
 def get_last_checked() -> Optional[str]:

@@ -1,10 +1,10 @@
 import datetime
+import email.utils
 import functools
 import hashlib
 import hmac
 import json
 import os
-import traceback
 from typing import TYPE_CHECKING, Annotated, Any, Callable, Optional, Type
 
 import bottle
@@ -29,6 +29,7 @@ def setup_logging() -> None:
     # and new builds are logged by the updater,
     # so this is it for now.
     be.models.setup_auto_fixes_logger()
+    be.models.setup_cache_logger()
 
 
 @app.hook("before_request")
@@ -95,29 +96,51 @@ def cache_with_last_modified(func: Callable) -> Callable:
         last_modified = be.models.get_last_modified()
         if last_modified is None:
             return func(*args, **kwargs)
-        if if_modified_since := bottle.request.get_header("If-Modified-Since"):
-            try:
-                if_modified_since = datetime.datetime.fromisoformat(if_modified_since)
-                if last_modified < if_modified_since:
-                    raise ValueError(
-                        (
-                            "Request is from the future: "
-                            f"{last_modified} < {if_modified_since}"
-                        )
-                    )
-                elif last_modified == if_modified_since:
-                    bottle.response.status = 304
-                    return
-            # Log this, but don't reject the request over it.
-            except ValueError:
-                traceback.print_exc()
+        if if_modified_since_s := bottle.request.get_header("If-Modified-Since"):
+            if is_cached(last_modified, if_modified_since_s):
+                bottle.response.status = 304
+                return
         result = func(*args, **kwargs)
         if bottle.response.status_code < 400:
-            bottle.response.add_header("Cache-Control", "public")
-            bottle.response.add_header("Last-modified", last_modified.isoformat())
+            bottle.response.add_header("Last-Modified", format_rfc(last_modified))
+            # This is also needed I think, since otherwise browsers try to guess
+            # on their own whether the cached value is fresh or stale
+            # instead of always revalidating with If-Modified-Since.
+            bottle.response.add_header("Cache-Control", "no-cache")
         return result
 
     return wrapper
+
+
+def is_cached(last_modified: datetime.datetime, if_modified_since_s: str) -> bool:
+    try:
+        if_modified_since = email.utils.parsedate_to_datetime(if_modified_since_s)
+    except ValueError:
+        be.models.cache_logger.info(
+            f"IfModifiedSince is invalid: {if_modified_since_s}"
+        )
+        return False
+
+    if if_modified_since.tzinfo is None:
+        be.models.cache_logger.info(
+            f"IfModifiedSince with -0000 tz: {if_modified_since_s}"
+        )
+        if_modified_since = if_modified_since.replace(tzinfo=datetime.timezone.utc)
+
+    if last_modified > if_modified_since:
+        return False
+    elif last_modified == if_modified_since:
+        return True
+
+    be.models.cache_logger.info(
+        f"IfModifiedSince from the future: {if_modified_since_s} > "
+        + f"LastModified: {repr(last_modified)}"
+    )
+    return False
+
+
+def format_rfc(my_datetime: datetime.datetime) -> str:
+    return email.utils.format_datetime(my_datetime, usegmt=True)
 
 
 def jsonify(func: Callable) -> Callable:

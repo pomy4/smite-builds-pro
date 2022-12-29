@@ -1,3 +1,4 @@
+import be.backend
 import be.models
 from be.models import (
     CURRENT_DB_VERSION,
@@ -19,6 +20,7 @@ def create_db() -> None:
                 [Build, Item, LastChecked, LastModified, Version]
             )
             be.models.update_version(CURRENT_DB_VERSION)
+            be.models.update_last_modified(be.backend.what_time_is_it())
     print(f"Database created with version: {CURRENT_DB_VERSION.value}")
 
 
