@@ -162,6 +162,11 @@ class Build(Base):
 # --------------------------------------------------------------------------------------
 
 
+def update_version(new_data: DbVersion) -> None:
+    # replace is an 'upsert'.
+    Version.replace(id=1, data=new_data.value).execute()
+
+
 def get_last_modified() -> Optional[datetime.datetime]:
     try:
         return LastModified.get().data

@@ -18,7 +18,7 @@ def create_db() -> None:
             be.models.db.create_tables(
                 [Build, Item, LastChecked, LastModified, Version]
             )
-            Version.create(data=CURRENT_DB_VERSION.value)
+            be.models.update_version(CURRENT_DB_VERSION)
     print(f"Database created with version: {CURRENT_DB_VERSION.value}")
 
 

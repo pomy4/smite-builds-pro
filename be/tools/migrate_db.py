@@ -21,7 +21,7 @@ def get_version() -> DbVersion:
 
 def add_version_table() -> None:
     Version.create_table()
-    Version.create(data=DbVersion.ADD_VERSION_TABLE.value)
+    be.models.update_version(DbVersion.ADD_VERSION_TABLE)
     print(f"Migrated database to version: {DbVersion.ADD_VERSION_TABLE.value}")
 
 
