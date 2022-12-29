@@ -84,10 +84,11 @@ class DbVersion(enum.Enum):
     OLD = "0.old"
     ADD_VERSION_TABLE = "1.add_version_table"
 
+    def __init__(self, value: str) -> None:
+        self.index = int(value.split(".")[0])
 
-DB_VERSIONS = list(DbVersion)
 
-CURRENT_DB_VERSION = DB_VERSIONS[-1]
+CURRENT_DB_VERSION = list(DbVersion)[-1]
 
 db_path = Path(__file__).parent / "backend.db"
 db = pw.SqliteDatabase(db_path, autoconnect=False)
