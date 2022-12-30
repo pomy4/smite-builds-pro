@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 import time
 from pathlib import Path
 
@@ -9,6 +10,8 @@ BACKEND_URL = "BACKEND_URL"
 USE_WATCHDOG = "USE_WATCHDOG"
 SMITE_DEV_ID = "SMITE_DEV_ID"
 SMITE_AUTH_KEY = "SMITE_AUTH_KEY"
+NOTIFY_RUN_ID = "NOTIFY_RUN_ID"
+MATCHES_WITH_NO_STATS = "MATCHES_WITH_NO_STATS"
 
 
 def load_default_dot_env() -> None:
@@ -18,6 +21,13 @@ def load_default_dot_env() -> None:
 
 LOG_FORMAT = "%(asctime)s|%(levelname)s|%(message)s"
 AUTO_FIXES_LOG_FORMAT = "%(asctime)s|%(levelname)s|%(game)s|%(message)s"
+
+
+def get_file_handler(path: str | Path) -> logging.Handler:
+    return logging.FileHandler(
+        path, mode="a", encoding="utf8", errors="backslashreplace"
+    )
+
 
 IMG_URL = "https://webcdn.hirezstudios.com/smite/item-icons"
 

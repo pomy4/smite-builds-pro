@@ -2,7 +2,6 @@ import dataclasses
 import datetime
 import hashlib
 import hmac
-import itertools
 import json
 import logging
 import math
@@ -25,6 +24,8 @@ from selenium.webdriver.remote.webelement import WebElement
 import shared
 from shared import League
 
+logger = logging.getLogger(__name__)
+
 IMPLICIT_WAIT = 3
 
 
@@ -39,16 +40,22 @@ def main() -> None:
             subprocess.Popen(["./updater/watchdog.sh"])
 
         options = make_webdriver_options()
+        print("Starting Chrome...")
         with selenium.webdriver.Chrome(options=options) as driver:
             driver.implicitly_wait(IMPLICIT_WAIT)
+            print("Scraping SPL schedule...")
             matches = scrape_league(driver, shared.SPL)
+            print("Scraping SCC schedule...")
             matches += scrape_league(driver, shared.SCC)
+            print("Scraping matches...")
             builds = scrape_matches(driver, matches)
+            print("Posting builds...")
             post_builds(builds)
+            print("All done!")
 
-    except BaseException as e:
-        logging.exception(e)
-        raise e
+    except BaseException:
+        logger.exception("Crash|")
+        raise
 
 
 # --------------------------------------------------------------------------------------
@@ -57,20 +64,19 @@ def main() -> None:
 
 
 def setup_logging() -> None:
-    log_folder = pathlib.Path("upd/logs")
-    if not log_folder.is_dir():
+    log_dir = pathlib.Path("upd") / "logs"
+    if not log_dir.exists():
         raise RuntimeError("Log folder does not exist")
 
-    today = datetime.datetime.now().date().isoformat()
-    for i in itertools.count():
-        suffix = f"({i})" if i else ""
-        log_path = log_folder / f"{today}{suffix}.log"
-        if log_path.is_file():
-            continue
-        logging.basicConfig(
-            filename=log_path, level=logging.INFO, format=shared.LOG_FORMAT
-        )
-        break
+    log_dir = log_dir / "updater"
+    log_dir.mkdir(exist_ok=True)
+
+    now = datetime.datetime.now().replace(microsecond=0)
+    now_str = now.isoformat(sep="_").replace(":", "-")
+    file_handler = shared.get_file_handler(log_dir / f"{now_str}.log")
+    file_handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
+    logger.addHandler(file_handler)
+    logger.setLevel(logging.INFO)
 
 
 def check_required_env_vars() -> None:
@@ -201,7 +207,7 @@ def scrape_league(driver: WebDriver, league: League) -> list[Match]:
                 if match_id not in match_ids_set:
                     matches.append(match)
                 else:
-                    logging.info(f"Skipping|{match.to_json()}")
+                    logger.info(f"Skipping|{match.to_json()}")
 
         shared.delay(0.5, start)
 
@@ -209,25 +215,30 @@ def scrape_league(driver: WebDriver, league: League) -> list[Match]:
 
 
 def scrape_matches(driver: WebDriver, matches: list[Match]) -> list[dict]:
+    match_ids_with_no_stats_str = os.getenv(shared.MATCHES_WITH_NO_STATS, "")
+    match_ids_with_no_stats = set(match_ids_with_no_stats_str.split(","))
+
     builds: list[dict] = []
     for match in typing.cast(Iterable[Match], tqdm.tqdm(matches)):
-        logging.info(f"Scraping|{match.to_json()}")
+        logger.info(f"Scraping|{match.to_json()}")
 
         if not check_url_still_same(
             match.league.match_url, match.url, match.last_slash_i
         ):
-            logging.warning(f"Unknown match URL|{match.url}")
+            logger.warning(f"Unknown match URL|{match.url}")
 
         try:
-            new_builds = scrape_match(driver, match)
+            new_builds = scrape_match(driver, match, match_ids_with_no_stats)
             builds.extend(new_builds)
-        except Exception as e:
-            logging.exception(e)
+        except Exception:
+            logger.exception(f"{match.id}|")
 
     return builds
 
 
-def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
+def scrape_match(
+    driver: WebDriver, match: Match, match_ids_with_no_stats: set[str] = set()
+) -> list[dict]:
     builds_all: list[dict] = []
     games: list[WebElement] = []
     match_url_retries = 3
@@ -240,9 +251,12 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
         try:
             match_details = driver.find_element(By.CLASS_NAME, "match-details")
             no_stats = match_details.find_element(By.TAG_NAME, "h1")
-            if text(no_stats) == "There are no stats for this match":
-                logging.info("There are no stats for this match")
-                return []
+            no_stats_msg = "There are no stats for this match"
+            if text(no_stats) == no_stats_msg:
+                if str(match.id) in match_ids_with_no_stats:
+                    logger.info(no_stats_msg)
+                    return []
+                raise RuntimeError(no_stats_msg)
         except selenium.common.exceptions.NoSuchElementException:
             pass
 
@@ -353,10 +367,7 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
                 else:
                     build["player2"] = "Missing data"
                     build["god2"] = "Missing data"
-                logging.info(f"Build scraped|{json.dumps(build)}")
-
-        if (builds_cnt := len(builds[0]) + len(builds[1])) < 10:
-            logging.warning(f"Missing build(s) in a game|{10 - builds_cnt}")
+                logger.info(f"Build scraped|{json.dumps(build)}")
 
         builds_all.extend(builds[0])
         builds_all.extend(builds[1])
@@ -413,7 +424,7 @@ def item(elem: WebElement) -> tuple[str, str]:
     img_url = elem.get_attribute("src")
     last_slash_i, image_name = split_on_last_slash(img_url)
     if not check_url_still_same(shared.IMG_URL, img_url, last_slash_i):
-        logging.warning(f"Unknown image URL|{img_url}")
+        logger.warning(f"Unknown image URL|{img_url}")
     return name, image_name
 
 

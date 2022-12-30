@@ -85,9 +85,7 @@ def setup_cache_logger() -> None:
 
 
 def get_file_handler(filename: str) -> logging.Handler:
-    return logging.FileHandler(
-        Path("be/logs") / filename, mode="a", encoding="utf8", errors="backslashreplace"
-    )
+    return shared.get_file_handler(Path("be/logs") / filename)
 
 
 # --------------------------------------------------------------------------------------
