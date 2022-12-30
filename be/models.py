@@ -707,7 +707,7 @@ def compress_and_base64_image(image_data: bytes) -> tuple[bytes, bool]:
 def save_item_icon_to_archive(item: Item, image_data: bytes) -> None:
     item_icons_archive_dir = Path(__file__).parent / "item_icons_archive"
     item_icons_archive_dir.mkdir(exist_ok=True)
-    image_path = item_icons_archive_dir / f"{item.id}-{item.image_name}"
+    image_path = item_icons_archive_dir / f"{item.id:0>5}-{item.image_name}"
     image_path.write_bytes(image_data)
 
 
