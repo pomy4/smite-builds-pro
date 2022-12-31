@@ -11,9 +11,16 @@ import bottle
 import pydantic as pd
 import pydantic.types as pdt
 
+import be.get_builds
+import be.get_options
+import be.loggers
 import be.models
+import be.pb.post_builds
+import be.simple_queries
 import shared
-from be.models import MyError, WhereStrat
+from be.exceptions import MyValidationError
+from be.get_builds import WhereStrat
+from be.loggers import cache_logger, error_logger
 
 # --------------------------------------------------------------------------------------
 # APP & LOGGING & HOOKS & DECORATORS
@@ -25,9 +32,9 @@ app.config["json.enable"] = False
 
 
 def setup_logging() -> None:
-    be.models.setup_auto_fixes_logger()
-    be.models.setup_cache_logger()
-    be.models.setup_error_logger()
+    be.loggers.setup_auto_fixes_logger()
+    be.loggers.setup_cache_logger()
+    be.loggers.setup_error_logger()
 
 
 @app.hook("before_request")
@@ -53,13 +60,13 @@ def log_errors(func: Callable) -> Callable:
         try:
             ret = func(*args, **kwargs)
             if bottle.response.status_code >= 400:
-                be.models.error_logger.warning(ret)
+                error_logger.warning(ret)
                 # All expected errors return plain strings,
                 # so this decorator is also used to fix the Content-Type.
                 bottle.response.content_type = "text/plain"
             return ret
         except Exception:
-            be.models.error_logger.exception("Internal Server Error")
+            error_logger.exception("Internal Server Error")
             # And also to remove caching from 500 responses
             # (not sure if they can even be cached, but just to make sure).
             if "Last-Modified" in bottle.response.headers:
@@ -120,7 +127,7 @@ def validate_request_body(model: Type[pd.BaseModel]) -> Callable:
 def cache_with_last_modified(func: Callable) -> Callable:
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        last_modified = be.models.get_last_modified()
+        last_modified = be.simple_queries.get_last_modified()
         if last_modified is None:
             return func(*args, **kwargs)
         if if_modified_since_s := bottle.request.get_header("If-Modified-Since"):
@@ -143,15 +150,11 @@ def is_cached(last_modified: datetime.datetime, if_modified_since_s: str) -> boo
     try:
         if_modified_since = email.utils.parsedate_to_datetime(if_modified_since_s)
     except ValueError:
-        be.models.cache_logger.info(
-            f"IfModifiedSince is invalid: {if_modified_since_s}"
-        )
+        cache_logger.info(f"IfModifiedSince is invalid: {if_modified_since_s}")
         return False
 
     if if_modified_since.tzinfo is None:
-        be.models.cache_logger.info(
-            f"IfModifiedSince with -0000 tz: {if_modified_since_s}"
-        )
+        cache_logger.info(f"IfModifiedSince with -0000 tz: {if_modified_since_s}")
         if_modified_since = if_modified_since.replace(tzinfo=datetime.timezone.utc)
 
     if last_modified > if_modified_since:
@@ -159,7 +162,7 @@ def is_cached(last_modified: datetime.datetime, if_modified_since_s: str) -> boo
     elif last_modified == if_modified_since:
         return True
 
-    be.models.cache_logger.info(
+    cache_logger.info(
         f"IfModifiedSince from the future: {if_modified_since_s} > "
         + f"LastModified: {repr(last_modified)}"
     )
@@ -199,13 +202,13 @@ class BytesEncoder(json.JSONEncoder):
 @cache_with_last_modified
 @jsonify
 def get_options() -> dict:
-    return be.models.get_options()
+    return be.get_options.get_options()
 
 
 @app.get("/api/last_check")
 @log_errors
 def get_last_check() -> str:
-    if last_checked := be.models.get_last_checked():
+    if last_checked := be.simple_queries.get_last_checked():
         return last_checked
     else:
         return "unknown"
@@ -261,7 +264,7 @@ def get_builds() -> Any:
         bottle.response.status = 400
         return str(e)
 
-    return be.models.get_builds(builds_query)
+    return be.get_builds.get_builds(builds_query)
 
 
 # --------------------------------------------------------------------------------------
@@ -278,7 +281,7 @@ class PhasesRequest(pd.BaseModel):
 @validate_request_body(PhasesRequest)
 @jsonify
 def post_phases(phases: list[MyStr]) -> list[list[int]]:
-    return [be.models.get_match_ids(phase) for phase in phases]
+    return [be.simple_queries.get_match_ids(phase) for phase in phases]
 
 
 MyItem = tuple[MyStr, MyStr]
@@ -332,15 +335,15 @@ def post_builds(builds: list[PostBuildRequest]) -> Optional[str]:
     else:
         try:
             bottle.response.status = 201
-            be.models.post_builds(builds)
-        except MyError as e:
+            be.pb.post_builds.post_builds(builds)
+        except MyValidationError as e:
             bottle.response.status = 400
             return str(e)
 
     now = what_time_is_it()
-    be.models.update_last_checked(format_last_checked(now))
+    be.simple_queries.update_last_checked(format_last_checked(now))
     if builds:
-        be.models.update_last_modified(now)
+        be.simple_queries.update_last_modified(now)
     return None
 
 

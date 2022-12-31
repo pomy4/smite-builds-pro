@@ -1,5 +1,6 @@
 import be.backend
 import be.models
+import be.simple_queries
 
 with be.models.db:
-    be.models.update_last_modified(be.backend.what_time_is_it())
+    be.simple_queries.update_last_modified(be.backend.what_time_is_it())

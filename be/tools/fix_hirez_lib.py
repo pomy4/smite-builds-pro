@@ -10,6 +10,8 @@ import peewee as pw
 
 import be.backend
 import be.models
+import be.pb.images
+import be.simple_queries
 from be.models import Build, Item
 
 
@@ -19,7 +21,7 @@ def modify_db(func: Callable) -> Callable:
         with be.models.db:
             with be.models.db.atomic():
                 ret = func()
-                be.models.update_last_modified(be.backend.what_time_is_it())
+                be.simple_queries.update_last_modified(be.backend.what_time_is_it())
                 return ret
 
     return wrapper_modify_db
@@ -40,8 +42,8 @@ def fix_image_name(old_name: str, new_name: str, also_download: bool) -> None:
     if not also_download:
         return
 
-    image_data = be.models.get_image(new_name)
-    b64_image_data, was_compressed = be.models.compress_and_base64_image(image_data)
+    image_data = be.pb.images.get_image(new_name)
+    b64_image_data, was_compressed = be.pb.images.compress_and_base64_image(image_data)
 
     for item in Item.select().where(
         (Item.image_name == new_name) & (Item.image_data.is_null(True))
@@ -50,7 +52,7 @@ def fix_image_name(old_name: str, new_name: str, also_download: bool) -> None:
         item.save()
         print("fix_image_name:", old_name, "->", new_name)
         if was_compressed:
-            be.models.save_item_icon_to_archive(item, image_data)
+            be.pb.images.save_item_icon_to_archive(item, image_data)
 
 
 def fix_player_name(old_name: str, new_name: str) -> None:
