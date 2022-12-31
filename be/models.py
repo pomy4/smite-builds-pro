@@ -84,6 +84,17 @@ def setup_cache_logger() -> None:
     cache_logger.addHandler(handler)
 
 
+error_logger = logging.getLogger("be-error")
+
+
+def setup_error_logger() -> None:
+    handler = get_file_handler("error.log")
+    handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
+    error_logger.setLevel(logging.INFO)
+    error_logger.propagate = False
+    error_logger.addHandler(handler)
+
+
 def get_file_handler(filename: str) -> logging.Handler:
     return shared.get_file_handler(Path("be/logs") / filename)
 

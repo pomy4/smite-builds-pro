@@ -25,11 +25,9 @@ app.config["json.enable"] = False
 
 
 def setup_logging() -> None:
-    # access.log and error.log are handled by PythonAnywhere,
-    # and new builds are logged by the updater,
-    # so this is it for now.
     be.models.setup_auto_fixes_logger()
     be.models.setup_cache_logger()
+    be.models.setup_error_logger()
 
 
 @app.hook("before_request")
@@ -40,6 +38,35 @@ def before() -> None:
 @app.hook("after_request")
 def after() -> None:
     be.models.db.close()
+
+
+@app.error(500)
+def error500(error: bottle.HTTPError) -> str:
+    """Send plain string instead of a html page for unexpected exceptions."""
+    bottle.response.content_type = "text/plain"
+    return f"{error.body}\n{error.traceback}" if bottle.DEBUG else error.body
+
+
+def log_errors(func: Callable) -> Callable:
+    @functools.wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        try:
+            ret = func(*args, **kwargs)
+            if bottle.response.status_code >= 400:
+                be.models.error_logger.warning(ret)
+                # All expected errors return plain strings,
+                # so this decorator is also used to fix the Content-Type.
+                bottle.response.content_type = "text/plain"
+            return ret
+        except Exception:
+            be.models.error_logger.exception("Internal Server Error")
+            # And also to remove caching from 500 responses
+            # (not sure if they can even be cached, but just to make sure).
+            if "Last-Modified" in bottle.response.headers:
+                del bottle.response.headers["Last-Modified"]
+            raise
+
+    return wrapper
 
 
 def verify_integrity(func: Callable) -> Callable:
@@ -168,6 +195,7 @@ class BytesEncoder(json.JSONEncoder):
 
 
 @app.get("/api/options")
+@log_errors
 @cache_with_last_modified
 @jsonify
 def get_options() -> dict:
@@ -175,6 +203,7 @@ def get_options() -> dict:
 
 
 @app.get("/api/last_check")
+@log_errors
 def get_last_check() -> str:
     if last_checked := be.models.get_last_checked():
         return last_checked
@@ -219,6 +248,7 @@ class GetBuildsRequest(pd.BaseModel):
 
 
 @app.get("/api/builds")
+@log_errors
 @cache_with_last_modified
 @jsonify
 def get_builds() -> Any:
@@ -244,6 +274,7 @@ class PhasesRequest(pd.BaseModel):
 
 
 @app.post("/api/phases")
+@log_errors
 @validate_request_body(PhasesRequest)
 @jsonify
 def post_phases(phases: list[MyStr]) -> list[list[int]]:
@@ -292,6 +323,7 @@ class PostBuildsRequest(pd.BaseModel):
 
 
 @app.post("/api/builds")
+@log_errors
 @verify_integrity
 @validate_request_body(PostBuildsRequest)
 def post_builds(builds: list[PostBuildRequest]) -> Optional[str]:
