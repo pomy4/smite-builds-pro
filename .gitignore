@@ -1,16 +1,12 @@
-# Environment specific (should be in a global gitignore).
+# Generic.
 .venv/
+__pycache__/
+.idea/
 .vscode/
-*.code-workspace
-
-# Something in the middle.
-.env
-upd/geckodriver.exe
-upd/geckodriver.log
-upd/chromedriver.exe
+.mypy_cache/
 
 # Project specific.
-__pycache__/
+.env
 be/**/*.db
 be/**/*.jpg
 be/**/*.log
