@@ -108,7 +108,7 @@ def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
                 build["year"] = today.year
             if not build.get("season"):
                 season = today.year - 2013
-                if today.month <= 2:
+                if today.month == 1 or today.month == 2 and today.day <= 14:
                     season -= 1
                 build["season"] = max(season, 0)
             try:
