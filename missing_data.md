@@ -34,3 +34,11 @@ Season | Match ID | Game # | Date | Team | Role | Opp. team
 9 | 3933 | 3 | 2022-10-28 | STORM | Solo | WRDNS
 9 | 3936 | 1 | 2022-11-03 | YOMI | Support | STORM
 9 | 3936 | 2 | 2022-11-03 | YOMI | Support | STORM
+10| 4067 | 1 | 2023-02-22 | YOMI | ADC | VALKS
+10| 4067 | 2 | 2023-02-22 | YOMI | ADC | VALKS
+10| 4068 | 1 | 2023-02-22 | WRDNS | ADC | STORM
+10| 4070 | 1 | 2023-02-22 | TITAN | Support | HOUND
+10| 4071 | 1 | 2023-02-23 | YOMI | ADC | WARGS
+10| 4071 | 2 | 2023-02-23 | YOMI | ADC | WARGS
+10| 4075 | 1 | 2023-02-24 | YOMI | ADC | WRDNS
+10| 4075 | 2 | 2023-02-24 | YOMI | ADC | WRDNS
