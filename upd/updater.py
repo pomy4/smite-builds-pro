@@ -385,7 +385,7 @@ def scrape_match(
 
 
 def fix_role(role: str) -> str:
-    return "ADC" if role == "Hunter" else role
+    return "ADC" if role in ["Carry", "Hunter"] else role
 
 
 def kda_ratio(kills: int, deaths: int, assists: int) -> float:
