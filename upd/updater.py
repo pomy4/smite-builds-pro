@@ -27,6 +27,7 @@ from shared import League
 logger = logging.getLogger(__name__)
 
 IMPLICIT_WAIT = 3
+FALLBACK_COOKIES_WAIT = 10
 
 
 def main() -> None:
@@ -166,7 +167,11 @@ def scrape_league(driver: WebDriver, league: League) -> list[Match]:
     driver.get(league.schedule_url)
 
     cookie_accept_button = driver.find_element(By.CLASS_NAME, "approve")
-    cookie_accept_button.click()
+    try:
+        cookie_accept_button.click()
+    except selenium.common.exceptions.ElementNotInteractableException:
+        time.sleep(FALLBACK_COOKIES_WAIT)
+        cookie_accept_button.click()
     time.sleep(0.1)
 
     phase_elems = driver.find_elements(By.CLASS_NAME, "phase")
