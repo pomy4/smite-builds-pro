@@ -11,6 +11,8 @@ import shared
 
 logger = logging.getLogger(__name__)
 
+LOG_PATH = Path("upd") / "logs" / "alerter.log"
+
 Alerts = list[list[str]]
 
 
@@ -35,7 +37,7 @@ def main() -> None:
         old_path_to_lines_read = {}
         logger.info("JSON file did not exist")
 
-    new_paths = sorted(str(x) for x in Path(".").rglob("*.log"))
+    new_paths = sorted(str(x) for x in Path(".").rglob("*.log") if x != LOG_PATH)
     logger.info(f"Found {len(new_paths)} files")
     path_to_lines_read = {
         path: old_path_to_lines_read.get(path, 0) for path in new_paths
@@ -71,7 +73,7 @@ def main() -> None:
 
 def setup_logging() -> None:
     stream_handler = logging.StreamHandler(stream=sys.stdout)
-    file_handler = shared.get_file_handler(Path("upd") / "logs" / "alerter.log")
+    file_handler = shared.get_file_handler(LOG_PATH)
     stream_handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
     file_handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
     logger.addHandler(stream_handler)
