@@ -28,6 +28,11 @@ logger = logging.getLogger(__name__)
 
 IMPLICIT_WAIT = 3
 FALLBACK_COOKIES_WAIT = 10
+NO_STATS_MESSAGE = "There are no stats for this match"
+
+
+class NoStats(Exception):
+    pass
 
 
 def main() -> None:
@@ -233,17 +238,18 @@ def scrape_matches(driver: WebDriver, matches: list[Match]) -> list[dict]:
             logger.warning(f"Unknown match URL|{match.url}")
 
         try:
-            new_builds = scrape_match(driver, match, match_ids_with_no_stats)
+            new_builds = scrape_match(driver, match)
             builds.extend(new_builds)
+        except NoStats:
+            if str(match.id) not in match_ids_with_no_stats:
+                logger.info(f"{NO_STATS_MESSAGE}: {match.id}")
         except Exception:
             logger.exception(f"{match.id}|")
 
     return builds
 
 
-def scrape_match(
-    driver: WebDriver, match: Match, match_ids_with_no_stats: set[str] = set()
-) -> list[dict]:
+def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
     builds_all: list[dict] = []
     games: list[WebElement] = []
     match_url_retries = 3
@@ -256,12 +262,8 @@ def scrape_match(
         try:
             match_details = driver.find_element(By.CLASS_NAME, "match-details")
             no_stats = match_details.find_element(By.TAG_NAME, "h1")
-            no_stats_msg = "There are no stats for this match"
-            if text(no_stats) == no_stats_msg:
-                if str(match.id) in match_ids_with_no_stats:
-                    logger.info(no_stats_msg)
-                    return []
-                raise RuntimeError(no_stats_msg)
+            if text(no_stats) == NO_STATS_MESSAGE:
+                raise NoStats()
         except selenium.common.exceptions.NoSuchElementException:
             pass
 
