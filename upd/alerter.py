@@ -8,6 +8,7 @@ from pathlib import Path
 import requests
 
 import shared
+import upd.updater
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +23,8 @@ def main() -> None:
 
     logger.info("Starting alerter...")
 
-    if shared.NOTIFY_RUN_ID not in os.environ:
-        logger.error(f"{shared.NOTIFY_RUN_ID} not set, exiting...")
+    if shared.NTFY_TOPIC not in os.environ:
+        logger.error(f"{shared.NTFY_TOPIC} not set, exiting...")
         sys.exit(1)
 
     lines_read_path = Path("upd") / "alerter_lines_read.json"
@@ -122,18 +123,17 @@ def send_alerts(path_to_alerts: dict[str, Alerts]) -> bool:
             for line in alert:
                 string_builder.append(line)
     data = "".join(string_builder)
-    max_size = 30_000
+    max_size = 4096
     if len(data) > max_size:
         logger.info(f"Truncating message from {len(data)} to {max_size}")
         data = data[: max_size - 4] + "...\n"
-    url = f"https://notify.run/{os.getenv(shared.NOTIFY_RUN_ID)}"
+    url = f"https://ntfy.sh/{os.getenv(shared.NTFY_TOPIC)}"
 
     max_tries = 3
     for try_i in range(max_tries):
         try:
             resp = requests.post(url, data=data)
-            if not resp.ok or resp.text != "ok":
-                raise RuntimeError(resp.text)
+            upd.updater.better_raise_for_status(resp)
             logger.info(f"Sent\n{data.rstrip()}")
             return True
         except Exception:
