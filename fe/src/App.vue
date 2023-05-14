@@ -549,7 +549,10 @@ const getCurrentControls = () =>
 
 <style>
 .header-thing {
-  margin-bottom: 3rem;
+  /* section has 3rem padding, so this gives
+  equal space above and below header-thing */
+  margin-top: -0.67rem;
+  margin-bottom: 2.34rem;
   display: flex;
   flex-direction: column;
   row-gap: 0.667rem;
@@ -564,6 +567,7 @@ const getCurrentControls = () =>
   .header-thing {
     flex-direction: row;
     justify-content: space-between;
+    align-items: flex-end;
   }
   .update-info {
     text-align: left;
@@ -574,8 +578,12 @@ const getCurrentControls = () =>
 }
 @media screen and (min-width: 1216px) {
   .header-thing {
+    margin-top: -2.667rem;
     margin-bottom: 0rem;
   }
+  /* These children elements are moved instead of the whole header-thing,
+  because otherwise either the links or the tabs are not clickable due to
+  the containers being on top of each other*/
   .update-info {
     position: relative;
     top: 2.667rem;
