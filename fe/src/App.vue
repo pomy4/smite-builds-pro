@@ -3,13 +3,20 @@
     <div class="container">
       <div class="header-thing">
         <div class="update-info">
-          <a href="https://www.smiteproleague.com/schedule/"
-            >https://www.smiteproleague.com/schedule/</a
-          ><br />Last check: {{ lastCheck }}
+          <a href="https://www.smiteproleague.com/schedule/">
+            https://www.smiteproleague.com/schedule/
+          </a>
+          <br />
+          Last check: {{ lastCheck }}
         </div>
         <div class="contact-info">
-          Contact info:<br />
-          <a v-bind:href="`mailto:${antiSpam}`">{{ antiSpam }}</a>
+          <a v-bind:href="`mailto:${antiSpam}`">
+            {{ antiSpam }}
+          </a>
+          <br />
+          <a href="https://github.com/NAZADOTH/smite-builds-pro">
+            https://github.com/NAZADOTH/smite-builds-pro
+          </a>
         </div>
       </div>
       <div class="tabs is-centered is-medium is-boxed">
