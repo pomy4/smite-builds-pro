@@ -1,8 +1,7 @@
 import datetime
-from typing import Optional
 
 from be.loggers import cache_logger
-from be.models import Build, DbVersion, LastChecked, LastModified, Version
+from be.models import Build, DbVersion, LastChecked, LastModified, Version, db
 
 
 def update_version(new_data: DbVersion) -> None:
@@ -10,7 +9,7 @@ def update_version(new_data: DbVersion) -> None:
     Version.replace(id=1, data=new_data.value).execute()
 
 
-def get_last_modified() -> Optional[datetime.datetime]:
+def get_last_modified() -> datetime.datetime | None:
     try:
         last_modified = LastModified.get().data
 
@@ -43,15 +42,28 @@ def update_last_modified(new_data: datetime.datetime) -> None:
     LastModified.replace(id=1, data=new_data_naive).execute()
 
 
-def get_last_checked() -> Optional[str]:
+def get_last_checked() -> tuple[str | None, str | None]:
     try:
-        return LastChecked.get().data
+        value = LastChecked.get_by_id(1).data
     except LastChecked.DoesNotExist:
-        return None
+        value = None
+
+    try:
+        tooltip = LastChecked.get_by_id(2).data
+    except LastChecked.DoesNotExist:
+        tooltip = None
+
+    return value, tooltip
 
 
-def update_last_checked(new_data: str) -> None:
-    LastChecked.replace(id=1, data=new_data).execute()
+def update_last_checked(value: str, tooltip: str) -> None:
+    max_size = LastChecked.data.max_length
+    if len(tooltip) > max_size:
+        tooltip = f"{tooltip[:max_size - 3]}..."
+
+    with db.atomic():
+        LastChecked.replace(id=1, data=value).execute()
+        LastChecked.replace(id=2, data=tooltip).execute()
 
 
 def get_match_ids(phase: str) -> list[int]:

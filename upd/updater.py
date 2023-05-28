@@ -56,7 +56,8 @@ def main() -> None:
             print("Scraping matches...")
             builds = scrape_matches(driver, matches)
             print("Posting builds...")
-            post_builds(builds)
+            last_checked_tooltip = format_last_checked_tooltip(matches)
+            post_builds(builds, last_checked_tooltip)
             print("All done!")
 
     except BaseException:
@@ -107,17 +108,18 @@ def get_all_match_ids(phases: list[str]) -> list[list[int]]:
     return all_match_ids
 
 
-def post_builds(builds: list[dict]) -> None:
+def post_builds(builds: list[dict], last_checked_tooltip: str) -> None:
     hmac_key = bytearray.fromhex(os.environ[shared.HMAC_KEY_HEX])
-    builds_bytes = json.dumps(builds).encode("utf-8")
-    hmac_obj = hmac.new(hmac_key, builds_bytes, hashlib.sha256)
+    request_dict = {"builds": builds, "last_checked_tooltip": last_checked_tooltip}
+    request_bytes = json.dumps(request_dict).encode("utf-8")
+    hmac_obj = hmac.new(hmac_key, request_bytes, hashlib.sha256)
     headers = {"X-HMAC-DIGEST-HEX": hmac_obj.hexdigest()}
-    builds_resp = requests.post(
+    resp = requests.post(
         f"{os.getenv(shared.BACKEND_URL)}/api/builds",
-        data=builds_bytes,
+        data=request_bytes,
         headers=headers,
     )
-    better_raise_for_status(builds_resp)
+    better_raise_for_status(resp)
 
 
 def better_raise_for_status(resp: requests.Response) -> None:
@@ -160,6 +162,8 @@ class Match:
     id: int
     url: str
     last_slash_i: int
+    is_old: bool = False
+    is_missing: bool = False
 
     def to_json(self) -> str:
         match_dict = dataclasses.asdict(self)
@@ -214,10 +218,10 @@ def scrape_league(driver: WebDriver, league: League) -> list[Match]:
                     url=match_url,
                     last_slash_i=last_slash_i,
                 )
-                if match_id not in match_ids_set:
-                    matches.append(match)
-                else:
-                    logger.info(f"Skipping|{match.to_json()}")
+                matches.append(match)
+                if match_id in match_ids_set:
+                    match.is_old = True
+                    logger.info(f"Scraped previously|{match.to_json()}")
 
         shared.delay(0.5, start)
 
@@ -229,7 +233,8 @@ def scrape_matches(driver: WebDriver, matches: list[Match]) -> list[dict]:
     match_ids_with_no_stats = set(match_ids_with_no_stats_str.split(","))
 
     builds: list[dict] = []
-    for match in typing.cast(Iterable[Match], tqdm.tqdm(matches)):
+    new_matches = [match for match in matches if not match.is_old]
+    for match in typing.cast(Iterable[Match], tqdm.tqdm(new_matches)):
         logger.info(f"Scraping|{match.to_json()}")
 
         if not check_url_still_same(
@@ -242,6 +247,7 @@ def scrape_matches(driver: WebDriver, matches: list[Match]) -> list[dict]:
             builds.extend(new_builds)
         except NoStats:
             if str(match.id) not in match_ids_with_no_stats:
+                match.is_missing = True
                 logger.info(f"{NO_STATS_MESSAGE}: {match.id}")
         except Exception:
             logger.exception(f"{match.id}|")
@@ -451,3 +457,38 @@ def parse_game_length(game_length: str) -> tuple[int, int, int]:
     else:
         raise RuntimeError(f"Could not parse game length: {game_length}")
     return hours, minutes, seconds
+
+
+# --------------------------------------------------------------------------------------
+# OTHER
+# --------------------------------------------------------------------------------------
+
+
+@dataclasses.dataclass
+class MatchCount:
+    old = 0
+    new = 0
+    missing = 0
+
+
+def format_last_checked_tooltip(matches: list[Match]) -> str:
+    spl = get_match_count(shared.SPL, matches)
+    scc = get_match_count(shared.SCC, matches)
+    return f"""Matches Log
+Bad | Good
+SPL: {spl.missing} | {spl.new + spl.old}
+SCC: {scc.missing} | {scc.new + scc.old}
+"""
+
+
+def get_match_count(league: League, matches: list[Match]) -> MatchCount:
+    match_count = MatchCount()
+    matches_league = [match for match in matches if match.league is league]
+    for match in matches_league:
+        if match.is_old:
+            match_count.old += 1
+        elif match.is_missing:
+            match_count.missing += 1
+        else:
+            match_count.new += 1
+    return match_count

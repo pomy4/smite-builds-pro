@@ -7,7 +7,9 @@
             https://www.smiteproleague.com/schedule/
           </a>
           <br />
-          Last check: {{ lastCheck }}
+          <span v-bind:title="lastCheck.tooltip">
+            Last check: {{ lastCheck.value }}
+          </span>
         </div>
         <div class="contact-info">
           <a v-bind:href="`mailto:${antiSpam}`">
@@ -269,11 +271,11 @@ const fetchOrThrow = async (url: string) => {
   return response;
 };
 
-const lastCheck = ref("loading ...");
+const lastCheck = ref({ value: "loading ...", tooltip: "Loading .." });
 
 (async () => {
   const lastCheckResponse = await fetchOrThrow("/api/last_check");
-  lastCheck.value = await lastCheckResponse.text();
+  lastCheck.value = await lastCheckResponse.json();
 })();
 
 const antiSpam = (

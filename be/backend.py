@@ -207,11 +207,10 @@ def get_options() -> dict:
 
 @app.get("/api/last_check")
 @log_errors
-def get_last_check() -> str:
-    if last_checked := be.simple_queries.get_last_checked():
-        return last_checked
-    else:
-        return "unknown"
+@jsonify
+def get_last_check() -> dict:
+    value, tooltip = be.simple_queries.get_last_checked()
+    return {"value": value or "unknown", "tooltip": tooltip or "Unknown"}
 
 
 if TYPE_CHECKING:
@@ -322,27 +321,30 @@ class PostBuildRequest(pd.BaseModel):
 
 
 class PostBuildsRequest(pd.BaseModel):
-    __root__: list[PostBuildRequest]
+    builds: list[PostBuildRequest]
+    last_checked_tooltip: str
 
 
 @app.post("/api/builds")
 @log_errors
 @verify_integrity
 @validate_request_body(PostBuildsRequest)
-def post_builds(builds: list[PostBuildRequest]) -> Optional[str]:
-    if not builds:
+def post_builds(request: PostBuildsRequest) -> Optional[str]:
+    if not request.builds:
         bottle.response.status = 204
     else:
         try:
             bottle.response.status = 201
-            be.pb.post_builds.post_builds(builds)
+            be.pb.post_builds.post_builds(request.builds)
         except MyValidationError as e:
             bottle.response.status = 400
             return str(e)
 
     now = what_time_is_it()
-    be.simple_queries.update_last_checked(format_last_checked(now))
-    if builds:
+    be.simple_queries.update_last_checked(
+        format_last_checked(now), request.last_checked_tooltip
+    )
+    if request.builds:
         be.simple_queries.update_last_modified(now)
     return None
 
