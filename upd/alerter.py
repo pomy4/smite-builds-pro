@@ -123,7 +123,10 @@ def send_alerts(path_to_alerts: dict[str, Alerts]) -> bool:
             for line in alert:
                 string_builder.append(line)
     data = "".join(string_builder)
-    max_size = 4096
+
+    # ntfy.sh turns notifications larger than 4096 bytes to attachments. Maximal
+    # attachment size is 2 MB. That much is not needed here, so a smaller limit is used.
+    max_size = 10_000
     if len(data) > max_size:
         logger.info(f"Truncating message from {len(data)} to {max_size}")
         data = data[: max_size - 4] + "...\n"
