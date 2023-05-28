@@ -119,7 +119,7 @@ def send_alerts(path_to_alerts: dict[str, Alerts]) -> bool:
     string_builder: list[str] = []
     for path, alerts in path_to_alerts.items():
         string_builder.extend((path, "\n"))
-        for alert in alerts:
+        for alert in reversed(alerts):
             for line in alert:
                 string_builder.append(line)
     data = "".join(string_builder)
