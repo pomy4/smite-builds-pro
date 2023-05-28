@@ -97,8 +97,11 @@ def fix_roles_in_single_team(
     # whether we should do Coach -> Solo and Sub -> Mid or Coach -> Mid and Sub -> Solo.
     if not (len(fixable_roles) == 1 and len(unfixable_roles) == 0):
         for role in fixable_roles + unfixable_roles:
-            role_builds = role_to_builds[role] if role != MISSING_ROLE else []
-            auto_fixes_logger.warning(f"Wrong role: {role} ({len(role_builds)})")
+            if role == MISSING_ROLE:
+                auto_fixes_logger.info("Missing build")
+            else:
+                role_builds = role_to_builds[role]
+                auto_fixes_logger.warning(f"Wrong role: {role} ({len(role_builds)})")
         return [], correct_role_to_build
 
     role_to_fix = fixable_roles[0]
