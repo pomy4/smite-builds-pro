@@ -10,9 +10,9 @@ __pycache__/
 /storage/**
 !/storage/**/
 !/storage/**/.gitkeep
-/be/tools/fix_hirez.py
-/upd/tools/**/*.log
-/upd/tools/**/*.json
-/fe/.parcel-cache
-/fe/dist/
-/fe/node_modules/
+/backend/webapi/tools/fix_hirez.py
+/backend/updater/tools/**/*.log
+/backend/updater/tools/**/*.json
+/frontend/.parcel-cache
+/frontend/dist/
+/frontend/node_modules/
