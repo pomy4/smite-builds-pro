@@ -1,7 +1,6 @@
 import contextlib
 import logging
 from contextvars import ContextVar
-from pathlib import Path
 from typing import Iterator
 
 import shared
@@ -24,7 +23,7 @@ def setup_auto_fixes_logger() -> None:
         record.game = auto_fixes_game_context.get()
         return True
 
-    handler = get_file_handler("auto_fixes.log")
+    handler = shared.get_file_handler("auto_fixes")
     handler.setFormatter(logging.Formatter(shared.AUTO_FIXES_LOG_FORMAT))
     handler.addFilter(add_game)
     auto_fixes_logger.setLevel(logging.INFO)
@@ -49,7 +48,7 @@ cache_logger = logging.getLogger("be-cache")
 
 
 def setup_cache_logger() -> None:
-    handler = get_file_handler("cache.log")
+    handler = shared.get_file_handler("cache")
     handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
     cache_logger.setLevel(logging.INFO)
     cache_logger.propagate = False
@@ -60,12 +59,8 @@ error_logger = logging.getLogger("be-error")
 
 
 def setup_error_logger() -> None:
-    handler = get_file_handler("error.log")
+    handler = shared.get_file_handler("error")
     handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
     error_logger.setLevel(logging.INFO)
     error_logger.propagate = False
     error_logger.addHandler(handler)
-
-
-def get_file_handler(filename: str) -> logging.Handler:
-    return shared.get_file_handler(Path("be/logs") / filename)

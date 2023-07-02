@@ -1,13 +1,17 @@
 import dataclasses
 import logging
 import time
-from pathlib import Path
+
+from config import get_project_root_dir
+
+STORAGE_DIR = get_project_root_dir() / "storage"
 
 LOG_FORMAT = "%(asctime)s|%(levelname)s|%(message)s"
 AUTO_FIXES_LOG_FORMAT = "%(asctime)s|%(levelname)s|%(game)s|%(message)s"
 
 
-def get_file_handler(path: str | Path) -> logging.Handler:
+def get_file_handler(name: str) -> logging.Handler:
+    path = STORAGE_DIR / "logs" / f"{name}.log"
     return logging.FileHandler(
         path, mode="a", encoding="utf8", errors="backslashreplace"
     )

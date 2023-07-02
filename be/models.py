@@ -1,7 +1,8 @@
 import enum
-from pathlib import Path
 
 import peewee as pw
+
+from shared import STORAGE_DIR
 
 
 class DbVersion(enum.Enum):
@@ -14,7 +15,7 @@ class DbVersion(enum.Enum):
 
 CURRENT_DB_VERSION = list(DbVersion)[-1]
 
-db_path = Path(__file__).parent / "backend.db"
+db_path = STORAGE_DIR / "backend.db"
 db = pw.SqliteDatabase(db_path, autoconnect=False)
 
 

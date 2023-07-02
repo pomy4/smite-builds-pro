@@ -5,7 +5,6 @@ import hmac
 import json
 import logging
 import math
-import pathlib
 import subprocess
 import time
 import typing
@@ -70,16 +69,9 @@ def main() -> None:
 
 
 def setup_logging() -> None:
-    log_dir = pathlib.Path("upd") / "logs"
-    if not log_dir.exists():
-        raise RuntimeError("Log folder does not exist")
-
-    log_dir = log_dir / "updater"
-    log_dir.mkdir(exist_ok=True)
-
     now = datetime.datetime.now().replace(microsecond=0)
     now_str = now.isoformat(sep="_").replace(":", "-")
-    file_handler = shared.get_file_handler(log_dir / f"{now_str}.log")
+    file_handler = shared.get_file_handler(f"updater/{now_str}")
     file_handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
     logger.addHandler(file_handler)
     logger.setLevel(logging.INFO)

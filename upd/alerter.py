@@ -9,10 +9,11 @@ import requests
 import shared
 import upd.updater
 from config import get_alerter_config, load_alerter_config
+from shared import STORAGE_DIR
 
 logger = logging.getLogger(__name__)
 
-LOG_PATH = Path("upd") / "logs" / "alerter.log"
+LOG_NAME = "alerter"
 
 Alerts = list[list[str]]
 
@@ -23,7 +24,7 @@ def main() -> None:
 
     logger.info("Starting alerter...")
 
-    lines_read_path = Path("upd") / "alerter_lines_read.json"
+    lines_read_path = STORAGE_DIR / "alerter_lines_read.json"
     old_path_to_lines_read: dict[str, int]
     if lines_read_path.exists():
         with open(lines_read_path, "r", encoding="utf8") as f:
@@ -34,7 +35,7 @@ def main() -> None:
         old_path_to_lines_read = {}
         logger.info("JSON file did not exist")
 
-    new_paths = sorted(str(x) for x in Path(".").rglob("*.log") if x != LOG_PATH)
+    new_paths = sorted(str(x) for x in Path(".").rglob("*.log") if x.stem != LOG_NAME)
     logger.info(f"Found {len(new_paths)} files")
     path_to_lines_read = {
         path: old_path_to_lines_read.get(path, 0) for path in new_paths
@@ -70,7 +71,7 @@ def main() -> None:
 
 def setup_logging() -> None:
     stream_handler = logging.StreamHandler(stream=sys.stdout)
-    file_handler = shared.get_file_handler(LOG_PATH)
+    file_handler = shared.get_file_handler(LOG_NAME)
     stream_handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
     file_handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
     logger.addHandler(stream_handler)

@@ -3,13 +3,13 @@ import io
 import time
 import urllib.error
 import urllib.request
-from pathlib import Path
 from typing import Optional
 
 from PIL import Image, UnidentifiedImageError
 
 import shared
 from be.models import Item
+from shared import STORAGE_DIR
 
 
 def get_image_or_none(image_name: str) -> Optional[bytes]:
@@ -62,7 +62,6 @@ def compress_and_base64_image(image_data: bytes) -> tuple[bytes, bool]:
 
 
 def save_item_icon_to_archive(item: Item, image_data: bytes) -> None:
-    item_icons_archive_dir = Path(__file__).parent / "item_icons_archive"
-    item_icons_archive_dir.mkdir(exist_ok=True)
+    item_icons_archive_dir = STORAGE_DIR / "item_icons_archive"
     image_path = item_icons_archive_dir / f"{item.id:0>5}-{item.image_name}"
     image_path.write_bytes(image_data)
