@@ -1,7 +1,7 @@
 import charybdis
 
-from be.loggers import auto_fixes_logger
-from config import get_webapi_config
+from backend.config import get_webapi_config
+from backend.webapi.loggers import auto_fixes_logger
 
 BuildDict = dict
 

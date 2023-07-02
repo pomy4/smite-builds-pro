@@ -1,27 +1,26 @@
-import be.backend
-import be.models
-import be.simple_queries
-from be.models import (
+from backend.webapi.models import (
     CURRENT_DB_VERSION,
     Build,
     Item,
     LastChecked,
     LastModified,
     Version,
+    db,
+    db_path,
 )
+from backend.webapi.simple_queries import update_last_modified, update_version
+from backend.webapi.webapi import what_time_is_it
 
 
 def create_db() -> None:
-    if be.models.db_path.exists():
+    if db_path.exists():
         return
 
-    with be.models.db:
-        with be.models.db.atomic():
-            be.models.db.create_tables(
-                [Build, Item, LastChecked, LastModified, Version]
-            )
-            be.simple_queries.update_version(CURRENT_DB_VERSION)
-            be.simple_queries.update_last_modified(be.backend.what_time_is_it())
+    with db:
+        with db.atomic():
+            db.create_tables([Build, Item, LastChecked, LastModified, Version])
+            update_version(CURRENT_DB_VERSION)
+            update_last_modified(what_time_is_it())
     print(f"Database created with version: {CURRENT_DB_VERSION.value}")
 
 

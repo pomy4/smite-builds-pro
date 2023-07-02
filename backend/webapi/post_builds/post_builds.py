@@ -1,24 +1,28 @@
+from __future__ import annotations
+
 import datetime
+import typing as t
 import unicodedata
-from typing import TYPE_CHECKING
 
 import peewee as pw
 
-import be.loggers
-import be.models
-import be.pb.fix_gods
-import be.pb.fix_roles
-import be.pb.images
-from be.exceptions import MyValidationError
-from be.get_builds import EVOLVED_PREFIX, GREATER_PREFIX, UPGRADE_SUFFIX
-from be.loggers import auto_fixes_logger
-from be.models import Build, Item
+from backend.webapi.exceptions import MyValidationError
+from backend.webapi.get_builds import EVOLVED_PREFIX, GREATER_PREFIX, UPGRADE_SUFFIX
+from backend.webapi.loggers import auto_fixes_logger, log_curr_game
+from backend.webapi.models import Build, Item, db
+from backend.webapi.post_builds.fix_gods import fix_gods
+from backend.webapi.post_builds.fix_roles import fix_roles
+from backend.webapi.post_builds.images import (
+    compress_and_base64_image_or_none,
+    get_image_or_none,
+    save_item_icon_to_archive,
+)
 
-if TYPE_CHECKING:
-    from be.backend import PostBuildRequest
+if t.TYPE_CHECKING:
+    from backend.webapi.webapi import PostBuildRequest
 
 
-def post_builds(builds: list["PostBuildRequest"]) -> None:
+def post_builds(builds: list[PostBuildRequest]) -> None:
     """Logging wrapper."""
     try:
         auto_fixes_logger.info("Start")
@@ -36,7 +40,7 @@ def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
     # Uniquerize items based upon name and image name.
     items = {}
     for build in builds:
-        with be.loggers.log_curr_game(build):
+        with log_curr_game(build):
             build["items"] = [
                 (name, fix_image_name(image_name))
                 for name, image_name in build["items"]
@@ -46,7 +50,7 @@ def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
         for name, image_name in build["items"]:
             items[(name, image_name)] = False
 
-    with be.models.db.atomic():
+    with db.atomic():
         # Create or retrieve items.
         for (name, image_name), is_relic in items.items():
             modified_name = name
@@ -61,7 +65,7 @@ def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
                 modified_name = name[len(GREATER_PREFIX) :]
                 name_was_modified = 3
 
-            image_data = be.pb.images.get_image_or_none(image_name)
+            image_data = get_image_or_none(image_name)
 
             if image_data is None and (
                 backup_image_name := (BACKUP_IMAGE_NAMES).get(image_name)
@@ -70,7 +74,7 @@ def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
                 # image_name is not updated here, so that if HiRez fixes the URL,
                 # it will not create a new item in the database
                 # (unless HiRez also changes the image).
-                image_data = be.pb.images.get_image_or_none(backup_image_name)
+                image_data = get_image_or_none(backup_image_name)
 
             if image_data is None:
                 auto_fixes_logger.warning(f"Missing image: {image_name}")
@@ -79,7 +83,7 @@ def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
                 (
                     b64_image_data,
                     was_compressed,
-                ) = be.pb.images.compress_and_base64_image_or_none(image_data)
+                ) = compress_and_base64_image_or_none(image_data)
 
             item, was_new = Item.get_or_create(
                 name=modified_name,
@@ -89,7 +93,7 @@ def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
             )
 
             if image_data is not None and was_compressed and was_new:
-                be.pb.images.save_item_icon_to_archive(item, image_data)
+                save_item_icon_to_archive(item, image_data)
 
             items[(name, image_name)] = item.id
 
@@ -119,7 +123,7 @@ def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
                 raise MyValidationError(
                     "At least one of the builds has an invalid date"
                 ) from e
-            with be.loggers.log_curr_game(build):
+            with log_curr_game(build):
                 build["player1"] = fix_player_name(player_names, build["player1"])
                 build["player2"] = fix_player_name(player_names, build["player2"])
             del (
@@ -136,8 +140,8 @@ def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
                 build[f"item{i}"] = items[(name, image_name)]
             del build["relics"], build["items"]
 
-        be.pb.fix_roles.fix_roles(builds)
-        be.pb.fix_gods.fix_gods(builds)
+        fix_roles(builds)
+        fix_gods(builds)
 
         try:
             # This is done one by one, since for some reason bulk insertion

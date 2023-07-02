@@ -7,23 +7,31 @@ import logging
 import math
 import subprocess
 import time
-import typing
-from typing import Iterable
+import typing as t
 
 import requests
-import selenium.common.exceptions
-import selenium.webdriver
+import selenium.common.exceptions as sel_exc
 import tqdm
-from selenium.webdriver import ChromeOptions
-from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 
-import shared
-from config import get_updater_config, load_updater_config
-from shared import League
+from backend.config import get_updater_config, load_updater_config
+from backend.shared import (
+    IMG_URL,
+    LOG_FORMAT,
+    SCC,
+    SPL,
+    League,
+    delay,
+    get_file_handler,
+    raise_for_status_with_detail,
+)
 
 logger = logging.getLogger(__name__)
+
+WebDriver = Chrome
+WebDriverOptions = ChromeOptions
 
 IMPLICIT_WAIT = 3
 FALLBACK_COOKIES_WAIT = 10
@@ -44,13 +52,13 @@ def main() -> None:
             subprocess.Popen(["./updater/watchdog.sh"])
 
         options = make_webdriver_options()
-        print("Starting Chrome...")
-        with selenium.webdriver.Chrome(options=options) as driver:
+        print("Starting browser...")
+        with WebDriver(options=options) as driver:
             driver.implicitly_wait(IMPLICIT_WAIT)
             print("Scraping SPL schedule...")
-            matches = scrape_league(driver, shared.SPL)
+            matches = scrape_league(driver, SPL)
             print("Scraping SCC schedule...")
-            matches += scrape_league(driver, shared.SCC)
+            matches += scrape_league(driver, SCC)
             print("Scraping matches...")
             builds = scrape_matches(driver, matches)
             print("Posting builds...")
@@ -71,8 +79,8 @@ def main() -> None:
 def setup_logging() -> None:
     now = datetime.datetime.now().replace(microsecond=0)
     now_str = now.isoformat(sep="_").replace(":", "-")
-    file_handler = shared.get_file_handler(f"updater/{now_str}")
-    file_handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
+    file_handler = get_file_handler(f"updater/{now_str}")
+    file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
     logger.addHandler(file_handler)
     logger.setLevel(logging.INFO)
 
@@ -86,7 +94,7 @@ def get_all_match_ids(phases: list[str]) -> list[list[int]]:
     all_match_ids_resp = requests.post(
         f"{get_updater_config().backend_url}/api/phases", json=phases
     )
-    better_raise_for_status(all_match_ids_resp)
+    raise_for_status_with_detail(all_match_ids_resp)
     all_match_ids = all_match_ids_resp.json()
     if len(phases) != len(all_match_ids):
         raise RuntimeError(f"/api/phases returned wrong list: {all_match_ids}")
@@ -104,18 +112,7 @@ def post_builds(builds: list[dict], last_checked_tooltip: str) -> None:
         data=request_bytes,
         headers=headers,
     )
-    better_raise_for_status(resp)
-
-
-def better_raise_for_status(resp: requests.Response) -> None:
-    if not resp.ok:
-        msg = "HTTP response was not OK!\n"
-        msg += f"Url: {resp.url}\n"
-        msg += f"Status code: {resp.status_code}\n"
-        msg += f"Status code meaning: {resp.reason}"
-        if more_detail := resp.text:
-            msg += f"\nMore detail: {more_detail}"
-        raise RuntimeError(msg)
+    raise_for_status_with_detail(resp)
 
 
 # --------------------------------------------------------------------------------------
@@ -123,8 +120,8 @@ def better_raise_for_status(resp: requests.Response) -> None:
 # --------------------------------------------------------------------------------------
 
 
-def make_webdriver_options() -> ChromeOptions:
-    options = ChromeOptions()
+def make_webdriver_options() -> WebDriverOptions:
+    options = WebDriverOptions()
     # https://help.pythonanywhere.com/pages/selenium/
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
@@ -163,7 +160,7 @@ def scrape_league(driver: WebDriver, league: League) -> list[Match]:
     cookie_accept_button = driver.find_element(By.CLASS_NAME, "approve")
     try:
         cookie_accept_button.click()
-    except selenium.common.exceptions.ElementNotInteractableException:
+    except sel_exc.ElementNotInteractableException:
         time.sleep(FALLBACK_COOKIES_WAIT)
         cookie_accept_button.click()
     time.sleep(0.1)
@@ -208,7 +205,7 @@ def scrape_league(driver: WebDriver, league: League) -> list[Match]:
                     match.is_old = True
                     logger.info(f"Scraped previously|{match.to_json()}")
 
-        shared.delay(0.5, start)
+        delay(0.5, start)
 
     return matches
 
@@ -218,7 +215,7 @@ def scrape_matches(driver: WebDriver, matches: list[Match]) -> list[dict]:
 
     builds: list[dict] = []
     new_matches = [match for match in matches if not match.is_old]
-    for match in typing.cast(Iterable[Match], tqdm.tqdm(new_matches)):
+    for match in t.cast(t.Iterable[Match], tqdm.tqdm(new_matches)):
         logger.info(f"Scraping|{match.to_json()}")
 
         if not check_url_still_same(
@@ -254,7 +251,7 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
             no_stats = match_details.find_element(By.TAG_NAME, "h1")
             if text(no_stats) == NO_STATS_MESSAGE:
                 raise NoStats()
-        except selenium.common.exceptions.NoSuchElementException:
+        except sel_exc.NoSuchElementException:
             pass
 
         games = driver.find_elements(By.CLASS_NAME, "game-btn")
@@ -368,7 +365,7 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
 
         builds_all.extend(builds[0])
         builds_all.extend(builds[1])
-        shared.delay(0.5, start)
+        delay(0.5, start)
 
     if not builds_all:
         raise RuntimeError("Scraped zero builds")
@@ -420,7 +417,7 @@ def item(elem: WebElement) -> tuple[str, str]:
     name = elem.get_attribute("alt")
     img_url = elem.get_attribute("src")
     last_slash_i, image_name = split_on_last_slash(img_url)
-    if not check_url_still_same(shared.IMG_URL, img_url, last_slash_i):
+    if not check_url_still_same(IMG_URL, img_url, last_slash_i):
         logger.warning(f"Unknown image URL|{img_url}")
     return name, image_name
 
@@ -456,8 +453,8 @@ class MatchCount:
 
 
 def format_last_checked_tooltip(matches: list[Match]) -> str:
-    spl = get_match_count(shared.SPL, matches)
-    scc = get_match_count(shared.SCC, matches)
+    spl = get_match_count(SPL, matches)
+    scc = get_match_count(SCC, matches)
     return f"""Matches Log
 Bad | Good
 SPL: {spl.missing} | {spl.new + spl.old}

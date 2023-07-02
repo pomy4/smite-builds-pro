@@ -4,30 +4,33 @@ necessitated by errors on the HiRez website.
 """
 
 import functools
-from typing import Any, Callable
+import typing as t
 
 import peewee as pw
 
-import be.backend
-import be.models
-import be.pb.images
-import be.simple_queries
-from be.models import Build, Item
+from backend.webapi.models import Build, Item, db
+from backend.webapi.post_builds.images import (
+    compress_and_base64_image,
+    get_image,
+    save_item_icon_to_archive,
+)
+from backend.webapi.simple_queries import update_last_modified
+from backend.webapi.webapi import what_time_is_it
 
 
-def modify_db(func: Callable) -> Callable:
+def modify_db(func: t.Callable) -> t.Callable:
     @functools.wraps(func)
-    def wrapper_modify_db() -> Any:
-        with be.models.db:
-            with be.models.db.atomic():
+    def wrapper_modify_db() -> t.Any:
+        with db:
+            with db.atomic():
                 ret = func()
-                be.simple_queries.update_last_modified(be.backend.what_time_is_it())
+                update_last_modified(what_time_is_it())
                 return ret
 
     return wrapper_modify_db
 
 
-def rename(table: Any, where: pw.Expression, **renames: Any) -> None:
+def rename(table: t.Any, where: pw.Expression, **renames: t.Any) -> None:
     query = table.select().where(where)
     for row in query:
         for new_column, new_value in renames.items():
@@ -42,8 +45,8 @@ def fix_image_name(old_name: str, new_name: str, also_download: bool) -> None:
     if not also_download:
         return
 
-    image_data = be.pb.images.get_image(new_name)
-    b64_image_data, was_compressed = be.pb.images.compress_and_base64_image(image_data)
+    image_data = get_image(new_name)
+    b64_image_data, was_compressed = compress_and_base64_image(image_data)
 
     for item in Item.select().where(
         (Item.image_name == new_name) & (Item.image_data.is_null(True))
@@ -52,7 +55,7 @@ def fix_image_name(old_name: str, new_name: str, also_download: bool) -> None:
         item.save()
         print("fix_image_name:", old_name, "->", new_name)
         if was_compressed:
-            be.pb.images.save_item_icon_to_archive(item, image_data)
+            save_item_icon_to_archive(item, image_data)
 
 
 def fix_player_name(old_name: str, new_name: str) -> None:
@@ -60,7 +63,7 @@ def fix_player_name(old_name: str, new_name: str) -> None:
     rename(Build, Build.player2 == old_name, player2=new_name)
 
 
-def get_item(image_name: str, index: int) -> be.models.Item:
+def get_item(image_name: str, index: int) -> Item:
     items = list(Item.select().where(Item.image_name == image_name))
     return items[index]
 

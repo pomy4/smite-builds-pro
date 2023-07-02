@@ -2,11 +2,8 @@ import logging
 import pprint
 import sys
 
-import selenium.webdriver
-
-import shared
-import upd.updater
-from upd.updater import Match
+from backend.shared import LOG_FORMAT, SCC, SPL
+from backend.updater.updater import IMPLICIT_WAIT, Match, WebDriver, scrape_match
 
 
 def main() -> None:
@@ -19,19 +16,19 @@ def main() -> None:
     match_id = int(sys.argv[1])
 
     if match_id >= 0:
-        league = shared.SPL
+        league = SPL
     else:
-        league = shared.SCC
+        league = SCC
         match_id *= -1
 
     logging.basicConfig(
         filename=f"{match_id}.log",
         level=logging.INFO,
-        format=shared.LOG_FORMAT,
+        format=LOG_FORMAT,
     )
 
-    with selenium.webdriver.Chrome() as driver:
-        driver.implicitly_wait(upd.updater.IMPLICIT_WAIT)
+    with WebDriver() as driver:
+        driver.implicitly_wait(IMPLICIT_WAIT)
         match = Match(
             league=league,
             phase="a phase",
@@ -41,7 +38,7 @@ def main() -> None:
             url=f"{league.match_url}/{match_id}",
             last_slash_i=len(league.match_url),
         )
-        builds = upd.updater.scrape_match(driver, match)
+        builds = scrape_match(driver, match)
         pprint.pprint(builds)
 
 

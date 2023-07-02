@@ -1,8 +1,8 @@
 import json
 import sys
 
-import upd.updater
-from config import load_updater_config
+from backend.config import load_updater_config
+from backend.updater.updater import post_builds
 
 
 def main() -> None:
@@ -21,7 +21,7 @@ def main() -> None:
             build_json = json.loads(line_split[3])
             builds.append(build_json)
 
-    upd.updater.post_builds(builds, "FROM LOG")
+    post_builds(builds, "FROM LOG")
 
 
 if __name__ == "__main__":

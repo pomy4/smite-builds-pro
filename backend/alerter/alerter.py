@@ -6,10 +6,13 @@ from pathlib import Path
 
 import requests
 
-import shared
-import upd.updater
-from config import get_alerter_config, load_alerter_config
-from shared import STORAGE_DIR
+from backend.config import get_alerter_config, load_alerter_config
+from backend.shared import (
+    LOG_FORMAT,
+    STORAGE_DIR,
+    get_file_handler,
+    raise_for_status_with_detail,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -71,9 +74,9 @@ def main() -> None:
 
 def setup_logging() -> None:
     stream_handler = logging.StreamHandler(stream=sys.stdout)
-    file_handler = shared.get_file_handler(LOG_NAME)
-    stream_handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
-    file_handler.setFormatter(logging.Formatter(shared.LOG_FORMAT))
+    file_handler = get_file_handler(LOG_NAME)
+    stream_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
     logger.addHandler(stream_handler)
     logger.addHandler(file_handler)
     logger.setLevel(logging.INFO)
@@ -133,10 +136,10 @@ def send_alerts(path_to_alerts: dict[str, Alerts]) -> bool:
     for try_i in range(max_tries):
         try:
             resp = requests.post(url, data=data)
-            upd.updater.better_raise_for_status(resp)
+            raise_for_status_with_detail(resp)
             logger.info(f"Sent\n{data.rstrip()}")
             return True
-        except Exception:
+        except requests.RequestException:
             logger.warning(
                 f"Failed to send alerts ({try_i + 1}/{max_tries})", exc_info=True
             )

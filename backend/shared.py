@@ -2,7 +2,9 @@ import dataclasses
 import logging
 import time
 
-from config import get_project_root_dir
+import requests
+
+from backend.config import get_project_root_dir
 
 STORAGE_DIR = get_project_root_dir() / "storage"
 
@@ -54,3 +56,17 @@ def delay(min_delay: float, start: float) -> None:
     time_remaining = min_delay - time_spent
     if time_remaining > 0:
         time.sleep(time_remaining)
+
+
+def raise_for_status_with_detail(response: requests.Response) -> None:
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as e:
+        msg = [
+            "HTTP response was not OK!",
+            f"Url: {response.url}",
+            f"Status code: {response.status_code} {response.reason}",
+        ]
+        if more_detail := response.text:
+            msg.append(f"More detail: {more_detail}")
+        raise requests.HTTPError("\n".join(msg), response=response) from e

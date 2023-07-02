@@ -1,15 +1,14 @@
 import enum
-import typing
-from typing import TYPE_CHECKING, Any
+import typing as t
 
 import peewee as pw
 import playhouse.shortcuts
 
-import shared
-from be.models import Build, Item
+from backend.shared import league_factory
+from backend.webapi.models import Build, Item
 
-if TYPE_CHECKING:
-    from be.backend import GetBuildsRequest
+if t.TYPE_CHECKING:
+    from backend.webapi.webapi import GetBuildsRequest
 
 
 class WhereStrat(enum.Enum):
@@ -17,7 +16,7 @@ class WhereStrat(enum.Enum):
     range = enum.auto()
 
 
-def get_builds(builds_query: "GetBuildsRequest") -> Any:
+def get_builds(builds_query: "GetBuildsRequest") -> t.Any:
     relic1, relic2, item1, item2, item3, item4, item5, item6 = (
         Item.alias(),
         Item.alias(),
@@ -30,7 +29,7 @@ def get_builds(builds_query: "GetBuildsRequest") -> Any:
     )
 
     where = pw.Expression(True, "=", True)
-    types = typing.get_type_hints(builds_query, include_extras=True)
+    types = t.get_type_hints(builds_query, include_extras=True)
     page = 1
 
     for key, vals in vars(builds_query).items():
@@ -56,7 +55,7 @@ def get_builds(builds_query: "GetBuildsRequest") -> Any:
                     ],
                 )
         else:
-            where_strat = typing.get_args(types[key])[1]
+            where_strat = t.get_args(types[key])[1]
             if where_strat == WhereStrat.match:
                 where = where & getattr(Build, key).in_(vals)
             else:  # where_strat == WhereStrat.range:
@@ -92,7 +91,7 @@ def get_builds(builds_query: "GetBuildsRequest") -> Any:
         build = playhouse.shortcuts.model_to_dict(build)
         build["date"] = build["date"].isoformat()
         build["game_length"] = build["game_length"].isoformat()
-        match_url = shared.league_factory(build["league"]).match_url
+        match_url = league_factory(build["league"]).match_url
         build["match_url"] = f'{match_url}/{build["match_id"]}'
         build["kda_ratio"] = f'{build["kda_ratio"]:.1f}'
         del build["match_id"]

@@ -2,7 +2,7 @@ import datetime
 
 import peewee as pw
 
-from be.models import Build, Item
+from backend.webapi.models import Build, Item
 
 
 def get_options() -> dict:

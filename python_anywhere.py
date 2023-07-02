@@ -8,12 +8,12 @@ to a WSGI handler, so the code that is in the actual PythonAnywhere configuratio
 import os
 import time
 
-import be.backend
-from config import load_webapi_config
+from backend.config import load_webapi_config
+from backend.webapi.webapi import app, setup_logging
 
 os.environ["TZ"] = "Europe/Prague"
 time.tzset()
 
 load_webapi_config()
-be.backend.setup_logging()
-application = be.backend.app
+setup_logging()
+application = app

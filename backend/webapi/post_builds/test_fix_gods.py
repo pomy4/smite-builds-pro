@@ -1,9 +1,13 @@
 import copy
-import unittest.mock
-from unittest.mock import Mock
+import unittest
+from unittest.mock import Mock, patch
 
-import be.pb.fix_gods
-from config import ConfigError, load_webapi_config
+from backend.config import ConfigError, load_webapi_config
+from backend.webapi.post_builds.fix_gods import (
+    contains_digits,
+    fix_gods,
+    get_newest_god,
+)
 
 
 class TestFixGods(unittest.TestCase):
@@ -23,25 +27,25 @@ class TestFixGods(unittest.TestCase):
     ]
 
     def test_contains_digits(self) -> None:
-        self.assertFalse(be.pb.fix_gods.contains_digits(""))
-        self.assertFalse(be.pb.fix_gods.contains_digits("abc"))
-        self.assertTrue(be.pb.fix_gods.contains_digits("a2c"))
-        self.assertTrue(be.pb.fix_gods.contains_digits("123"))
+        self.assertFalse(contains_digits(""))
+        self.assertFalse(contains_digits("abc"))
+        self.assertTrue(contains_digits("a2c"))
+        self.assertTrue(contains_digits("123"))
 
-    @unittest.mock.patch("be.pb.fix_gods.get_newest_god")
+    @patch("backend.webapi.post_builds.fix_gods.get_newest_god")
     def test_happy(self, mock: Mock) -> None:
         mock.side_effect = RuntimeError("Shouldn't be called")
         builds = copy.deepcopy(self.BUILDS)
-        be.pb.fix_gods.fix_gods(builds)
+        fix_gods(builds)
         self.assertEqual(builds, self.BUILDS)
 
-    @unittest.mock.patch("be.pb.fix_gods.get_newest_god")
+    @patch("backend.webapi.post_builds.fix_gods.get_newest_god")
     def test_fixable(self, mock: Mock) -> None:
         mock.side_effect = ["god-one"]
         builds = copy.deepcopy(self.BUILDS)
         builds[0]["god1"] = "god1"
         builds[1]["god2"] = "god1"
-        be.pb.fix_gods.fix_gods(builds)
+        fix_gods(builds)
         self.assertEqual(builds, self.BUILDS)
 
 
@@ -67,7 +71,7 @@ class TestHirezApi(unittest.TestCase):
 
     @classmethod
     def test_newest_god(cls) -> None:
-        cls.newest_god = be.pb.fix_gods.get_newest_god()
+        cls.newest_god = get_newest_god()
 
 
 if __name__ == "__main__":

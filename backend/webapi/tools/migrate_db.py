@@ -1,14 +1,13 @@
 import functools
-from typing import Callable
+import typing as t
 
-import be.models
-import be.simple_queries
-from be.models import CURRENT_DB_VERSION, DbVersion, Version
+from backend.webapi.models import CURRENT_DB_VERSION, DbVersion, Version, db
+from backend.webapi.simple_queries import update_version
 
 
 def migrate_db() -> None:
-    with be.models.db:
-        with be.models.db.atomic():
+    with db:
+        with db.atomic():
             version_index = get_version().index
 
             if version_index == CURRENT_DB_VERSION.index:
@@ -21,17 +20,17 @@ def get_version() -> DbVersion:
     return DbVersion(Version.get().data) if Version.table_exists() else DbVersion.OLD
 
 
-Migration = Callable[[], None]
-WrappedMigration = Callable[[int], None]
+Migration = t.Callable[[], None]
+WrappedMigration = t.Callable[[int], None]
 
 
-def migration(db_version: DbVersion) -> Callable[[Migration], WrappedMigration]:
+def migration(db_version: DbVersion) -> t.Callable[[Migration], WrappedMigration]:
     def outer_wrapper(migration: Migration) -> WrappedMigration:
         @functools.wraps(migration)
         def inner_wrapper(version_index: int) -> None:
             if version_index < db_version.index:
                 migration()
-                be.simple_queries.update_version(db_version)
+                update_version(db_version)
                 print(f"Migrated database to version: {db_version.value}")
 
         return inner_wrapper

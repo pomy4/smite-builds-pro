@@ -3,29 +3,26 @@ import io
 import time
 import urllib.error
 import urllib.request
-from typing import Optional
 
-from PIL import Image, UnidentifiedImageError
+import PIL.Image
 
-import shared
-from be.models import Item
-from shared import STORAGE_DIR
+from backend.shared import IMG_URL, STORAGE_DIR, delay
+from backend.webapi.models import Item
 
 
-def get_image_or_none(image_name: str) -> Optional[bytes]:
+def get_image_or_none(image_name: str) -> bytes | None:
     start = time.time()
     try:
         ret = get_image(image_name)
     except urllib.error.URLError:
         ret = None
-    shared.delay(0.25, start)
+    delay(0.25, start)
     return ret
 
 
 def get_image(image_name: str) -> bytes:
     request = urllib.request.Request(
-        f"{shared.IMG_URL}/{image_name}",
-        headers={"User-Agent": "Mozilla"},
+        f"{IMG_URL}/{image_name}", headers={"User-Agent": "Mozilla"}
     )
     with urllib.request.urlopen(request) as f:
         return f.read()
@@ -33,22 +30,22 @@ def get_image(image_name: str) -> bytes:
 
 def compress_and_base64_image_or_none(
     image_data: bytes,
-) -> tuple[Optional[bytes], bool]:
+) -> tuple[bytes | None, bool]:
     try:
         return compress_and_base64_image(image_data)
     # OSError can be thrown while saving as JPEG.
-    except (UnidentifiedImageError, OSError):
+    except (PIL.UnidentifiedImageError, OSError):
         return None, False
 
 
 def compress_and_base64_image(image_data: bytes) -> tuple[bytes, bool]:
-    image = Image.open(io.BytesIO(image_data))
+    image = PIL.Image.open(io.BytesIO(image_data))
     min_side = min(image.size)
 
     if image.format != "JPEG" or min_side > 128:
         multiplier = min_side / 128
         new_size = round(image.size[0] / multiplier), round(image.size[1] / multiplier)
-        image = image.resize(new_size, Image.Resampling.LANCZOS)
+        image = image.resize(new_size, PIL.Image.Resampling.LANCZOS)
         if image.mode == "RGBA":
             image = image.convert("RGB")
         b = io.BytesIO()

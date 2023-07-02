@@ -1,7 +1,7 @@
 import json
 
-import shared
-import upd.updater
+from backend.shared import IMG_URL
+from backend.updater.updater import fix_role, kda_ratio, parse_game_length
 
 
 def main() -> None:
@@ -11,7 +11,7 @@ def main() -> None:
     for item in all_items:
         img_url = item["itemIcon_URL"]
         last = img_url.rfind("/")
-        if (base_url := img_url[:last]) != shared.IMG_URL:
+        if (base_url := img_url[:last]) != IMG_URL:
             raise RuntimeError(f"Unknown image URL: {base_url}")
         name_to_img_url[item["DeviceName"]] = img_url[last + 1 :]
 
@@ -26,9 +26,7 @@ def main() -> None:
             day = match["day"]
             match_id = match["match_id"]
             for game_i, game in enumerate(match["data"]["games"], 1):
-                hours, minutes, seconds = upd.updater.parse_game_length(
-                    game["game_duration"]
-                )
+                hours, minutes, seconds = parse_game_length(game["game_duration"])
                 team1 = game["team_totals"][0]["team"]
                 team2 = game["team_totals"][1]["team"]
                 if game["winning_team"] == 0:
@@ -47,7 +45,7 @@ def main() -> None:
                 for player in game["players"]:
                     team, role = player["team"], player["role"]
                     other_team = other_teams[team]
-                    role = upd.updater.fix_role(role)
+                    role = fix_role(role)
                     if role in teams[other_team]:
                         player2, god2 = teams[other_team][role]
                     else:
@@ -71,7 +69,7 @@ def main() -> None:
                             "hours": hours,
                             "minutes": minutes,
                             "seconds": seconds,
-                            "kda_ratio": upd.updater.kda_ratio(kills, deaths, assists),
+                            "kda_ratio": kda_ratio(kills, deaths, assists),
                             "kills": kills,
                             "deaths": deaths,
                             "assists": assists,

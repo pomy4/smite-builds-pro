@@ -1,9 +1,8 @@
 import collections
 
-import be.loggers
-from be.exceptions import MyValidationError
-from be.loggers import auto_fixes_logger
-from be.models import Build
+from backend.webapi.exceptions import MyValidationError
+from backend.webapi.loggers import auto_fixes_logger, log_curr_game
+from backend.webapi.models import Build
 
 BuildDict = dict
 
@@ -14,7 +13,7 @@ def fix_roles(builds: list[BuildDict]) -> None:
         game_to_builds[(build["match_id"], build["game_i"])].append(build)
 
     for game_builds in game_to_builds.values():
-        with be.loggers.log_curr_game(game_builds[0]):
+        with log_curr_game(game_builds[0]):
             fix_roles_in_single_game(game_builds)
 
 

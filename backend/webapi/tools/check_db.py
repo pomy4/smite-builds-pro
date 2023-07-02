@@ -5,11 +5,10 @@ Kept since it might be useful.
 import collections
 import pprint
 
-import be.models
-from be.models import Build
+from backend.webapi.models import Build, db
 
 # Find games where there is a duplicated player2.
-with be.models.db:
+with db:
     players = [b.player1 for b in Build.select(Build.player1).distinct()]
     for player in players:
         games_with_player1 = [
@@ -36,7 +35,7 @@ with be.models.db:
                 first_time.add(game)
 
 # Find games with missing builds or some issues with role.
-with be.models.db:
+with db:
     builds = list(Build.select())
 
 games = collections.defaultdict(list)

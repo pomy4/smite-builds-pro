@@ -2,7 +2,7 @@ import enum
 
 import peewee as pw
 
-from shared import STORAGE_DIR
+from backend.shared import STORAGE_DIR
 
 
 class DbVersion(enum.Enum):

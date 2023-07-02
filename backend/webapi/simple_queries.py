@@ -1,7 +1,14 @@
 import datetime
 
-from be.loggers import cache_logger
-from be.models import Build, DbVersion, LastChecked, LastModified, Version, db
+from backend.webapi.loggers import cache_logger
+from backend.webapi.models import (
+    Build,
+    DbVersion,
+    LastChecked,
+    LastModified,
+    Version,
+    db,
+)
 
 
 def update_version(new_data: DbVersion) -> None:

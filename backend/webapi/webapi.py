@@ -4,22 +4,32 @@ import functools
 import hashlib
 import hmac
 import json
-from typing import TYPE_CHECKING, Annotated, Any, Callable, Optional, Type
+import typing as t
 
 import bottle
 import pydantic as pd
 import pydantic.types as pdt
 
-import be.get_builds
-import be.get_options
-import be.loggers
-import be.models
-import be.pb.post_builds
-import be.simple_queries
-from be.exceptions import MyValidationError
-from be.get_builds import WhereStrat
-from be.loggers import cache_logger, error_logger
-from config import get_webapi_config
+from backend.config import get_webapi_config
+from backend.webapi.exceptions import MyValidationError
+from backend.webapi.get_builds import WhereStrat, get_builds
+from backend.webapi.get_options import get_options
+from backend.webapi.loggers import (
+    cache_logger,
+    error_logger,
+    setup_auto_fixes_logger,
+    setup_cache_logger,
+    setup_error_logger,
+)
+from backend.webapi.models import STR_MAX_LEN, db
+from backend.webapi.post_builds.post_builds import post_builds
+from backend.webapi.simple_queries import (
+    get_last_checked,
+    get_last_modified,
+    get_match_ids,
+    update_last_checked,
+    update_last_modified,
+)
 
 # --------------------------------------------------------------------------------------
 # APP & LOGGING & HOOKS & DECORATORS
@@ -31,19 +41,19 @@ app.config["json.enable"] = False
 
 
 def setup_logging() -> None:
-    be.loggers.setup_auto_fixes_logger()
-    be.loggers.setup_cache_logger()
-    be.loggers.setup_error_logger()
+    setup_auto_fixes_logger()
+    setup_cache_logger()
+    setup_error_logger()
 
 
 @app.hook("before_request")
 def before() -> None:
-    be.models.db.connect()
+    db.connect()
 
 
 @app.hook("after_request")
 def after() -> None:
-    be.models.db.close()
+    db.close()
 
 
 @app.error(500)
@@ -53,9 +63,9 @@ def error500(error: bottle.HTTPError) -> str:
     return f"{error.body}\n{error.traceback}" if bottle.DEBUG else error.body
 
 
-def log_errors(func: Callable) -> Callable:
+def log_errors(func: t.Callable) -> t.Callable:
     @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
+    def wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
         try:
             ret = func(*args, **kwargs)
             if bottle.response.status_code >= 400:
@@ -75,9 +85,9 @@ def log_errors(func: Callable) -> Callable:
     return wrapper
 
 
-def verify_integrity(func: Callable) -> Callable:
+def verify_integrity(func: t.Callable) -> t.Callable:
     @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
+    def wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
         key = bytearray.fromhex(get_webapi_config().hmac_key_hex)
 
         header_name = "X-HMAC-DIGEST-HEX"
@@ -96,10 +106,10 @@ def verify_integrity(func: Callable) -> Callable:
     return wrapper
 
 
-def validate_request_body(model: Type[pd.BaseModel]) -> Callable:
-    def outer_wrapper(func: Callable) -> Callable:
+def validate_request_body(model: type[pd.BaseModel]) -> t.Callable:
+    def outer_wrapper(func: t.Callable) -> t.Callable:
         @functools.wraps(func)
-        def inner_wrapper() -> Any:
+        def inner_wrapper() -> t.Any:
             try:
                 body_bytes: bytes = bottle.request.body.read()
                 body_str = body_bytes.decode("utf-8")
@@ -120,10 +130,10 @@ def validate_request_body(model: Type[pd.BaseModel]) -> Callable:
     return outer_wrapper
 
 
-def cache_with_last_modified(func: Callable) -> Callable:
+def cache_with_last_modified(func: t.Callable) -> t.Callable:
     @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
-        last_modified = be.simple_queries.get_last_modified()
+    def wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
+        last_modified = get_last_modified()
         if last_modified is None:
             return func(*args, **kwargs)
         if if_modified_since_s := bottle.request.get_header("If-Modified-Since"):
@@ -169,9 +179,9 @@ def format_rfc(my_datetime: datetime.datetime) -> str:
     return email.utils.format_datetime(my_datetime, usegmt=True)
 
 
-def jsonify(func: Callable) -> Callable:
+def jsonify(func: t.Callable) -> t.Callable:
     @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
+    def wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
         result = func(*args, **kwargs)
         if bottle.response.status_code < 400 and result is not None:
             result = json.dumps(result, indent=2, cls=BytesEncoder)
@@ -182,7 +192,7 @@ def jsonify(func: Callable) -> Callable:
 
 
 class BytesEncoder(json.JSONEncoder):
-    def default(self, obj: Any) -> Any:
+    def default(self, obj: t.Any) -> t.Any:
         if isinstance(obj, bytes):
             return obj.decode("ascii")
         return json.JSONEncoder.default(self, obj)
@@ -197,59 +207,59 @@ class BytesEncoder(json.JSONEncoder):
 @log_errors
 @cache_with_last_modified
 @jsonify
-def get_options() -> dict:
-    return be.get_options.get_options()
+def get_options_endpoint() -> dict:
+    return get_options()
 
 
 @app.get("/api/last_check")
 @log_errors
 @jsonify
-def get_last_check() -> dict:
-    value, tooltip = be.simple_queries.get_last_checked()
+def get_last_check_endpoint() -> dict:
+    value, tooltip = get_last_checked()
     return {"value": value or "unknown", "tooltip": tooltip or "Unknown"}
 
 
-if TYPE_CHECKING:
+if t.TYPE_CHECKING:
     MyStr = str
     MyInt = int
     MyFloat = float
 else:
-    MyStr = pdt.constr(min_length=1, max_length=be.models.STR_MAX_LEN, strict=False)
+    MyStr = pdt.constr(min_length=1, max_length=STR_MAX_LEN, strict=False)
     MyInt = pdt.conint(ge=0, strict=False)
     MyFloat = pdt.confloat(ge=0.0, strict=False)
 
 
 class GetBuildsRequest(pd.BaseModel):
     page: tuple[MyInt]
-    season: Annotated[Optional[list[MyInt]], WhereStrat.match]
-    league: Annotated[Optional[list[MyStr]], WhereStrat.match]
-    phase: Annotated[Optional[list[MyStr]], WhereStrat.match]
-    date: Annotated[Optional[tuple[datetime.date, datetime.date]], WhereStrat.range]
-    game_i: Annotated[Optional[list[MyInt]], WhereStrat.match]
-    game_length: Annotated[
-        Optional[tuple[datetime.time, datetime.time]], WhereStrat.range
+    season: t.Annotated[list[MyInt] | None, WhereStrat.match]
+    league: t.Annotated[list[MyStr] | None, WhereStrat.match]
+    phase: t.Annotated[list[MyStr] | None, WhereStrat.match]
+    date: t.Annotated[tuple[datetime.date, datetime.date] | None, WhereStrat.range]
+    game_i: t.Annotated[list[MyInt] | None, WhereStrat.match]
+    game_length: t.Annotated[
+        tuple[datetime.time, datetime.time] | None, WhereStrat.range
     ]
-    win: Annotated[Optional[list[bool]], WhereStrat.match]
-    kda_ratio: Annotated[Optional[tuple[float, float]], WhereStrat.range]
-    kills: Annotated[Optional[tuple[int, int]], WhereStrat.range]
-    deaths: Annotated[Optional[tuple[int, int]], WhereStrat.range]
-    assists: Annotated[Optional[tuple[int, int]], WhereStrat.range]
-    role: Annotated[Optional[list[MyStr]], WhereStrat.match]
-    player1: Annotated[Optional[list[MyStr]], WhereStrat.match]
-    god1: Annotated[Optional[list[MyStr]], WhereStrat.match]
-    team1: Annotated[Optional[list[MyStr]], WhereStrat.match]
-    player2: Annotated[Optional[list[MyStr]], WhereStrat.match]
-    god2: Annotated[Optional[list[MyStr]], WhereStrat.match]
-    team2: Annotated[Optional[list[MyStr]], WhereStrat.match]
-    relic: Optional[list[MyStr]]
-    item: Optional[list[MyStr]]
+    win: t.Annotated[list[bool] | None, WhereStrat.match]
+    kda_ratio: t.Annotated[tuple[float, float] | None, WhereStrat.range]
+    kills: t.Annotated[tuple[int, int] | None, WhereStrat.range]
+    deaths: t.Annotated[tuple[int, int] | None, WhereStrat.range]
+    assists: t.Annotated[tuple[int, int] | None, WhereStrat.range]
+    role: t.Annotated[list[MyStr] | None, WhereStrat.match]
+    player1: t.Annotated[list[MyStr] | None, WhereStrat.match]
+    god1: t.Annotated[list[MyStr] | None, WhereStrat.match]
+    team1: t.Annotated[list[MyStr] | None, WhereStrat.match]
+    player2: t.Annotated[list[MyStr] | None, WhereStrat.match]
+    god2: t.Annotated[list[MyStr] | None, WhereStrat.match]
+    team2: t.Annotated[list[MyStr] | None, WhereStrat.match]
+    relic: list[MyStr] | None
+    item: list[MyStr] | None
 
 
 @app.get("/api/builds")
 @log_errors
 @cache_with_last_modified
 @jsonify
-def get_builds() -> Any:
+def get_builds_endpoint() -> t.Any:
     form_dict = bottle.request.query.decode()
     dict_with_lists = {key: form_dict.getall(key) for key in form_dict.keys()}
 
@@ -259,7 +269,7 @@ def get_builds() -> Any:
         bottle.response.status = 400
         return str(e)
 
-    return be.get_builds.get_builds(builds_query)
+    return get_builds(builds_query)
 
 
 # --------------------------------------------------------------------------------------
@@ -275,12 +285,12 @@ class PhasesRequest(pd.BaseModel):
 @log_errors
 @validate_request_body(PhasesRequest)
 @jsonify
-def post_phases(phases: list[MyStr]) -> list[list[int]]:
-    return [be.simple_queries.get_match_ids(phase) for phase in phases]
+def post_phases_endpoint(phases: list[MyStr]) -> list[list[int]]:
+    return [get_match_ids(phase) for phase in phases]
 
 
 MyItem = tuple[MyStr, MyStr]
-if TYPE_CHECKING:
+if t.TYPE_CHECKING:
     MyRelics = list[MyItem]
     MyItems = list[MyItem]
 else:
@@ -289,10 +299,10 @@ else:
 
 
 class PostBuildRequest(pd.BaseModel):
-    season: Optional[MyStr]
+    season: MyStr | None
     league: MyStr
     phase: MyStr
-    year: Optional[MyInt]
+    year: MyInt | None
     month: MyInt
     day: MyInt
     match_id: MyInt
@@ -325,23 +335,21 @@ class PostBuildsRequest(pd.BaseModel):
 @log_errors
 @verify_integrity
 @validate_request_body(PostBuildsRequest)
-def post_builds(request: PostBuildsRequest) -> Optional[str]:
+def post_builds_endpoint(request: PostBuildsRequest) -> str | None:
     if not request.builds:
         bottle.response.status = 204
     else:
         try:
             bottle.response.status = 201
-            be.pb.post_builds.post_builds(request.builds)
+            post_builds(request.builds)
         except MyValidationError as e:
             bottle.response.status = 400
             return str(e)
 
     now = what_time_is_it()
-    be.simple_queries.update_last_checked(
-        format_last_checked(now), request.last_checked_tooltip
-    )
+    update_last_checked(format_last_checked(now), request.last_checked_tooltip)
     if request.builds:
-        be.simple_queries.update_last_modified(now)
+        update_last_modified(now)
     return None
 
 
