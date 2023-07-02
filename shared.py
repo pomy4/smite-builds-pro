@@ -3,22 +3,6 @@ import logging
 import time
 from pathlib import Path
 
-import dotenv
-
-HMAC_KEY_HEX = "HMAC_KEY_HEX"
-BACKEND_URL = "BACKEND_URL"
-USE_WATCHDOG = "USE_WATCHDOG"
-SMITE_DEV_ID = "SMITE_DEV_ID"
-SMITE_AUTH_KEY = "SMITE_AUTH_KEY"
-NTFY_TOPIC = "NTFY_TOPIC"
-MATCHES_WITH_NO_STATS = "MATCHES_WITH_NO_STATS"
-
-
-def load_default_dot_env() -> None:
-    default_dot_env_path = Path(__file__).parent / ".env"
-    dotenv.load_dotenv(default_dot_env_path)
-
-
 LOG_FORMAT = "%(asctime)s|%(levelname)s|%(message)s"
 AUTO_FIXES_LOG_FORMAT = "%(asctime)s|%(levelname)s|%(game)s|%(message)s"
 

@@ -5,7 +5,6 @@ import hmac
 import json
 import logging
 import math
-import os
 import pathlib
 import subprocess
 import time
@@ -22,6 +21,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 
 import shared
+from config import get_updater_config, load_updater_config
 from shared import League
 
 logger = logging.getLogger(__name__)
@@ -36,12 +36,11 @@ class NoStats(Exception):
 
 
 def main() -> None:
+    load_updater_config()
     setup_logging()
 
     try:
-        shared.load_default_dot_env()
-        check_required_env_vars()
-        if os.getenv(shared.USE_WATCHDOG):
+        if get_updater_config().use_watchdog:
             subprocess.run(["pkill", "watchdog.sh"])
             subprocess.Popen(["./updater/watchdog.sh"])
 
@@ -66,7 +65,7 @@ def main() -> None:
 
 
 # --------------------------------------------------------------------------------------
-# LOGGING & ENV VARS
+# LOGGING
 # --------------------------------------------------------------------------------------
 
 
@@ -86,12 +85,6 @@ def setup_logging() -> None:
     logger.setLevel(logging.INFO)
 
 
-def check_required_env_vars() -> None:
-    for env_var in [shared.HMAC_KEY_HEX, shared.BACKEND_URL]:
-        if os.getenv(env_var) is None:
-            raise RuntimeError(f"Unset env var: {env_var}")
-
-
 # --------------------------------------------------------------------------------------
 # BACKEND COMMUNICATION
 # --------------------------------------------------------------------------------------
@@ -99,7 +92,7 @@ def check_required_env_vars() -> None:
 
 def get_all_match_ids(phases: list[str]) -> list[list[int]]:
     all_match_ids_resp = requests.post(
-        f"{os.getenv(shared.BACKEND_URL)}/api/phases", json=phases
+        f"{get_updater_config().backend_url}/api/phases", json=phases
     )
     better_raise_for_status(all_match_ids_resp)
     all_match_ids = all_match_ids_resp.json()
@@ -109,13 +102,13 @@ def get_all_match_ids(phases: list[str]) -> list[list[int]]:
 
 
 def post_builds(builds: list[dict], last_checked_tooltip: str) -> None:
-    hmac_key = bytearray.fromhex(os.environ[shared.HMAC_KEY_HEX])
+    hmac_key = bytearray.fromhex(get_updater_config().hmac_key_hex)
     request_dict = {"builds": builds, "last_checked_tooltip": last_checked_tooltip}
     request_bytes = json.dumps(request_dict).encode("utf-8")
     hmac_obj = hmac.new(hmac_key, request_bytes, hashlib.sha256)
     headers = {"X-HMAC-DIGEST-HEX": hmac_obj.hexdigest()}
     resp = requests.post(
-        f"{os.getenv(shared.BACKEND_URL)}/api/builds",
+        f"{get_updater_config().backend_url}/api/builds",
         data=request_bytes,
         headers=headers,
     )
@@ -229,8 +222,7 @@ def scrape_league(driver: WebDriver, league: League) -> list[Match]:
 
 
 def scrape_matches(driver: WebDriver, matches: list[Match]) -> list[dict]:
-    match_ids_with_no_stats_str = os.getenv(shared.MATCHES_WITH_NO_STATS, "")
-    match_ids_with_no_stats = set(match_ids_with_no_stats_str.split(","))
+    match_ids_with_no_stats = get_updater_config().matches_with_no_stats
 
     builds: list[dict] = []
     new_matches = [match for match in matches if not match.is_old]

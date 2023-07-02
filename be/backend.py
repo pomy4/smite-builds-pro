@@ -4,7 +4,6 @@ import functools
 import hashlib
 import hmac
 import json
-import os
 from typing import TYPE_CHECKING, Annotated, Any, Callable, Optional, Type
 
 import bottle
@@ -17,10 +16,10 @@ import be.loggers
 import be.models
 import be.pb.post_builds
 import be.simple_queries
-import shared
 from be.exceptions import MyValidationError
 from be.get_builds import WhereStrat
 from be.loggers import cache_logger, error_logger
+from config import get_webapi_config
 
 # --------------------------------------------------------------------------------------
 # APP & LOGGING & HOOKS & DECORATORS
@@ -79,10 +78,7 @@ def log_errors(func: Callable) -> Callable:
 def verify_integrity(func: Callable) -> Callable:
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        if not (key_hex := os.getenv(shared.HMAC_KEY_HEX)):
-            bottle.response.status = 501
-            return "HMAC secret key isn't set on the server"
-        key = bytearray.fromhex(key_hex)
+        key = bytearray.fromhex(get_webapi_config().hmac_key_hex)
 
         header_name = "X-HMAC-DIGEST-HEX"
         if not (digest_header := bottle.request.get_header(header_name)):

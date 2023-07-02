@@ -9,11 +9,11 @@ import os
 import time
 
 import be.backend
-import shared
+from config import load_webapi_config
 
 os.environ["TZ"] = "Europe/Prague"
 time.tzset()
 
-shared.load_default_dot_env()
+load_webapi_config()
 be.backend.setup_logging()
 application = be.backend.app

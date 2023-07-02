@@ -3,7 +3,7 @@ import unittest.mock
 from unittest.mock import Mock
 
 import be.pb.fix_gods
-import shared
+from config import ConfigError, load_webapi_config
 
 
 class TestFixGods(unittest.TestCase):
@@ -52,9 +52,13 @@ class TestHirezApi(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        shared.load_default_dot_env()
-        if not be.pb.fix_gods.are_hirez_api_credentials_set():
-            raise unittest.SkipTest("Hi-Rez API credentials are not set")
+        try:
+            load_webapi_config()
+        except ConfigError as e:
+            if "SMITE" in str(e):
+                raise unittest.SkipTest("Hi-Rez API credentials are not set")
+            else:
+                raise
 
     @classmethod
     def tearDownClass(cls) -> None:

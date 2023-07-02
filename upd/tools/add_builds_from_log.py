@@ -1,8 +1,8 @@
 import json
 import sys
 
-import shared
 import upd.updater
+from config import load_updater_config
 
 
 def main() -> None:
@@ -10,7 +10,7 @@ def main() -> None:
         print("Missing log filepath argument", file=sys.stderr)
         sys.exit(1)
 
-    shared.load_default_dot_env()
+    load_updater_config()
 
     builds = []
     with open(sys.argv[1], "r", encoding="utf-8") as f:
@@ -21,7 +21,7 @@ def main() -> None:
             build_json = json.loads(line_split[3])
             builds.append(build_json)
 
-    upd.updater.post_builds(builds)
+    upd.updater.post_builds(builds, "FROM LOG")
 
 
 if __name__ == "__main__":

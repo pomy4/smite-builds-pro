@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 import sys
 import time
 from pathlib import Path
@@ -9,6 +8,7 @@ import requests
 
 import shared
 import upd.updater
+from config import get_alerter_config, load_alerter_config
 
 logger = logging.getLogger(__name__)
 
@@ -18,14 +18,10 @@ Alerts = list[list[str]]
 
 
 def main() -> None:
-    shared.load_default_dot_env()
+    load_alerter_config()
     setup_logging()
 
     logger.info("Starting alerter...")
-
-    if shared.NTFY_TOPIC not in os.environ:
-        logger.error(f"{shared.NTFY_TOPIC} not set, exiting...")
-        sys.exit(1)
 
     lines_read_path = Path("upd") / "alerter_lines_read.json"
     old_path_to_lines_read: dict[str, int]
@@ -130,7 +126,7 @@ def send_alerts(path_to_alerts: dict[str, Alerts]) -> bool:
     if len(data) > max_size:
         logger.info(f"Truncating message from {len(data)} to {max_size}")
         data = data[: max_size - 4] + "...\n"
-    url = f"https://ntfy.sh/{os.getenv(shared.NTFY_TOPIC)}"
+    url = f"https://ntfy.sh/{get_alerter_config().ntfy_topic}"
 
     max_tries = 3
     for try_i in range(max_tries):

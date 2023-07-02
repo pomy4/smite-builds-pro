@@ -1,9 +1,7 @@
-import os
-
 import charybdis
 
-import shared
 from be.loggers import auto_fixes_logger
+from config import get_webapi_config
 
 BuildDict = dict
 
@@ -47,8 +45,8 @@ def contains_digits(s: str) -> bool:
 def get_newest_god() -> str:
     api = charybdis.Api(
         base_url=charybdis.Api.SMITE_PC_URL,
-        dev_id=os.getenv(shared.SMITE_DEV_ID),
-        auth_key=os.getenv(shared.SMITE_AUTH_KEY),
+        dev_id=get_webapi_config().smite_dev_id,
+        auth_key=get_webapi_config().smite_auth_key,
     )
     gods = api.call_method("getgods", "1")
     newest_god_candidates = [god["Name"] for god in gods if god["latestGod"] == "y"]
@@ -57,10 +55,3 @@ def get_newest_god() -> str:
             f"Failed to ascertain which god is newest: {newest_god_candidates}"
         )
     return newest_god_candidates[0]
-
-
-def are_hirez_api_credentials_set() -> bool:
-    return (
-        os.getenv(shared.SMITE_DEV_ID) is not None
-        and os.getenv(shared.SMITE_AUTH_KEY) is not None
-    )

@@ -3,9 +3,9 @@ import sys
 import be.backend
 import be.tools.create_db
 import be.tools.migrate_db
-import shared
+from config import load_webapi_config
 
-shared.load_default_dot_env()
+load_webapi_config()
 be.tools.create_db.create_db()
 be.tools.migrate_db.migrate_db()
 be.backend.setup_logging()
