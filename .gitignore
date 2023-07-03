@@ -4,6 +4,7 @@ __pycache__/
 .idea/
 .vscode/
 .mypy_cache/
+.pytest_cache/
 
 # Project specific.
 .env

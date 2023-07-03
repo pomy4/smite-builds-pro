@@ -1,22 +1,30 @@
 import logging
-import unittest
+
+import pytest
 
 from backend.alerter.alerter import logger, parse_lines
 
+info = ["|INFO|1", "2"]
+warning = ["|WARNING|1", "2"]
 
-class TestAlerter(unittest.TestCase):
-    def test_parse_lines(self) -> None:
-        info = ["|INFO|1", "2"]
-        self.assertEqual(parse_lines(info), [])
-
-        warning = ["|WARNING|1", "2"]
-        self.assertEqual(parse_lines(warning), [warning])
-
-        inp = ["0"] + info + warning + warning + info + warning
-        out = [warning, warning, warning]
-        with self.assertLogs(logger, logging.WARNING):
-            self.assertEqual(parse_lines(inp), out)
+parse_lines_params = [
+    (info, [], False),
+    (warning, [warning], False),
+    (
+        ["0"] + info + warning + warning + info + warning,
+        [warning, warning, warning],
+        True,
+    ),
+]
 
 
-if __name__ == "__main__":
-    unittest.main()
+@pytest.mark.parametrize("arg,result,logs", parse_lines_params)
+def test_parse_lines(
+    arg: list[str],
+    result: list[list[str]],
+    logs: bool,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level(logging.WARNING, logger=logger.name)
+    assert parse_lines(arg) == result
+    assert bool(caplog.records) == logs

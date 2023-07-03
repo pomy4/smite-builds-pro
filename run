@@ -16,7 +16,8 @@ function alerter {
 }
 
 function tests {
-    python -m unittest discover -s backend
+    # Without 'python -m' fails, probably due to no __init__.py files.
+    python -m pytest backend
 }
 
 function options {

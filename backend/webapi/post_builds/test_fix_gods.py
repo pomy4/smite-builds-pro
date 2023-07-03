@@ -1,78 +1,66 @@
 import copy
-import unittest
+import dataclasses
+import typing as t
 from unittest.mock import Mock, patch
 
-from backend.config import ConfigError, load_webapi_config
-from backend.webapi.post_builds.fix_gods import (
-    contains_digits,
-    fix_gods,
-    get_newest_god,
-)
+import pytest
+
+from backend.webapi.post_builds.fix_gods import contains_digits, fix_gods
+
+contains_digits_params = [
+    ("", False),
+    ("abc", False),
+    ("a2c", True),
+    ("123", True),
+]
 
 
-class TestFixGods(unittest.TestCase):
-    BUILDS = [
-        {
-            "god1": "god-one",
-            "god2": "god-two",
-        },
-        {
-            "god1": "god-two",
-            "god2": "god-one",
-        },
-        {
-            "god1": "god-three",
-            "god2": "god-four",
-        },
-    ]
-
-    def test_contains_digits(self) -> None:
-        self.assertFalse(contains_digits(""))
-        self.assertFalse(contains_digits("abc"))
-        self.assertTrue(contains_digits("a2c"))
-        self.assertTrue(contains_digits("123"))
-
-    @patch("backend.webapi.post_builds.fix_gods.get_newest_god")
-    def test_happy(self, mock: Mock) -> None:
-        mock.side_effect = RuntimeError("Shouldn't be called")
-        builds = copy.deepcopy(self.BUILDS)
-        fix_gods(builds)
-        self.assertEqual(builds, self.BUILDS)
-
-    @patch("backend.webapi.post_builds.fix_gods.get_newest_god")
-    def test_fixable(self, mock: Mock) -> None:
-        mock.side_effect = ["god-one"]
-        builds = copy.deepcopy(self.BUILDS)
-        builds[0]["god1"] = "god1"
-        builds[1]["god2"] = "god1"
-        fix_gods(builds)
-        self.assertEqual(builds, self.BUILDS)
+@pytest.mark.parametrize("arg,result", contains_digits_params)
+def test_contains_digits(arg: str, result: bool) -> None:
+    assert contains_digits(arg) == result
 
 
-class TestHirezApi(unittest.TestCase):
-    """This should run last, as it is slow."""
-
-    newest_god = None
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        try:
-            load_webapi_config()
-        except ConfigError as e:
-            if "SMITE" in str(e):
-                raise unittest.SkipTest("Hi-Rez API credentials are not set")
-            else:
-                raise
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        if cls.newest_god:
-            print(f"\n(newest god is {cls.newest_god})", end="")
-
-    @classmethod
-    def test_newest_god(cls) -> None:
-        cls.newest_god = get_newest_god()
+builds_orig = [
+    {
+        "god1": "god-one",
+        "god2": "god-two",
+    },
+    {
+        "god1": "god-two",
+        "god2": "god-one",
+    },
+    {
+        "god1": "god-three",
+        "god2": "god-four",
+    },
+]
 
 
-if __name__ == "__main__":
-    unittest.main()
+@dataclasses.dataclass
+class FixGodsParam:
+    builds: list[dict]
+    side_effect: list[str] | Exception
+
+
+def copy_builds() -> list[dict]:
+    return copy.deepcopy(builds_orig)
+
+
+def fix_gods_params_gen() -> t.Iterator[FixGodsParam]:
+    # Nothing wrong.
+    builds = copy_builds()
+    yield FixGodsParam(builds, RuntimeError("Shouldn't be called"))
+
+    # Fixable.
+    builds = copy_builds()
+    builds[0]["god1"] = "god1"
+    builds[1]["god2"] = "god1"
+    yield FixGodsParam(builds, ["god-one"])
+
+
+@pytest.mark.parametrize("p", fix_gods_params_gen())
+@patch("backend.webapi.post_builds.fix_gods.get_newest_god")
+def test_fix_gods(mock: Mock, p: FixGodsParam) -> None:
+    mock.side_effect = p.side_effect
+    fix_gods(p.builds)
+    assert p.builds == builds_orig

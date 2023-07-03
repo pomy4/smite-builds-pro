@@ -41,17 +41,13 @@ class AlerterConfig(WebapiUpdaterAlerterConfig):
         self.ntfy_topic = get_required_env_var("NTFY_TOPIC")
 
 
-class ConfigError(Exception):
-    pass
-
-
 def get_required_env_var(key: str) -> str:
     if key not in os.environ:
-        raise ConfigError(f"Environment variable is unset: {key}")
+        raise RuntimeError(f"Environment variable is unset: {key}")
 
     value = os.environ[key]
     if not value:
-        raise ConfigError(f"Environment variable is empty: {key}")
+        raise RuntimeError(f"Environment variable is empty: {key}")
 
     return value
 
@@ -91,29 +87,29 @@ def get_project_root_dir() -> Path:
 
 def get_webapi_config() -> WebapiConfig:
     if _config is None:
-        raise ConfigError("load_config was not called")
+        raise RuntimeError("load_config was not called")
 
     if not isinstance(_config, WebapiConfig):
-        raise ConfigError("Different load_config was called")
+        raise RuntimeError("Different load_config was called")
 
     return _config
 
 
 def get_updater_config() -> UpdaterConfig:
     if _config is None:
-        raise ConfigError("load_config was not called")
+        raise RuntimeError("load_config was not called")
 
     if not isinstance(_config, UpdaterConfig):
-        raise ConfigError("Different load_config was called")
+        raise RuntimeError("Different load_config was called")
 
     return _config
 
 
 def get_alerter_config() -> AlerterConfig:
     if _config is None:
-        raise ConfigError("load_config was not called")
+        raise RuntimeError("load_config was not called")
 
     if not isinstance(_config, AlerterConfig):
-        raise ConfigError("Different load_config was called")
+        raise RuntimeError("Different load_config was called")
 
     return _config
