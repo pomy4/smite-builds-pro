@@ -473,3 +473,7 @@ def get_match_count(league: League, matches: list[Match]) -> MatchCount:
         else:
             match_count.new += 1
     return match_count
+
+
+if __name__ == "__main__":
+    main()

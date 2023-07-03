@@ -145,3 +145,7 @@ def send_alerts(path_to_alerts: dict[str, Alerts]) -> bool:
             )
             time.sleep(3)
     return False
+
+
+if __name__ == "__main__":
+    main()
