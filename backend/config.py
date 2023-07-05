@@ -4,11 +4,11 @@ from pathlib import Path
 import dotenv
 
 
-class WebapiUpdaterAlerterConfig:
+class WebapiUpdaterLogManagerConfig:
     pass
 
 
-class WebapiUpdaterConfig(WebapiUpdaterAlerterConfig):
+class WebapiUpdaterConfig(WebapiUpdaterLogManagerConfig):
     def __init__(self) -> None:
         super().__init__()
 
@@ -34,7 +34,7 @@ class UpdaterConfig(WebapiUpdaterConfig):
         )
 
 
-class AlerterConfig(WebapiUpdaterAlerterConfig):
+class LogManagerConfig(WebapiUpdaterLogManagerConfig):
     def __init__(self) -> None:
         super().__init__()
 
@@ -52,7 +52,7 @@ def get_required_env_var(key: str) -> str:
     return value
 
 
-_config: None | WebapiUpdaterAlerterConfig = None
+_config: None | WebapiUpdaterLogManagerConfig = None
 
 
 def load_webapi_config() -> None:
@@ -67,10 +67,10 @@ def load_updater_config() -> None:
     _config = UpdaterConfig()
 
 
-def load_alerter_config() -> None:
+def load_log_manager_config() -> None:
     global _config
     load_dotenv()
-    _config = AlerterConfig()
+    _config = LogManagerConfig()
 
 
 def load_dotenv() -> None:
@@ -105,11 +105,11 @@ def get_updater_config() -> UpdaterConfig:
     return _config
 
 
-def get_alerter_config() -> AlerterConfig:
+def get_log_manager_config() -> LogManagerConfig:
     if _config is None:
         raise RuntimeError("load_config was not called")
 
-    if not isinstance(_config, AlerterConfig):
+    if not isinstance(_config, LogManagerConfig):
         raise RuntimeError("Different load_config was called")
 
     return _config

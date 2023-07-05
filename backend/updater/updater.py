@@ -1,5 +1,4 @@
 import dataclasses
-import datetime
 import hashlib
 import hmac
 import json
@@ -19,13 +18,12 @@ from selenium.webdriver.remote.webelement import WebElement
 from backend.config import get_updater_config, load_updater_config
 from backend.shared import (
     IMG_URL,
-    LOG_FORMAT,
     SCC,
     SPL,
     League,
     delay,
-    get_file_handler,
     raise_for_status_with_detail,
+    setup_logging,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,7 +42,7 @@ class NoStats(Exception):
 
 def main() -> None:
     load_updater_config()
-    setup_logging()
+    setup_logging("updater", level=logging.DEBUG, console_level=logging.INFO)
 
     try:
         if get_updater_config().use_watchdog:
@@ -52,37 +50,25 @@ def main() -> None:
             subprocess.Popen(["./updater/watchdog.sh"])
 
         options = make_webdriver_options()
-        print("Starting browser...")
+        logger.info("Starting browser")
         with WebDriver(options=options) as driver:
             driver.implicitly_wait(IMPLICIT_WAIT)
-            print("Scraping SPL schedule...")
+            logger.info("Scraping SPL schedule")
             matches = scrape_league(driver, SPL)
-            print("Scraping SCC schedule...")
+            logger.info("Scraping SCC schedule")
             matches += scrape_league(driver, SCC)
-            print("Scraping matches...")
-            builds = scrape_matches(driver, matches)
-            print("Posting builds...")
+            logger.info(f"All found matches: {len(matches)}")
+            new_matches = [match for match in matches if not match.is_old]
+            logger.info(f"Scraping new matches: {len(new_matches)}")
+            builds = scrape_matches(driver, new_matches)
+            logger.info(f"Posting builds: {len(builds)}")
             last_checked_tooltip = format_last_checked_tooltip(matches)
             post_builds(builds, last_checked_tooltip)
-            print("All done!")
+            logger.info("All done")
 
-    except BaseException:
+    except Exception:
         logger.exception("Crash|")
         raise
-
-
-# --------------------------------------------------------------------------------------
-# LOGGING
-# --------------------------------------------------------------------------------------
-
-
-def setup_logging() -> None:
-    now = datetime.datetime.now().replace(microsecond=0)
-    now_str = now.isoformat(sep="_").replace(":", "-")
-    file_handler = get_file_handler(f"updater/{now_str}")
-    file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
-    logger.addHandler(file_handler)
-    logger.setLevel(logging.INFO)
 
 
 # --------------------------------------------------------------------------------------
@@ -203,7 +189,7 @@ def scrape_league(driver: WebDriver, league: League) -> list[Match]:
                 matches.append(match)
                 if match_id in match_ids_set:
                     match.is_old = True
-                    logger.info(f"Scraped previously|{match.to_json()}")
+                    logger.debug(f"Scraped previously|{match.to_json()}")
 
         delay(0.5, start)
 
@@ -214,9 +200,8 @@ def scrape_matches(driver: WebDriver, matches: list[Match]) -> list[dict]:
     match_ids_with_no_stats = get_updater_config().matches_with_no_stats
 
     builds: list[dict] = []
-    new_matches = [match for match in matches if not match.is_old]
-    for match in t.cast(t.Iterable[Match], tqdm.tqdm(new_matches)):
-        logger.info(f"Scraping|{match.to_json()}")
+    for match in t.cast(t.Iterable[Match], tqdm.tqdm(matches)):
+        logger.debug(f"Scraping|{match.to_json()}")
 
         if not check_url_still_same(
             match.league.match_url, match.url, match.last_slash_i
@@ -361,7 +346,7 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
                 else:
                     build["player2"] = "Missing data"
                     build["god2"] = "Missing data"
-                logger.info(f"Build scraped|{json.dumps(build)}")
+                logger.debug(f"Build scraped|{json.dumps(build)}")
 
         builds_all.extend(builds[0])
         builds_all.extend(builds[1])

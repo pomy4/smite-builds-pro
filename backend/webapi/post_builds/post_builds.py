@@ -8,8 +8,11 @@ import peewee as pw
 
 from backend.webapi.exceptions import MyValidationError
 from backend.webapi.get_builds import EVOLVED_PREFIX, GREATER_PREFIX, UPGRADE_SUFFIX
-from backend.webapi.loggers import auto_fixes_logger, log_curr_game
 from backend.webapi.models import Build, Item, db
+from backend.webapi.post_builds.auto_fixes_logger import (
+    auto_fixes_logger,
+    log_curr_game,
+)
 from backend.webapi.post_builds.fix_gods import fix_gods
 from backend.webapi.post_builds.fix_roles import fix_roles
 from backend.webapi.post_builds.images import (

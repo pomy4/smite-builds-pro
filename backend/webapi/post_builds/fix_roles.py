@@ -1,8 +1,11 @@
 import collections
 
 from backend.webapi.exceptions import MyValidationError
-from backend.webapi.loggers import auto_fixes_logger, log_curr_game
 from backend.webapi.models import Build
+from backend.webapi.post_builds.auto_fixes_logger import (
+    auto_fixes_logger,
+    log_curr_game,
+)
 
 BuildDict = dict
 

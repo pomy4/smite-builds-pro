@@ -4,6 +4,7 @@ import functools
 import hashlib
 import hmac
 import json
+import logging
 import typing as t
 
 import bottle
@@ -11,17 +12,12 @@ import pydantic as pd
 import pydantic.types as pdt
 
 from backend.config import get_webapi_config
+from backend.shared import setup_logging
 from backend.webapi.exceptions import MyValidationError
 from backend.webapi.get_builds import WhereStrat, get_builds
 from backend.webapi.get_options import get_options
-from backend.webapi.loggers import (
-    cache_logger,
-    error_logger,
-    setup_auto_fixes_logger,
-    setup_cache_logger,
-    setup_error_logger,
-)
 from backend.webapi.models import STR_MAX_LEN, db
+from backend.webapi.post_builds.auto_fixes_logger import setup_auto_fixes_logging
 from backend.webapi.post_builds.post_builds import post_builds
 from backend.webapi.simple_queries import (
     get_last_checked,
@@ -39,11 +35,15 @@ from backend.webapi.simple_queries import (
 app = bottle.Bottle()
 app.config["json.enable"] = False
 
+logger = logging.getLogger(__name__)
+ACCESS_LOG_NAME = "access"
+access_logger = logging.getLogger(ACCESS_LOG_NAME)
 
-def setup_logging() -> None:
-    setup_auto_fixes_logger()
-    setup_cache_logger()
-    setup_error_logger()
+
+def setup_webapi_logging() -> None:
+    setup_logging("webapi")
+    setup_logging(ACCESS_LOG_NAME, is_root=False)
+    setup_auto_fixes_logging()
 
 
 @app.hook("before_request")
@@ -54,6 +54,63 @@ def before() -> None:
 @app.hook("after_request")
 def after() -> None:
     db.close()
+    log_access()
+
+
+def log_access() -> None:
+    """
+    Logs accesess to the access log using the Apache Combined Log Format.
+
+    Bottle doesn't provide an easy way to log accesses. It does log accesses to stderr
+    using something in the standard library, but I think it does that only in the case
+    when the run method is used.
+
+    This means the cleanest solution would be to write/use a WSGI middleware, but using
+    the after_request hook should be less work, though it has a few disadvantages.
+
+    One of them is that bottle does some sort of unicode check on the path of the
+    request in the Bottle._handle() method, and if the request doesn't pass it, it will
+    not be even started, and thus it will not be logged here.
+
+    Some more issues are described in the comments of this method.
+
+    Another option would be to write a Bottle plugin, but the outcome would be almost
+    the same as the after_request hook, except 404 Not Found and 405 Invalid Method
+    responses would also not be logged, since these are checked in route.match(), which
+    is called before route.call() in Bottle._handle(), and plugins are basically
+    decorators around route.call().
+    """
+    req, resp = bottle.request, bottle.response
+
+    host = req.remote_addr
+
+    identity = user = "-"
+
+    now = datetime.datetime.now().astimezone()
+    now_str = now.strftime("%d/%b/%Y:%H:%M:%S %z")
+
+    method_and_url = f"{req.method} {req.url}"
+
+    # Unexpected exceptions are handled after this hook, but since we always set the
+    # content type to "application/json" in the happy path (except for in post_builds,
+    # but there we use 201/204 instead of 200), we can still get an accurate status code
+    # with this slight hack (unless the exception is thrown after the content type is
+    # set).
+    if resp.status_code == 200 and not resp.content_type:
+        status_code = 500
+    else:
+        status_code = resp.status_code
+
+    # Bottle computes content-length after this hook, so we have no easy way to get it.
+    size = "-"
+
+    referer = req.headers.get("Referer", "-")
+
+    user_agent = req.headers.get("User-Agent", "-")
+
+    msg1 = f'{host} {identity} {user} [{now_str}] "{method_and_url}"'
+    msg2 = f' {status_code} {size} "{referer}" "{user_agent}"'
+    access_logger.info(msg1 + msg2)
 
 
 @app.error(500)
@@ -69,13 +126,13 @@ def log_errors(func: t.Callable) -> t.Callable:
         try:
             ret = func(*args, **kwargs)
             if bottle.response.status_code >= 400:
-                error_logger.warning(ret)
+                logger.warning(ret)
                 # All expected errors return plain strings,
                 # so this decorator is also used to fix the Content-Type.
                 bottle.response.content_type = "text/plain"
             return ret
         except Exception:
-            error_logger.exception("Internal Server Error")
+            logger.exception("Internal Server Error")
             # And also to remove caching from 500 responses
             # (not sure if they can even be cached, but just to make sure).
             if "Last-Modified" in bottle.response.headers:
@@ -156,11 +213,11 @@ def is_cached(last_modified: datetime.datetime, if_modified_since_s: str) -> boo
     try:
         if_modified_since = email.utils.parsedate_to_datetime(if_modified_since_s)
     except ValueError:
-        cache_logger.info(f"IfModifiedSince is invalid: {if_modified_since_s}")
+        logger.info(f"IfModifiedSince is invalid: {if_modified_since_s}")
         return False
 
     if if_modified_since.tzinfo is None:
-        cache_logger.info(f"IfModifiedSince with -0000 tz: {if_modified_since_s}")
+        logger.info(f"IfModifiedSince with -0000 tz: {if_modified_since_s}")
         if_modified_since = if_modified_since.replace(tzinfo=datetime.timezone.utc)
 
     if last_modified > if_modified_since:
@@ -168,7 +225,7 @@ def is_cached(last_modified: datetime.datetime, if_modified_since_s: str) -> boo
     elif last_modified == if_modified_since:
         return True
 
-    cache_logger.info(
+    logger.info(
         f"IfModifiedSince from the future: {if_modified_since_s} > "
         + f"LastModified: {repr(last_modified)}"
     )

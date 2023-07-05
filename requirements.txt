@@ -56,6 +56,8 @@ isort==5.11.4
     # via -r requirements.in
 mccabe==0.7.0
     # via flake8
+msgspec==0.16.0
+    # via -r requirements.in
 mypy==0.991
     # via -r requirements.in
 mypy-extensions==0.4.3

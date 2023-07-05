@@ -9,11 +9,12 @@ import os
 import time
 
 from backend.config import load_webapi_config
-from backend.webapi.webapi import app, setup_logging
+from backend.webapi.webapi import app, logger, setup_webapi_logging
 
 os.environ["TZ"] = "Europe/Prague"
 time.tzset()
 
 load_webapi_config()
-setup_logging()
+setup_webapi_logging()
+logger.info("Starting worker")
 application = app

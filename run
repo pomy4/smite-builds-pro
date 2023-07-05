@@ -11,8 +11,8 @@ function updater {
     python -m backend.updater.updater
 }
 
-function alerter {
-    python -m backend.alerter.alerter
+function log_manager {
+    python -m backend.log_manager.log_manager
 }
 
 function tests {

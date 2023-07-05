@@ -2,7 +2,7 @@ import logging
 import pprint
 import sys
 
-from backend.shared import LOG_FORMAT, SCC, SPL
+from backend.shared import ROOT_LOG_FORMAT, SCC, SPL
 from backend.updater.updater import IMPLICIT_WAIT, Match, WebDriver, scrape_match
 
 
@@ -23,8 +23,8 @@ def main() -> None:
 
     logging.basicConfig(
         filename=f"{match_id}.log",
-        level=logging.INFO,
-        format=LOG_FORMAT,
+        level=logging.DEBUG,
+        format=ROOT_LOG_FORMAT,
     )
 
     with WebDriver() as driver:

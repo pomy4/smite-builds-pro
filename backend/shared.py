@@ -1,21 +1,74 @@
 import dataclasses
-import logging
+import logging.handlers
+import sys
 import time
+import typing as t
 
 import requests
 
 from backend.config import get_project_root_dir
 
 STORAGE_DIR = get_project_root_dir() / "storage"
+LOGS_DIR = STORAGE_DIR / "logs"
+LOGS_ARCHIVE_DIR = STORAGE_DIR / "logs_archive"
 
-LOG_FORMAT = "%(asctime)s|%(levelname)s|%(message)s"
-AUTO_FIXES_LOG_FORMAT = "%(asctime)s|%(levelname)s|%(game)s|%(message)s"
+# The delimiter being | and the levelname being in the second place
+# is depended upon by the log manager when looking for warnings in the log files.
+ROOT_LOG_FORMAT = "%(asctime)s|%(levelname)s|%(name)s|%(message)s"
+SPECIFIC_LOG_FORMAT = "%(asctime)s|%(levelname)s|%(message)s"
+
+
+def setup_logging(
+    name: str,
+    is_root: bool = True,
+    format_maybe: str | None = None,
+    filter_: logging.Filter | t.Callable[[logging.LogRecord], bool] | None = None,
+    level: int = logging.INFO,
+    console_level: int | None = None,
+) -> None:
+    if format_maybe is not None:
+        format_ = format_maybe
+    elif is_root:
+        format_ = ROOT_LOG_FORMAT
+    else:
+        format_ = SPECIFIC_LOG_FORMAT
+
+    stream_handler = logging.StreamHandler(stream=sys.stdout)
+    file_handler = get_file_handler(name)
+
+    stream_handler.setFormatter(logging.Formatter(format_))
+    file_handler.setFormatter(logging.Formatter(format_))
+
+    if filter_ is not None:
+        stream_handler.addFilter(filter_)
+        file_handler.addFilter(filter_)
+
+    if console_level is not None:
+        stream_handler.setLevel(console_level)
+
+    logger_name = "" if is_root else name
+    logger = logging.getLogger(logger_name)
+
+    logger.addHandler(stream_handler)
+    logger.addHandler(file_handler)
+
+    if is_root:
+        app_name = __name__.split(".")[0]
+
+        app_logger = logging.getLogger(app_name)
+        main_logger = logging.getLogger("__main__")
+
+        app_logger.setLevel(level)
+        main_logger.setLevel(level)
+    else:
+        logger.setLevel(level)
+        logger.propagate = False
 
 
 def get_file_handler(name: str) -> logging.Handler:
-    path = STORAGE_DIR / "logs" / f"{name}.log"
-    return logging.FileHandler(
-        path, mode="a", encoding="utf8", errors="backslashreplace"
+    path = LOGS_DIR / f"{name}.log"
+    return logging.handlers.WatchedFileHandler(
+        path, mode="a", encoding="utf8", delay=True, errors="backslashreplace"
     )
 
 

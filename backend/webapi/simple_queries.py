@@ -1,6 +1,6 @@
 import datetime
+import logging
 
-from backend.webapi.loggers import cache_logger
 from backend.webapi.models import (
     Build,
     DbVersion,
@@ -9,6 +9,8 @@ from backend.webapi.models import (
     Version,
     db,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def update_version(new_data: DbVersion) -> None:
@@ -23,7 +25,7 @@ def get_last_modified() -> datetime.datetime | None:
         if last_modified.tzinfo is not None:
             # This should never happen, but if it does, we log and return None
             # instead of throwing, so that user's request still finishes.
-            cache_logger.warning(
+            logger.warning(
                 f"Last modified returned from db as aware: {repr(last_modified)}"
             )
             return None
@@ -34,12 +36,12 @@ def get_last_modified() -> datetime.datetime | None:
     except LastModified.DoesNotExist:
         # This should also not happen,
         # since LastModified is inserted in create_db.
-        cache_logger.warning("Last modified does not exist")
+        logger.warning("Last modified does not exist")
         return None
 
 
 def update_last_modified(new_data: datetime.datetime) -> None:
-    cache_logger.info(f"Last modified updated: {new_data.isoformat()}")
+    logger.info(f"Last modified updated: {new_data.isoformat()}")
     # This function is only used with output from what_time_is_it(),
     # which returns aware datetime in UTC. Make sure this assumption holds:
     assert new_data.tzinfo == datetime.timezone.utc

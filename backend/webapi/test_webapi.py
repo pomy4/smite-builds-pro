@@ -3,7 +3,6 @@ import logging
 
 import pytest
 
-from backend.webapi.loggers import cache_logger
 from backend.webapi.webapi import format_rfc, is_cached
 
 last_modified = datetime.datetime(2012, 12, 12, tzinfo=datetime.timezone.utc)
@@ -21,6 +20,6 @@ is_cached_params = [
 def test_is_cached(
     arg: str, result: bool, logs: bool, caplog: pytest.LogCaptureFixture
 ) -> None:
-    caplog.set_level(logging.INFO, logger=cache_logger.name)
+    caplog.set_level(logging.INFO)
     assert is_cached(last_modified, arg) == result
     assert bool(caplog.records) == logs

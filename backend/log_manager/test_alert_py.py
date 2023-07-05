@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from backend.alerter.alerter import logger, parse_lines
+from backend.log_manager.alert import logger, parse_lines
 
 info = ["|INFO|1", "2"]
 warning = ["|WARNING|1", "2"]
