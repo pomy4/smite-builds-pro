@@ -28,7 +28,6 @@ class UpdaterConfig(WebapiUpdaterConfig):
         super().__init__()
 
         self.backend_url = get_required_env_var("BACKEND_URL")
-        self.use_watchdog = os.environ.get("USE_WATCHDOG", "") == "1"
         self.matches_with_no_stats = set(
             os.environ.get("MATCHES_WITH_NO_STATS", "").split(",")
         )

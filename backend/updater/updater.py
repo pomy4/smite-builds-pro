@@ -4,7 +4,6 @@ import hmac
 import json
 import logging
 import math
-import subprocess
 import time
 import typing as t
 
@@ -45,10 +44,6 @@ def main() -> None:
     setup_logging("updater", level=logging.DEBUG, console_level=logging.INFO)
 
     try:
-        if get_updater_config().use_watchdog:
-            subprocess.run(["pkill", "watchdog.sh"])
-            subprocess.Popen(["./updater/watchdog.sh"])
-
         options = make_webdriver_options()
         logger.info("Starting browser")
         with WebDriver(options=options) as driver:
