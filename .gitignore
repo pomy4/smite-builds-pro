@@ -4,16 +4,16 @@ __pycache__/
 .idea/
 .vscode/
 .mypy_cache/
+.pytest_cache/
 
 # Project specific.
 .env
-be/**/*.db
-be/**/*.jpg
-be/**/*.log
-be/diffs/
-be/tools/fix_hirez.py
-fe/.parcel-cache
-fe/dist/
-fe/node_modules/
-upd/**/*.log
-upd/**/*.json
+/storage/**
+!/storage/**/
+!/storage/**/.gitkeep
+/backend/webapi/tools/fix_hirez.py
+/backend/updater/tools/**/*.log
+/backend/updater/tools/**/*.json
+/frontend/.parcel-cache
+/frontend/dist/
+/frontend/node_modules/

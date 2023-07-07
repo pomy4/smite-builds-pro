@@ -15,6 +15,10 @@ selenium
 requests
 tqdm
 
+# Log manager
+requests
+msgspec
+
 # Development
 black
 isort
@@ -23,3 +27,4 @@ mypy
 types-pillow
 types-requests
 types-tqdm
+pytest

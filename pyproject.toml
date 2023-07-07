@@ -2,10 +2,12 @@
 profile = "black"
 
 [tool.mypy]
-# So that there doesn't have to be __init__.py in the be/ and upd/ folders.
+# __init__.py files are not needed.
 explicit_package_bases = true
+# Every function must have type hints.
 disallow_untyped_defs = true
 
+# Ignore libraries without type hints.
 [[tool.mypy.overrides]]
 module = [
     "bottle.*",
