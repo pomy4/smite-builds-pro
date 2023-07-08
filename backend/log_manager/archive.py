@@ -7,7 +7,7 @@ from pathlib import Path
 
 from backend.log_manager.info import LogManagerInfo, get_rotated_logs
 from backend.log_manager.rotate import get_date_rotated_from_path
-from backend.shared import LOGS_ARCHIVE_DIR
+from backend.shared import LOGS_ARCHIVE_DIR, STORAGE_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -63,11 +63,18 @@ def zip_and_delete(zip_path: Path, log_paths: list[Path]) -> None:
     if zip_path.exists():
         raise RuntimeError(f"Target already exists: {zip_path}")
 
+    tmp_zip_path = STORAGE_DIR / "tmp.zip"
+
     with zipfile.ZipFile(
-        zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6
+        tmp_zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6
     ) as zipf:
         for log_path in log_paths:
             zipf.write(log_path, arcname=log_path.name)
+
+    # The zips are downloaded using rsync --remove-source-files, so using create+rename
+    # instead of just create eliminates the chance, that an unfinished zip is downloaded
+    # and deleted.
+    tmp_zip_path.rename(zip_path)
 
     for log_path in log_paths:
         log_path.unlink()
