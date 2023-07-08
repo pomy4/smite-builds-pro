@@ -36,60 +36,60 @@
     <div class="item-row">
       <div class="my-column">
         <img
-          v-bind:src="data.relic1.src"
-          v-bind:alt="data.relic1.name"
-          v-bind:title="data.relic1.name"
+          v-bind:src="data.relics[0].src"
+          v-bind:alt="data.relics[0].name"
+          v-bind:title="data.relics[0].name"
         />
       </div>
       <div class="my-column">
         <img
-          v-bind:src="data.relic2.src"
-          v-bind:alt="data.relic2.name"
-          v-bind:title="data.relic2.name"
+          v-bind:src="data.relics[1].src"
+          v-bind:alt="data.relics[1].name"
+          v-bind:title="data.relics[1].name"
         />
       </div>
     </div>
     <div class="item-row">
       <div class="my-column">
         <img
-          v-bind:src="data.item1.src"
-          v-bind:alt="data.item1.name"
-          v-bind:title="data.item1.name"
+          v-bind:src="data.items[0].src"
+          v-bind:alt="data.items[0].name"
+          v-bind:title="data.items[0].name"
         />
       </div>
       <div class="my-column">
         <img
-          v-bind:src="data.item2.src"
-          v-bind:alt="data.item2.name"
-          v-bind:title="data.item2.name"
+          v-bind:src="data.items[1].src"
+          v-bind:alt="data.items[1].name"
+          v-bind:title="data.items[1].name"
         />
       </div>
       <div class="my-column">
         <img
-          v-bind:src="data.item3.src"
-          v-bind:alt="data.item3.name"
-          v-bind:title="data.item3.name"
+          v-bind:src="data.items[2].src"
+          v-bind:alt="data.items[1].name"
+          v-bind:title="data.items[1].name"
         />
       </div>
       <div class="my-column">
         <img
-          v-bind:src="data.item4.src"
-          v-bind:alt="data.item4.name"
-          v-bind:title="data.item4.name"
+          v-bind:src="data.items[3].src"
+          v-bind:alt="data.items[3].name"
+          v-bind:title="data.items[3].name"
         />
       </div>
       <div class="my-column">
         <img
-          v-bind:src="data.item5.src"
-          v-bind:alt="data.item5.name"
-          v-bind:title="data.item5.name"
+          v-bind:src="data.items[4].src"
+          v-bind:alt="data.items[4].name"
+          v-bind:title="data.items[4].name"
         />
       </div>
       <div class="my-column">
         <img
-          v-bind:src="data.item6.src"
-          v-bind:alt="data.item6.name"
-          v-bind:title="data.item6.name"
+          v-bind:src="data.items[5].src"
+          v-bind:alt="data.items[5].name"
+          v-bind:title="data.items[5].name"
         />
       </div>
     </div>

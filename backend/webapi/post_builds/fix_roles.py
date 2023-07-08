@@ -1,7 +1,9 @@
 import collections
 
+import sqlalchemy as sa
+
 from backend.webapi.exceptions import MyValidationError
-from backend.webapi.models import Build
+from backend.webapi.models import Build, db_session
 from backend.webapi.post_builds.auto_fixes_logger import (
     auto_fixes_logger,
     log_curr_game,
@@ -143,11 +145,12 @@ def fix_roles_in_single_team(
 
 
 def get_player_count_with_team(build: BuildDict) -> int:
-    return (
-        Build.select()
-        .where((Build.team1 == build["team1"]) & (Build.player1 == build["player1"]))
-        .count()
-    )
+    result = db_session.scalars(
+        sa.select(sa.func.count(Build.id)).where(
+            sa.and_(Build.team1 == build["team1"], Build.player1 == build["player1"])
+        )
+    ).one()
+    return result
 
 
 def fix_opp_fields(

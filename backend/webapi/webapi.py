@@ -17,7 +17,7 @@ from backend.shared import setup_logging
 from backend.webapi.exceptions import MyValidationError
 from backend.webapi.get_builds import WhereStrat, get_builds
 from backend.webapi.get_options import get_options
-from backend.webapi.models import STR_MAX_LEN, db
+from backend.webapi.models import STR_MAX_LEN, db_session
 from backend.webapi.post_builds.auto_fixes_logger import setup_auto_fixes_logging
 from backend.webapi.post_builds.post_builds import post_builds
 from backend.webapi.simple_queries import (
@@ -47,14 +47,15 @@ def setup_webapi_logging() -> None:
     setup_auto_fixes_logging()
 
 
-@app.hook("before_request")
-def before() -> None:
-    db.connect()
+# @app.hook("before_request")
+# def before() -> None:
+# Currently not needed.
 
 
 @app.hook("after_request")
 def after() -> None:
-    db.close()
+    # Also calls close, which also calls rollback.
+    db_session.remove()
     log_access()
 
 
@@ -418,6 +419,7 @@ def post_builds_endpoint(request: PostBuildsRequest) -> str | None:
     update_last_checked(format_last_checked(now), request.last_checked_tooltip)
     if request.builds:
         update_last_modified(now)
+    db_session.commit()
     return None
 
 

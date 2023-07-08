@@ -16,9 +16,9 @@ def main() -> None:
     with open(sys.argv[1], "r", encoding="utf-8") as f:
         for line in f.readlines():
             line_split = line.split("|")
-            if len(line_split) < 4 or line_split[2] != "Build scraped":
+            if len(line_split) < 5 or line_split[3] != "Build scraped":
                 continue
-            build_json = json.loads(line_split[3])
+            build_json = json.loads(line_split[4])
             builds.append(build_json)
 
     post_builds(builds, "FROM LOG")

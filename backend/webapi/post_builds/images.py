@@ -1,5 +1,6 @@
 import base64
 import io
+import logging
 import time
 import urllib.error
 import urllib.request
@@ -9,13 +10,18 @@ import PIL.Image
 from backend.shared import IMG_URL, STORAGE_DIR, delay
 from backend.webapi.models import Item
 
+logger = logging.getLogger(__name__)
+
 
 def get_image_or_none(image_name: str) -> bytes | None:
     start = time.time()
     try:
         ret = get_image(image_name)
+        logger.info(f"Download success: {image_name}")
     except urllib.error.URLError:
+        logger.warning(f"Download fail: {image_name}")
         ret = None
+    print(image_name)
     delay(0.25, start)
     return ret
 

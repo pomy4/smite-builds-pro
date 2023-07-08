@@ -1,12 +1,10 @@
 from backend.webapi.models import (
     CURRENT_DB_VERSION,
-    Build,
-    Item,
-    LastChecked,
-    LastModified,
-    Version,
-    db,
+    Base,
+    db_engine,
     db_path,
+    db_session,
+    reorder_indices,
 )
 from backend.webapi.simple_queries import update_last_modified, update_version
 from backend.webapi.webapi import what_time_is_it
@@ -16,11 +14,12 @@ def create_db() -> None:
     if db_path.exists():
         return
 
-    with db:
-        with db.atomic():
-            db.create_tables([Build, Item, LastChecked, LastModified, Version])
-            update_version(CURRENT_DB_VERSION)
-            update_last_modified(what_time_is_it())
+    with db_session.begin():
+        Base.metadata.create_all(db_engine)
+        reorder_indices()
+        update_version(CURRENT_DB_VERSION)
+        update_last_modified(what_time_is_it())
+
     print(f"Database created with version: {CURRENT_DB_VERSION.value}")
 
 

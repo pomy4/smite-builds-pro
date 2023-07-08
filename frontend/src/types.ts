@@ -54,26 +54,19 @@ export interface UnparsedBuild {
   player2: string;
   god2: string;
   team2: string;
-  relic1: UnparsedItem;
-  relic2: UnparsedItem;
-  item1: UnparsedItem;
-  item2: UnparsedItem;
-  item3: UnparsedItem;
-  item4: UnparsedItem;
-  item5: UnparsedItem;
-  item6: UnparsedItem;
+  relics: Array<UnparsedItem | null>;
+  items: Array<UnparsedItem | null>;
 }
 
-export type Build = {
-  [K in keyof UnparsedBuild]: UnparsedBuild[K] extends UnparsedItem
-    ? Item
-    : UnparsedBuild[K];
+export type Build = Omit<UnparsedBuild, "relics" | "items"> & {
+  relics: Array<Item>;
+  items: Array<Item>;
 };
 
 export interface UnparsedItem {
   name: string;
   image_name: string;
-  image_data: string;
+  image_data: string | null;
 }
 
 export interface Item {

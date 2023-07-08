@@ -9,7 +9,7 @@ As this data is not available in the [SMITE API](https://webcdn.hirezstudios.com
 
 
 ## Technologies used
-- Backend - Python, bottle (web framework), SQLite, peewee (ORM), Selenium
+- Backend - Python, bottle (web framework), SQLite, SQLAlchemy (ORM), Selenium
 - Frontend - TypeScript, Vue 3, Bulma, vite
 
 ## Hosting

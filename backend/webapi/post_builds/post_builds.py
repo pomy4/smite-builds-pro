@@ -4,11 +4,12 @@ import datetime
 import typing as t
 import unicodedata
 
-import peewee as pw
+import sqlalchemy as sa
+import sqlalchemy.exc as sae
 
 from backend.webapi.exceptions import MyValidationError
 from backend.webapi.get_builds import EVOLVED_PREFIX, GREATER_PREFIX, UPGRADE_SUFFIX
-from backend.webapi.models import Build, Item, db
+from backend.webapi.models import Build, BuildItem, Item, db_session
 from backend.webapi.post_builds.auto_fixes_logger import (
     auto_fixes_logger,
     log_curr_game,
@@ -32,129 +33,147 @@ def post_builds(builds: list[PostBuildRequest]) -> None:
         post_builds_inner(builds)
     except Exception:
         auto_fixes_logger.info("End (FAIL)")
+        raise
     else:
         auto_fixes_logger.info("End")
 
 
-def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
+def post_builds_inner(build_models: list["PostBuildRequest"]) -> None:
     # For now just work with dicts.
-    builds = [build.dict() for build in builds_]
+    build_dicts = [build_model.dict() for build_model in build_models]
 
     # Uniquerize items based upon name and image name.
+    item_keys: dict[tuple[str, str, bool], None] = {}
+    for build_dict in build_dicts:
+        with log_curr_game(build_dict):
+            for key, is_relic in [("relics", True), ("items", False)]:
+                build_dict[key] = [
+                    (name, fix_image_name(name, image_name))
+                    for name, image_name in build_dict[key]
+                ]
+                for name, image_name in build_dict[key]:
+                    item_keys[(name, image_name, is_relic)] = None
+
+    # Create or retrieve items.
     items = {}
-    for build in builds:
-        with log_curr_game(build):
-            build["items"] = [
-                (name, fix_image_name(name, image_name))
-                for name, image_name in build["items"]
-            ]
-        for name, image_name in build["relics"]:
-            items[(name, image_name)] = True
-        for name, image_name in build["items"]:
-            items[(name, image_name)] = False
+    for name, image_name, is_relic in item_keys.keys():
+        modified_name = name
+        name_was_modified = 0
+        if is_relic and name.endswith(UPGRADE_SUFFIX):
+            modified_name = name[: -len(UPGRADE_SUFFIX)]
+            name_was_modified = 1
+        elif not is_relic and name.startswith(EVOLVED_PREFIX):
+            modified_name = name[len(EVOLVED_PREFIX) :]
+            name_was_modified = 2
+        elif is_relic and name.startswith(GREATER_PREFIX):
+            modified_name = name[len(GREATER_PREFIX) :]
+            name_was_modified = 3
 
-    with db.atomic():
-        # Create or retrieve items.
-        for (name, image_name), is_relic in items.items():
-            modified_name = name
-            name_was_modified = 0
-            if is_relic and name.endswith(UPGRADE_SUFFIX):
-                modified_name = name[: -len(UPGRADE_SUFFIX)]
-                name_was_modified = 1
-            elif not is_relic and name.startswith(EVOLVED_PREFIX):
-                modified_name = name[len(EVOLVED_PREFIX) :]
-                name_was_modified = 2
-            elif is_relic and name.startswith(GREATER_PREFIX):
-                modified_name = name[len(GREATER_PREFIX) :]
-                name_was_modified = 3
+        image_data = get_image_or_none(image_name)
 
-            image_data = get_image_or_none(image_name)
+        if image_data is None and (
+            backup_image_name := (BACKUP_IMAGE_NAMES).get(image_name)
+        ):
+            auto_fixes_logger.info(f"ImageBkp|{image_name} -> {backup_image_name}")
+            # image_name is not updated here, so that if HiRez fixes the URL,
+            # it will not create a new item in the database
+            # (unless HiRez also changes the image).
+            image_data = get_image_or_none(backup_image_name)
 
-            if image_data is None and (
-                backup_image_name := (BACKUP_IMAGE_NAMES).get(image_name)
-            ):
-                auto_fixes_logger.info(f"ImageBkp|{image_name} -> {backup_image_name}")
-                # image_name is not updated here, so that if HiRez fixes the URL,
-                # it will not create a new item in the database
-                # (unless HiRez also changes the image).
-                image_data = get_image_or_none(backup_image_name)
+        if image_data is None:
+            auto_fixes_logger.warning(f"Missing image: {image_name}")
+            b64_image_data, was_compressed = None, False
+        else:
+            (
+                b64_image_data,
+                was_compressed,
+            ) = compress_and_base64_image_or_none(image_data)
 
-            if image_data is None:
-                auto_fixes_logger.warning(f"Missing image: {image_name}")
-                b64_image_data, was_compressed = None, False
-            else:
-                (
-                    b64_image_data,
-                    was_compressed,
-                ) = compress_and_base64_image_or_none(image_data)
+        item, was_new = get_or_create_image(
+            is_relic=is_relic,
+            name=modified_name,
+            name_was_modified=name_was_modified,
+            image_name=image_name,
+            image_data=b64_image_data,
+        )
 
-            item, was_new = Item.get_or_create(
-                name=modified_name,
-                name_was_modified=name_was_modified,
-                image_name=image_name,
-                image_data=b64_image_data,
-            )
+        if image_data is not None and was_compressed and was_new:
+            save_item_icon_to_archive(item, image_data)
 
-            if image_data is not None and was_compressed and was_new:
-                save_item_icon_to_archive(item, image_data)
+        items[(name, image_name, is_relic)] = item
 
-            items[(name, image_name)] = item.id
+    # Get player names.
+    player_names = {
+        player_name.upper(): player_name
+        for player_name in db_session.scalars(sa.select(Build.player1).distinct()).all()
+    }
 
-        # Get player names.
-        player_names = {
-            b.player1.upper(): b.player1 for b in Build.select(Build.player1).distinct()
-        }
-
-        # Create builds.
-        today = datetime.date.today()
-        for build in builds:
-            build["game_length"] = datetime.time(
-                hour=build["hours"], minute=build["minutes"], second=build["seconds"]
-            )
-            if not build.get("year"):
-                build["year"] = today.year
-            if not build.get("season"):
-                season = today.year - 2013
-                if today.month == 1 or today.month == 2 and today.day <= 14:
-                    season -= 1
-                build["season"] = max(season, 0)
-            try:
-                build["date"] = datetime.date(
-                    year=build["year"], month=build["month"], day=build["day"]
-                )
-            except ValueError as e:
-                raise MyValidationError(
-                    "At least one of the builds has an invalid date"
-                ) from e
-            with log_curr_game(build):
-                build["player1"] = fix_player_name(player_names, build["player1"])
-                build["player2"] = fix_player_name(player_names, build["player2"])
-            del (
-                build["hours"],
-                build["minutes"],
-                build["seconds"],
-                build["year"],
-                build["month"],
-                build["day"],
-            )
-            for i, (name, image_name) in enumerate(build["relics"], 1):
-                build[f"relic{i}"] = items[(name, image_name)]
-            for i, (name, image_name) in enumerate(build["items"], 1):
-                build[f"item{i}"] = items[(name, image_name)]
-            del build["relics"], build["items"]
-
-        fix_roles(builds)
-        fix_gods(builds)
-
+    # Create builds.
+    today = datetime.date.today()
+    all_item_ids = []
+    for build_dict in build_dicts:
+        build_dict["game_length"] = datetime.time(
+            hour=build_dict["hours"],
+            minute=build_dict["minutes"],
+            second=build_dict["seconds"],
+        )
+        if not build_dict.get("year"):
+            build_dict["year"] = today.year
+        if not build_dict.get("season"):
+            season = today.year - 2013
+            if today.month == 1 or today.month == 2 and today.day <= 14:
+                season -= 1
+            build_dict["season"] = max(season, 0)
         try:
-            # This is done one by one, since for some reason bulk insertion
-            # sometimes causes silent corruption of data (!).
-            for build in builds:
-                Build.create(**build)
-        except pw.IntegrityError as e:
+            build_dict["date"] = datetime.date(
+                year=build_dict["year"],
+                month=build_dict["month"],
+                day=build_dict["day"],
+            )
+        except ValueError as e:
             raise MyValidationError(
-                "At least one of the builds is already in the database"
+                "At least one of the builds has an invalid date"
             ) from e
+        with log_curr_game(build_dict):
+            build_dict["player1"] = fix_player_name(player_names, build_dict["player1"])
+            build_dict["player2"] = fix_player_name(player_names, build_dict["player2"])
+
+        del (
+            build_dict["hours"],
+            build_dict["minutes"],
+            build_dict["seconds"],
+            build_dict["year"],
+            build_dict["month"],
+            build_dict["day"],
+        )
+
+        item_ids = []
+        for i, (name, image_name) in enumerate(build_dict["relics"]):
+            item_ids.append((items[(name, image_name, True)].id, i))
+        for i, (name, image_name) in enumerate(build_dict["items"]):
+            item_ids.append((items[(name, image_name, False)].id, i))
+        del build_dict["relics"], build_dict["items"]
+        all_item_ids.append(item_ids)
+
+    fix_roles(build_dicts)
+    fix_gods(build_dicts)
+
+    builds = [Build(**build_dict) for build_dict in build_dicts]
+
+    for build in builds:
+        db_session.add(build)
+
+    try:
+        db_session.flush()
+    except sae.IntegrityError as e:
+        raise MyValidationError(
+            "At least one of the builds is already in the database"
+        ) from e
+
+    for item_ids, build in zip(all_item_ids, builds):
+        for item_id, index in item_ids:
+            build_item = BuildItem(build_id=build.id, item_id=item_id, index=index)
+            db_session.add(build_item)
 
 
 # Names which don't work right now, but will probably start working someday.
@@ -162,6 +181,38 @@ def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
 BACKUP_IMAGE_NAMES = {
     "manticores-spikes.jpg": "manticores-spike.jpg",
 }
+
+
+def get_or_create_image(
+    is_relic: bool,
+    name: str,
+    name_was_modified: int,
+    image_name: str,
+    image_data: bytes | None,
+) -> tuple[Item, bool]:
+    item = db_session.scalars(
+        sa.select(Item).where(
+            Item.is_relic == is_relic,
+            Item.name == name,
+            Item.name_was_modified == name_was_modified,
+            Item.image_name == image_name,
+            Item.image_data == image_data,
+        )
+    ).one_or_none()
+
+    if item:
+        return item, False
+    else:
+        new_item = Item(
+            is_relic=is_relic,
+            name=name,
+            name_was_modified=name_was_modified,
+            image_name=image_name,
+            image_data=image_data,
+        )
+        db_session.add(new_item)
+        db_session.flush()
+        return new_item, True
 
 
 def fix_image_name(name: str, image_name: str) -> str:

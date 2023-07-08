@@ -1,15 +1,18 @@
 import base64
 import sys
 
-from backend.webapi.models import Item, db
+import sqlalchemy as sa
+
+from backend.webapi.models import Item, db_session
 
 
 def main() -> None:
-    pk = int(sys.argv[1])
-    with db:
-        item = Item.get_by_id(pk)
+    item_id = int(sys.argv[1])
+    with db_session():
+        item = db_session.scalars(sa.select(Item).where(Item.id == item_id)).one()
+    assert item.image_data is not None
     image_data = base64.b64decode(item.image_data)
-    with open(f"{pk}.jpg", "wb") as f:
+    with open(f"{item_id}.jpg", "wb") as f:
         f.write(image_data)
 
 

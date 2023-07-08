@@ -489,14 +489,8 @@ const updateBuilds = async () => {
   const newBuilds = unparsedBuilds.map(
     (build): Build => ({
       ...build,
-      relic1: handleImg(build.relic1),
-      relic2: handleImg(build.relic2),
-      item1: handleImg(build.item1),
-      item2: handleImg(build.item2),
-      item3: handleImg(build.item3),
-      item4: handleImg(build.item4),
-      item5: handleImg(build.item5),
-      item6: handleImg(build.item6),
+      relics: build.relics.map(handleImg),
+      items: build.items.map(handleImg),
     })
   );
 
@@ -523,7 +517,7 @@ let observer = new IntersectionObserver((entries) => {
   updateBuilds();
 });
 
-const handleImg = (item: UnparsedItem): Item => {
+const handleImg = (item: UnparsedItem | null): Item => {
   if (item) {
     if (item.image_data) {
       return {

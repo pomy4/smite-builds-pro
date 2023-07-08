@@ -15,7 +15,5 @@ disallow_untyped_defs = true
 [[tool.mypy.overrides]]
 module = [
     "bottle.*",
-    "peewee.*",
-    "playhouse.*",
 ]
 ignore_missing_imports = true

@@ -1,11 +1,11 @@
 import enum
 import typing as t
 
-import peewee as pw
-import playhouse.shortcuts
+import sqlalchemy as sa
+import sqlalchemy.orm as sao
 
 from backend.shared import league_factory
-from backend.webapi.models import Build, Item
+from backend.webapi.models import Build, BuildItem, Item, db_session
 
 if t.TYPE_CHECKING:
     from backend.webapi.webapi import GetBuildsRequest
@@ -17,18 +17,7 @@ class WhereStrat(enum.Enum):
 
 
 def get_builds(builds_query: "GetBuildsRequest") -> t.Any:
-    relic1, relic2, item1, item2, item3, item4, item5, item6 = (
-        Item.alias(),
-        Item.alias(),
-        Item.alias(),
-        Item.alias(),
-        Item.alias(),
-        Item.alias(),
-        Item.alias(),
-        Item.alias(),
-    )
-
-    where = pw.Expression(True, "=", True)
+    where = [sa.true() == sa.true()]
     types = t.get_type_hints(builds_query, include_extras=True)
     page = 1
 
@@ -37,75 +26,82 @@ def get_builds(builds_query: "GetBuildsRequest") -> t.Any:
             continue
         if key == "page":
             page = vals[0]
-        elif key == "relic":
-            for relic in vals:
-                where = where & pw.Expression(relic, "IN", [relic1.name, relic2.name])
-        elif key == "item":
-            for item in vals:
-                where = where & pw.Expression(
-                    item,
-                    "IN",
-                    [
-                        item1.name,
-                        item2.name,
-                        item3.name,
-                        item4.name,
-                        item5.name,
-                        item6.name,
-                    ],
+        elif key in ["relic", "item"]:
+            is_relic = key == "relic"
+            for val in vals:
+                subq = (
+                    sa.select(BuildItem.build_id)
+                    .join(Item, BuildItem.item_id == Item.id)
+                    .where(sa.and_(Item.is_relic.is_(is_relic), Item.name == val))
+                    .scalar_subquery()
                 )
+                where.append(Build.id.in_(subq))
         else:
             where_strat = t.get_args(types[key])[1]
             if where_strat == WhereStrat.match:
-                where = where & getattr(Build, key).in_(vals)
+                where.append(getattr(Build, key).in_(vals))
             else:  # where_strat == WhereStrat.range:
                 tmp = getattr(Build, key)
-                where = where & (vals[0] <= tmp) & (tmp <= vals[1])
+                where.append(vals[0] <= tmp)
+                where.append(tmp <= vals[1])
 
-    query = (
-        Build.select(Build, relic1, relic2, item1, item2, item3, item4, item5, item6)
-        .join_from(Build, relic1, pw.JOIN.LEFT_OUTER, Build.relic1)
-        .join_from(Build, relic2, pw.JOIN.LEFT_OUTER, Build.relic2)
-        .join_from(Build, item1, pw.JOIN.LEFT_OUTER, Build.item1)
-        .join_from(Build, item2, pw.JOIN.LEFT_OUTER, Build.item2)
-        .join_from(Build, item3, pw.JOIN.LEFT_OUTER, Build.item3)
-        .join_from(Build, item4, pw.JOIN.LEFT_OUTER, Build.item4)
-        .join_from(Build, item5, pw.JOIN.LEFT_OUTER, Build.item5)
-        .join_from(Build, item6, pw.JOIN.LEFT_OUTER, Build.item6)
-        .where(where)
-        .order_by(
-            Build.date.desc(),
-            Build.match_id.desc(),
-            Build.game_i.desc(),
-            Build.win.desc(),
-            Build.role.asc(),
-        )
-    )
+    if page != 1:
+        count = None
+    else:
+        count = db_session.scalars(
+            sa.select(sa.func.count(Build.id)).where(sa.and_(*where))
+        ).one()
 
-    count = query.count() if page == 1 else None
     page_size = 10
-    query = query.paginate(page, page_size)
 
-    builds = []
-    for build in query.iterator():
-        build = playhouse.shortcuts.model_to_dict(build)
-        build["date"] = build["date"].isoformat()
-        build["game_length"] = build["game_length"].isoformat()
-        match_url = league_factory(build["league"]).match_url
-        build["match_url"] = f'{match_url}/{build["match_id"]}'
-        build["kda_ratio"] = f'{build["kda_ratio"]:.1f}'
-        del build["match_id"]
-        unmodify_relic_name(build["relic1"])
-        unmodify_relic_name(build["relic2"])
-        unmodify_item_name(build["item1"])
-        unmodify_item_name(build["item2"])
-        unmodify_item_name(build["item3"])
-        unmodify_item_name(build["item4"])
-        unmodify_item_name(build["item5"])
-        unmodify_item_name(build["item6"])
-        builds.append(build)
+    build_order_by: list[t.Any] = [
+        Build.date.desc(),
+        Build.match_id.desc(),
+        Build.game_i.desc(),
+        Build.win.desc(),
+        Build.role.asc(),
+    ]
 
-    return {"count": count, "builds": builds} if page == 1 else builds
+    final_subq = (
+        sa.select(Build.id)
+        .where(sa.and_(*where))
+        .order_by(*build_order_by)
+        .limit(page_size)
+        .offset((page - 1) * page_size)
+    ).scalar_subquery()
+
+    builds_iter = db_session.scalars(
+        sa.select(Build)
+        .where(Build.id.in_(final_subq))
+        .outerjoin(BuildItem, Build.id == BuildItem.build_id)
+        .join(Item, BuildItem.item_id == Item.id)
+        .order_by(*build_order_by)
+        .options(sao.contains_eager(Build.build_items, BuildItem.item))
+    ).unique()
+
+    build_dicts = []
+    for build in builds_iter:
+        build_dict = build.asdict()
+        build_dict["date"] = build.date.isoformat()
+        build_dict["game_length"] = build.game_length.isoformat()
+        match_url = league_factory(build.league).match_url
+        build_dict["match_url"] = f"{match_url}/{build.match_id}"
+        build_dict["kda_ratio"] = f"{build.kda_ratio:.1f}"
+
+        build_dict["relics"] = [None] * 2
+        build_dict["items"] = [None] * 6
+        for build_item in build.build_items:
+            item = build_item.item
+            item_dict: dict[str, t.Any] = {}
+            item_dict["name"] = unmodify_item_name(item.name, item.name_was_modified)
+            item_dict["image_name"] = item.image_name
+            item_dict["image_data"] = item.image_data
+            key = "relics" if item.is_relic else "items"
+            build_dict[key][build_item.index] = item_dict
+
+        build_dicts.append(build_dict)
+
+    return {"count": count, "builds": build_dicts} if page == 1 else build_dicts
 
 
 EVOLVED_PREFIX = "Evolved "
@@ -113,22 +109,15 @@ UPGRADE_SUFFIX = " Upgrade"
 GREATER_PREFIX = "Greater "
 
 
-def unmodify_relic_name(relic: dict) -> None:
-    if not relic or "name_was_modified" not in relic:
-        return
-    if relic["name_was_modified"] == 1:
-        relic["name"] = relic["name"] + UPGRADE_SUFFIX
-    elif relic["name_was_modified"] == 3:
-        relic["name"] = GREATER_PREFIX + relic["name"]
-    del relic["name_was_modified"]
-
-
-def unmodify_item_name(item: dict) -> None:
-    if not item or "name_was_modified" not in item:
-        return
-    if item["name_was_modified"] == 2:
-        item["name"] = EVOLVED_PREFIX + item["name"]
-    del item["name_was_modified"]
+def unmodify_item_name(name: str, name_was_modified: int) -> str:
+    if name_was_modified == 1:
+        return name + UPGRADE_SUFFIX
+    elif name_was_modified == 2:
+        return EVOLVED_PREFIX + name
+    elif name_was_modified == 3:
+        return GREATER_PREFIX + name
+    else:
+        return name
 
 
 def no_img(item: Item) -> tuple:
