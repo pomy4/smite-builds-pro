@@ -27,25 +27,28 @@ Minimal required version of Python is 3.10.
 Setup consists of:
 1. Installing the required packages - e.g. (on linux):
 ```
-python -m venv venv
-source venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 2. Setting the required environment variables described below. This can be done easily with `cp .env.example .env`
 3. (Optional) Puting [ChromeDriver](https://chromedriver.chromium.org) in PATH for the webscraping script.
 
-Then the following scripts can be used:
-- `python run_backend_debug.py` - runs the web api for development purposes. Also creates the SQLite database `be/backend.db`, if it doesn't exist yet.
-- `python run_tests.py` - runs the unit tests.
-- `python run_updater.py` - runs the webscraping script.
-- `python run_alerter.py` - parses logs for warnings and errors and sends what it found to a https://ntfy.sh/ topic.
-- There are also some additional small helper scripts in the `be/tools` and `upd/tools` folders.
+Then the `run` script can be used:
+- `./run webapi` - runs the web api for development purposes. Also creates the SQLite database (`storage/backend.db`), if it doesn't exist yet.
+- `./run tests` - runs the unit tests.
+- `./run updater` - runs the webscraping script.
+- `./run log_manager` - parses logs for warnings and errors and sends what it found to a https://ntfy.sh/ topic. Also rotates and archives logs, and makes a database backup.
+- There are also some additional small helper scripts in the `backend/webapi/tools` and `backend/updater/tools` folders.
 
 Used enviroment variables:
-- HMAC_KEY_HEX - key used to authenticate the webscraping script with the web api, in hexadecimal.
-- BACKEND_URL - web api url for the webscraping script.
-- NTFY_TOPIC - the topic to which notifications are sent.
-- MATCHES_WITH_NO_STATS (optional) - match IDs separated by commas, which are not warned about, when they have no stats.
+- `HMAC_KEY_HEX` - key used to authenticate the webscraping script with the web api, in hexadecimal.
+- `SMITE_DEV_ID` & `SMITE_AUTH_KEY` - credentials for the [SMITE API](https://webcdn.hirezstudios.com/hirez-studios/legal/smite-api-developer-guide.pdf). This api is currently used only for getting the name of a new god, when their name is misprinted on the SPL website.
+- `BACKEND_URL` - web api url for the webscraping script.
+- `NTFY_TOPIC` - the topic to which notifications are sent.
+- `MATCHES_WITH_NO_STATS` (optional) - match IDs separated by commas, which are not warned about, when they have no stats.
+
+Created files (the SQLite database, logs, etc.) are stored in the `storage` folder, in the root of the project.
 
 ### Frontend
 CD to the frontend directory and install the required packages: `cd fe && npm ci`. The development server can then be started with `npm run dev`, the static files can be built with `npm run build` and these can be previewed with `npm run serve`.

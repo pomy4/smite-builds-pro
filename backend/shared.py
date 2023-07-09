@@ -39,6 +39,9 @@ def setup_logging(
     stream_handler.setFormatter(logging.Formatter(format_))
     file_handler.setFormatter(logging.Formatter(format_))
 
+    stream_handler.addFilter(filter_python_anywhere_os_error)
+    file_handler.addFilter(filter_python_anywhere_os_error)
+
     if filter_ is not None:
         stream_handler.addFilter(filter_)
         file_handler.addFilter(filter_)
@@ -70,6 +73,25 @@ def get_file_handler(name: str) -> logging.Handler:
     return logging.handlers.WatchedFileHandler(
         path, mode="a", encoding="utf8", delay=True, errors="backslashreplace"
     )
+
+
+def filter_python_anywhere_os_error(record: logging.LogRecord) -> bool:
+    """
+    PythonAnywhere code (more specifically the line 170 in the file
+    /bin/user_wsgi_wrapper.py) throws an "OSError: write error" exception several times
+    a day, which is logged into the root logger. The error seems to be caused by web
+    crawlers aborting connections early. There is nothing we can really do about it,
+    so here these errors have their level lowered from ERROR to INFO, so that they don't
+    cause unnecesary notifications to be sent.
+    """
+    if (
+        record.levelno == logging.ERROR
+        and record.pathname.startswith("/bin/")
+        and record.getMessage() == "OSError: write error"
+    ):
+        record.levelno = logging.INFO
+        record.levelname = logging.getLevelName(logging.INFO)
+    return True
 
 
 IMG_URL = "https://webcdn.hirezstudios.com/smite/item-icons"
