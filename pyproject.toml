@@ -1,6 +1,10 @@
 [tool.isort]
 profile = "black"
 
+[tool.flake8]
+max-line-length = 88
+extend-ignore = "E203"
+
 [tool.mypy]
 # __init__.py files are not needed.
 explicit_package_bases = true

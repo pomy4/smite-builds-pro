@@ -23,6 +23,7 @@ msgspec
 black
 isort
 flake8
+flake8-pyproject
 mypy
 types-pillow
 types-requests
