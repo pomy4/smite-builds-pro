@@ -279,18 +279,16 @@ const lastCheck = ref({ value: "loading ...", tooltip: "Loading .." });
 })();
 
 const antiSpam = (
-  "hey" +
-  "there" +
-  "smite" +
-  "fans" +
-  "." +
-  "aggro" +
-  "here" +
-  "alienware" +
+  "smi" +
+  "te" +
+  "bui" +
+  "lds" +
+  "pro" +
+  "loki" +
   "gmail" +
   "." +
   "com"
-).replace("alienware", "@");
+).replace("loki", "@");
 
 const getIsInBasicView = (searchParams: URLSearchParams) => {
   const view = searchParams.getAll("view");

@@ -35,6 +35,10 @@ exceptiongroup==1.0.0rc9
     #   pytest
     #   trio
 flake8==6.0.0
+    # via
+    #   -r requirements.in
+    #   flake8-pyproject
+flake8-pyproject==1.2.3
     # via -r requirements.in
 h11==0.14.0
     # via
@@ -107,6 +111,7 @@ sortedcontainers==2.4.0
 tomli==2.0.1
     # via
     #   black
+    #   flake8-pyproject
     #   mypy
     #   pytest
 tqdm==4.64.1
