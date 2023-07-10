@@ -82,14 +82,18 @@ def log_access() -> None:
     """
     req, resp = bottle.request, bottle.response
 
-    host = req.remote_addr
+    # REMOTE_ADDR is always the address of a PythonAnywhere load balancer,
+    # but bottle.request.remote_addr also checks HTTP_X_FORWARDED_FOR,
+    # so we don't have to do anything extra here.
+    host = req.remote_addr or "-"
 
     identity = user = "-"
 
     now = datetime.datetime.now().astimezone()
     now_str = now.strftime("%d/%b/%Y:%H:%M:%S %z")
 
-    method_and_url = f"{req.method} {req.url}"
+    protocol = req.environ.get("SERVER_PROTOCOL", "-")
+    method_url_and_protocol = f"{req.method} {req.url} {protocol}"
 
     # Unexpected exceptions are handled after this hook, but since we always set the
     # content type to "application/json" in the happy path (except for in post_builds,
@@ -108,7 +112,7 @@ def log_access() -> None:
 
     user_agent = req.headers.get("User-Agent", "-")
 
-    msg1 = f'{host} {identity} {user} [{now_str}] "{method_and_url}"'
+    msg1 = f'{host} {identity} {user} [{now_str}] "{method_url_and_protocol}"'
     msg2 = f' {status_code} {size} "{referer}" "{user_agent}"'
     access_logger.info(msg1 + msg2)
 
