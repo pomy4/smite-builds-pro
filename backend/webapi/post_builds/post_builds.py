@@ -45,7 +45,7 @@ def post_builds_inner(builds_: list["PostBuildRequest"]) -> None:
     for build in builds:
         with log_curr_game(build):
             build["items"] = [
-                (name, fix_image_name(image_name))
+                (name, fix_image_name(name, image_name))
                 for name, image_name in build["items"]
             ]
         for name, image_name in build["relics"]:
@@ -163,20 +163,27 @@ BACKUP_IMAGE_NAMES = {
     "manticores-spikes.jpg": "manticores-spike.jpg",
 }
 
-FIXED_IMAGE_NAMES = {
-    "bloodsoaked-shroud.jpg": "blood-soaked-shroud.jpg",
-    "pointed-shuriken.jpg": "8-pointed-shuriken.jpg",
-    "faeblessed-hoops.jpg": "fae-blessed-hoops.jpg",
-}
 
-
-def fix_image_name(image_name: str) -> str:
-    if image_name not in FIXED_IMAGE_NAMES:
+def fix_image_name(name: str, image_name: str) -> str:
+    """
+    If item has a hyphen or a number in a name, then the image name used by Hi-Rez will
+    be wrong (the hyphen/number will be missing, e.g. 'sturdy-stew-step-.jpg' instead
+    of 'sturdy-stew---step-2.jpg') (and hence the image will not load). So, here we
+    convert the item name into the image name ourselves.
+    """
+    image_name_split = image_name.rsplit(".", 1)
+    if len(image_name_split) == 1:
+        auto_fixes_logger.warning(f"No extension: {image_name}")
         return image_name
-    else:
-        fixed_image_name = FIXED_IMAGE_NAMES[image_name]
+    _, ext = image_name_split
+
+    slug = name.lower().replace(" ", "-")
+    fixed_image_name = f"{slug}.{ext}"
+
+    if fixed_image_name != image_name:
         auto_fixes_logger.info(f"Image|{image_name} -> {fixed_image_name}")
-        return fixed_image_name
+
+    return fixed_image_name
 
 
 def fix_player_name(player_names: dict[str, str], player_name_with_accents: str) -> str:
