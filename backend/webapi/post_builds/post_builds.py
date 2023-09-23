@@ -177,7 +177,7 @@ def fix_image_name(name: str, image_name: str) -> str:
         return image_name
     _, ext = image_name_split
 
-    slug = name.lower().replace(" ", "-")
+    slug = name.lower().replace(" ", "-").replace("'", "")
     fixed_image_name = f"{slug}.{ext}"
 
     if fixed_image_name != image_name:
