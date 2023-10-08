@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Item viewer</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.classless.min.css" />
+</head>
+
+<body>
+    <div style="margin-top: 50px; margin-left: 50px">
+        {% for items in all_items %}
+        <ul style="display: flex; flex-wrap: wrap; gap: 30px">
+            {% for item in items %}
+            <li>
+                <div>{{ item.x.id }} - {{ item.x.name }} ({{ item.x.name_was_modified }})</div>
+                <div>{{ item.x.image_name }}</div>
+                <div>{{ item.first_date }} ({{ item.count }}) {{ item.last_date }}</div>
+                <img src="data:image/png;base64, {{ item.x.image.data.decode('ascii') }}"/>
+            </li>
+            {% endfor %}
+        </ul>
+        <hr>
+        {% endfor %}
+    </div>
+</body>
+
+</html>

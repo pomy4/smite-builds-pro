@@ -19,6 +19,9 @@ tqdm
 requests
 msgspec
 
+# Item viewer
+flask
+
 # Development
 black
 isort

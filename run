@@ -15,6 +15,10 @@ function log_manager {
     python -m backend.log_manager.log_manager
 }
 
+function item_viewer {
+    python -m backend.item_viewer.item_viewer "$@"
+}
+
 function tests {
     # Without 'python -m' fails, probably due to no __init__.py files.
     python -m pytest backend
