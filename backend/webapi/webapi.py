@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import json
 import logging
+import sys
 import typing as t
 
 import bottle
@@ -95,15 +96,21 @@ def log_access() -> None:
     protocol = req.environ.get("SERVER_PROTOCOL", "-")
     method_url_and_protocol = f"{req.method} {req.url} {protocol}"
 
-    # Unexpected exceptions are handled after this hook, but since we always set the
-    # content type to "application/json" in the happy path (except for in post_builds,
-    # but there we use 201/204 instead of 200), we can still get an accurate status code
-    # with this slight hack (unless the exception is thrown after the content type is
-    # set).
-    if resp.status_code == 200 and not resp.content_type:
-        status_code = 500
-    else:
+    # Slightly hackish way to get response status code:
+    _, e, _ = sys.exc_info()
+    if e is None:
+        # The route ended without an exception, hence the status
+        # code can be retrieved from the global response object.
         status_code = resp.status_code
+    else:
+        # The route has ended with an exception - bottle updates the global response
+        # object with the status code from the exception, if it is a bottle specific
+        # exception, or with a 500, if it is not, but it does this right after this
+        # hook finishes, so here we have to do it ourselves.
+        if isinstance(e, bottle.HTTPResponse):
+            status_code = e.status_code
+        else:
+            status_code = 500
 
     # Bottle computes content-length after this hook, so we have no easy way to get it.
     size = "-"
