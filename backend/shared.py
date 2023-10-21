@@ -1,4 +1,5 @@
 import dataclasses
+import io
 import logging.handlers
 import sys
 import time
@@ -70,9 +71,67 @@ def setup_logging(
 
 def get_file_handler(name: str) -> logging.Handler:
     path = LOGS_DIR / f"{name}.log"
-    return logging.handlers.WatchedFileHandler(
+    return MoreRobustWatchedFileHandler(
         path, mode="a", encoding="utf8", delay=True, errors="backslashreplace"
     )
+
+
+class MoreRobustWatchedFileHandler(logging.handlers.WatchedFileHandler):
+    """
+    Starting from around 2023-10-19 19:50, restarting a worker leads to the error
+    'OSError: [Errno 5] Input/output error' (which causes a 500 to be returned) with
+    the following traceback:
+
+    Traceback (most recent call last):
+      File "/home/irukandji4/.virtualenvs/sbp/lib/python3.10/site-packages/bottle.py"...
+        self.trigger_hook('after_request')
+      File "/home/irukandji4/.virtualenvs/sbp/lib/python3.10/site-packages/bottle.py"...
+        return [hook(*args, **kwargs) for hook in self._hooks[__name][:]]
+      File "/home/irukandji4/.virtualenvs/sbp/lib/python3.10/site-packages/bottle.py"...
+        return [hook(*args, **kwargs) for hook in self._hooks[__name][:]]
+      File "/home/irukandji4/smite-builds-pro/./backend/webapi/webapi.py", line 57, i...
+        log_access()
+      File "/home/irukandji4/smite-builds-pro/./backend/webapi/webapi.py", line 117, ...
+        access_logger.info(msg1 + msg2)
+      File "/usr/local/lib/python3.10/logging/__init__.py", line 1477, in info
+        self._log(INFO, msg, args, **kwargs)
+      File "/usr/local/lib/python3.10/logging/__init__.py", line 1624, in _log
+        self.handle(record)
+      File "/usr/local/lib/python3.10/logging/__init__.py", line 1634, in handle
+        self.callHandlers(record)
+      File "/usr/local/lib/python3.10/logging/__init__.py", line 1696, in callHandlers
+        hdlr.handle(record)
+      File "/usr/local/lib/python3.10/logging/__init__.py", line 968, in handle
+        self.emit(record)
+      File "/usr/local/lib/python3.10/logging/handlers.py", line 521, in emit
+        self.reopenIfNeeded()
+      File "/usr/local/lib/python3.10/logging/handlers.py", line 508, in reopenIfNeeded
+        self.stream.close()
+
+    Furthermore, all the following requests then also receive a 500 (!), due to an error
+    'ValueError: I/O operation on closed file.' originating from the self.stream.flush()
+    line, which is located just before the self.stream.close() line mentioned above.
+
+    I'm not sure if this is due to some race condition which happens during the
+    rotation in the log manager, or if this is caused by something being changed in the
+    PythonAnywhere environment, or a combination of the two, or something else entirely.
+
+    The WatchedFileHandler bubbles up exceptions that happen when closing/reopening
+    the file, so this class overrides the emit method by wrapping it in an exception
+    handler, which then skips the 'file cannot be closed because it is closed' error
+    by explicitly setting the stream to None, which causes FileHandler to simply open
+    the file again.
+
+    It is possible that this will cause some other issues, but it seems to work fine
+    for now.
+    """
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            super().emit(record)
+        except OSError:
+            self.stream = t.cast(io.TextIOWrapper, None)
+            super().emit(record)
 
 
 def filter_python_anywhere_os_error(record: logging.LogRecord) -> bool:
