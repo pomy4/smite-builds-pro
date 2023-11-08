@@ -67,8 +67,8 @@
       <div class="my-column">
         <img
           v-bind:src="data.items[2].src"
-          v-bind:alt="data.items[1].name"
-          v-bind:title="data.items[1].name"
+          v-bind:alt="data.items[2].name"
+          v-bind:title="data.items[2].name"
         />
       </div>
       <div class="my-column">
