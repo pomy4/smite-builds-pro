@@ -1,5 +1,10 @@
 <template>
   <div class="build-row block box">
+    <!--
+      This is here so that build ID can be quickly looked up if needed,
+      but without visual clutter, since it is not useful for visitors.
+    -->
+    <div v-bind:data-id="data.id" style="display: none"></div>
     <div class="my-column" style="width: 12rem">
       <span
         ><span>Season </span><span>{{ data.season }}</span></span
