@@ -83,9 +83,9 @@ def get_builds(builds_query: "GetBuildsRequest") -> t.Any:
     for build in builds_iter:
         build_dict = build.asdict()
         build_dict["date"] = build.date.isoformat()
-        build_dict["game_length"] = build.game_length.isoformat()
         match_url = league_factory(build.league).match_url
         build_dict["match_url"] = f"{match_url}/{build.match_id}"
+        build_dict["game_length"] = build.game_length.isoformat()
         build_dict["kda_ratio"] = f"{build.kda_ratio:.1f}"
 
         build_dict["relics"] = [None] * 2
