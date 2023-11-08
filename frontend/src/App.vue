@@ -329,6 +329,10 @@ const optionsFuture = (async (): Promise<Options> => {
   return optionsResponse.json();
 })();
 
+const errMsg = (thing: string) =>
+  `Failed to load ${thing}! Please refresh the page, ` +
+  "disable HTTP cache or try again later, if the problem persists.";
+
 onMounted(async () => {
   if (bottomElem.value === null) {
     throw Error("Illegal state");
@@ -337,7 +341,7 @@ onMounted(async () => {
   try {
     options.value = await optionsFuture;
   } catch (e) {
-    bottomText.value = "Failed to load options! Please try refreshing.";
+    bottomText.value = errMsg("options");
     throw e;
   }
 
@@ -474,7 +478,7 @@ const updateBuilds = async () => {
     let response = await fetchOrThrow(url);
     buildsResponse = await response.json();
   } catch (e) {
-    bottomText.value = "Failed to load builds! Please try refreshing.";
+    bottomText.value = errMsg("builds");
     throw e;
   }
 
