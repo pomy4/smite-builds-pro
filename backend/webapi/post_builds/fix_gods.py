@@ -1,11 +1,12 @@
 import typing as t
 
 from backend.webapi.post_builds.auto_fixes_logger import auto_fixes_logger as logger
+from backend.webapi.post_builds.hirez_api import GodClasses, NewestGod
 
 BuildDict = dict[str, t.Any]
 
 
-def fix_gods(builds: list[BuildDict], newest_god: str | None) -> None:
+def fix_gods(builds: list[BuildDict], newest_god: NewestGod | None) -> None:
     suspicious_gods1 = []
     suspicious_gods2 = []
     for build_i, build in enumerate(builds):
@@ -35,3 +36,20 @@ def fix_gods(builds: list[BuildDict], newest_god: str | None) -> None:
 
 def contains_digits(s: str) -> bool:
     return any("0" <= c <= "9" for c in s)
+
+
+def add_god_classes(builds: list[BuildDict], god_classes: GodClasses | None) -> None:
+    if god_classes is None:
+        logger.warning("God classes are unknown, cannot add them")
+        for build in builds:
+            build["god_class"] = None
+        return
+
+    for build in builds:
+        god = build["god1"]
+        god_class = god_classes.get(god)
+        if god_class is None:
+            logger.warning(f"Can't find class for god: {god}")
+            build["god_class"] = None
+        else:
+            build["god_class"] = god_class.value

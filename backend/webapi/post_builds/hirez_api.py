@@ -11,21 +11,24 @@ from backend.webapi.post_builds.auto_fixes_logger import auto_fixes_logger as lo
 
 GODS_PATH = STORAGE_DIR / "gods.json"
 
-Gods: t.TypeAlias = list[dict[str, t.Any]]
-
 
 class GodClass(enum.Enum):
-    ASSASIN = "Assasin"
+    ASSASSIN = "Assassin"
     GUARDIAN = "Guardian"
     HUNTER = "Hunter"
     MAGE = "Mage"
     WARRIOR = "Warrior"
 
 
+Gods: t.TypeAlias = list[dict[str, t.Any]]
+NewestGod: t.TypeAlias = str
+GodClasses: t.TypeAlias = dict[str, GodClass]
+
+
 @dc.dataclass
 class GodInfo:
-    newest_god: str | None
-    god_classes: dict[str, GodClass] | None
+    newest_god: NewestGod | None
+    god_classes: GodClasses | None
 
 
 def get_god_info() -> GodInfo:
@@ -79,7 +82,7 @@ def parse_god_info(gods: Gods) -> GodInfo:
     return GodInfo(newest_god=newest_god, god_classes=god_classes)
 
 
-def get_newest_god(gods: Gods) -> str:
+def get_newest_god(gods: Gods) -> NewestGod:
     newest_god_candidates = [god["Name"] for god in gods if god["latestGod"] == "y"]
     if len(newest_god_candidates) != 1:
         raise RuntimeError(
@@ -88,7 +91,7 @@ def get_newest_god(gods: Gods) -> str:
     return newest_god_candidates[0]
 
 
-def get_god_classes(gods: Gods) -> dict[str, GodClass]:
+def get_god_classes(gods: Gods) -> GodClasses:
     result = {god["Name"]: GodClass(god["Roles"]) for god in gods}
     return result
 

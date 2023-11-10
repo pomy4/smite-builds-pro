@@ -1,12 +1,18 @@
 import datetime
 import functools
+import json
 import typing as t
 from pathlib import Path
 
 import sqlalchemy as sa
 import sqlalchemy.orm as sao
 
-from backend.webapi.models import CURRENT_DB_VERSION, DbVersion, db_session
+from backend.webapi.models import (
+    CURRENT_DB_VERSION,
+    DbVersion,
+    db_session,
+    disable_foreign_keys,
+)
 from backend.webapi.simple_queries import (
     get_version,
     update_last_modified,
@@ -16,16 +22,18 @@ from backend.webapi.webapi import what_time_is_it
 
 
 def migrate_db() -> None:
-    with db_session.begin():
-        version_index = get_version().index
+    with disable_foreign_keys():
+        with db_session.begin():
+            version_index = get_version().index
 
-        if version_index == CURRENT_DB_VERSION.index:
-            return
+            if version_index == CURRENT_DB_VERSION.index:
+                return
 
-        add_version_table(version_index)
-        switch_to_sqlalchemy(version_index)
+            add_version_table(version_index)
+            switch_to_sqlalchemy(version_index)
+            add_god_class(version_index)
 
-        update_last_modified(what_time_is_it())
+            update_last_modified(what_time_is_it())
 
 
 Migration = t.Callable[[], None]
@@ -54,10 +62,16 @@ def result_to_list(result: sa.Result) -> list[dict[str, t.Any]]:
     return [dict(row_mapping) for row_mapping in result.mappings()]
 
 
-def drop_tables(tables: list[str]) -> None:
-    for table in tables:
-        # Bound parameters don't for table names.
-        db_session.execute(sa.text(f"DROP TABLE {table}"))
+def get_tables(table_names: list[str]) -> list[sa.Table]:
+    base: sao.DeclarativeBase = sao.declarative_base()
+    base.metadata.reflect(bind=db_session.connection())
+    return [base.metadata.tables[table_name] for table_name in table_names]
+
+
+def drop_tables(table_names: list[str]) -> None:
+    for table_name in table_names:
+        # Bound parameters don't work for table names.
+        db_session.execute(sa.text(f"DROP TABLE {table_name}"))
 
 
 def execute_migrations_script(script_name: str) -> None:
@@ -70,9 +84,27 @@ def execute_migrations_script(script_name: str) -> None:
         db_session.execute(sa.text(statement))
 
 
-@migration(DbVersion.ADD_VERSION_TABLE)
-def add_version_table() -> None:
-    raise RuntimeError("Migration not supported anymore")
+def load_json(json_name: str) -> t.Any:
+    migrations_dir = Path(__file__).parent / "migrations"
+    json_path = migrations_dir / json_name
+    json_str = json_path.read_text("utf8")
+    result = json.loads(json_str)
+    return result
+
+
+@migration(DbVersion.ADD_GOD_CLASS)
+def add_god_class() -> None:
+    old_build_table, *_ = get_tables(["build"])
+    builds = result_to_list(db_session.execute(sa.select(old_build_table)))
+    god_classes = load_json("03_god_classes.json")
+
+    for build in builds:
+        build["god_class"] = god_classes.get(build["god1"])
+
+    drop_tables(["build"])
+    execute_migrations_script("03_add_god_class.sql")
+    build_table, *_ = get_tables(["build"])
+    db_session.execute(sa.insert(build_table), builds)
 
 
 @migration(DbVersion.SWITCH_TO_SQLALCHEMY)
@@ -162,6 +194,11 @@ def switch_to_sqlalchemy() -> None:
     db_session.execute(sa.insert(item_table), list(items.values()))
     db_session.execute(sa.insert(build_table), builds)
     db_session.execute(sa.insert(build_item_table), build_items)
+
+
+@migration(DbVersion.ADD_VERSION_TABLE)
+def add_version_table() -> None:
+    raise RuntimeError("Migration not supported anymore")
 
 
 if __name__ == "__main__":

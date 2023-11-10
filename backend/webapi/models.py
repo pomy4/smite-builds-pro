@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import datetime
 import enum
 import typing as t
@@ -14,6 +15,7 @@ class DbVersion(enum.Enum):
     OLD = "0.old"
     ADD_VERSION_TABLE = "1.add_version_table"
     SWITCH_TO_SQLALCHEMY = "2.swich_to_sqlalchemy"
+    ADD_GOD_CLASS = "3.add_god_class"
 
     def __init__(self, value: str) -> None:
         self.index = int(value.split(".", 1)[0])
@@ -87,6 +89,9 @@ class Build(Base):
     deaths: sao.Mapped[int] = sao.mapped_column(sa.SmallInteger())
     assists: sao.Mapped[int] = sao.mapped_column(sa.SmallInteger())
     role: sao.Mapped[str] = sao.mapped_column(sa.String(STR_MAX_LEN))
+    god_class: sao.Mapped[str] = sao.mapped_column(
+        sa.String(STR_MAX_LEN), nullable=True
+    )
     god1: sao.Mapped[str] = sao.mapped_column(sa.String(STR_MAX_LEN))
     player1: sao.Mapped[str] = sao.mapped_column(sa.String(STR_MAX_LEN))
     team1: sao.Mapped[str] = sao.mapped_column(sa.String(STR_MAX_LEN))
@@ -112,6 +117,7 @@ indices = [
         unique=True,
     ),
     sa.Index("ix_build_role", Build.role),
+    sa.Index("ix_build_god_class", Build.god_class),
     sa.Index("ix_build_god1", Build.god1),
     sa.Index(
         "ix_build_unique",
@@ -133,9 +139,21 @@ def reorder_indices() -> None:
         ix.create(db_engine)
 
 
+_enforce_foreign_keys = True
+
+
+@contextlib.contextmanager
+def disable_foreign_keys() -> t.Iterator[None]:
+    global _enforce_foreign_keys
+    _enforce_foreign_keys = False
+    try:
+        yield None
+    finally:
+        _enforce_foreign_keys = True
+
+
 @sa.event.listens_for(sa.Engine, "connect")
 def do_connect(dbapi_connection: t.Any, _: t.Any) -> t.Any:
-    """ """
     # Transactional DDL
     # https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#serializable-isolation-savepoints-transactional-ddl
     dbapi_connection.isolation_level = None
@@ -143,7 +161,8 @@ def do_connect(dbapi_connection: t.Any, _: t.Any) -> t.Any:
     # This should make SQLite check foreign keys.
     # https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#foreign-key-support
     cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA foreign_keys=ON")
+    value = "ON" if _enforce_foreign_keys else "OFF"
+    cursor.execute(f"PRAGMA foreign_keys={value}")
     cursor.close()
 
 

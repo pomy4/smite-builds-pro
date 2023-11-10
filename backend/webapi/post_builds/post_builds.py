@@ -5,14 +5,13 @@ import typing as t
 import unicodedata
 
 import sqlalchemy as sa
-import sqlalchemy.exc as sae
 
 from backend.webapi.exceptions import MyValidationError
 from backend.webapi.get_builds import EVOLVED_PREFIX, GREATER_PREFIX, UPGRADE_SUFFIX
 from backend.webapi.models import Build, BuildItem, Item, db_session
 from backend.webapi.post_builds.auto_fixes_logger import auto_fixes_logger as logger
 from backend.webapi.post_builds.auto_fixes_logger import log_curr_game
-from backend.webapi.post_builds.fix_gods import fix_gods
+from backend.webapi.post_builds.fix_gods import add_god_classes, fix_gods
 from backend.webapi.post_builds.fix_roles import fix_roles
 from backend.webapi.post_builds.hirez_api import get_god_info
 from backend.webapi.post_builds.images import (
@@ -158,18 +157,16 @@ def post_builds_inner(build_models: list["PostBuildRequest"]) -> None:
 
     fix_roles(build_dicts)
     fix_gods(build_dicts, god_info.newest_god)
+    add_god_classes(build_dicts, god_info.god_classes)
 
     builds = [Build(**build_dict) for build_dict in build_dicts]
 
     for build in builds:
         db_session.add(build)
 
-    try:
-        db_session.flush()
-    except sae.IntegrityError as e:
-        raise MyValidationError(
-            "At least one of the builds is already in the database"
-        ) from e
+    # This can throw, most probably due to a build already existing in the database,
+    # which will cause a 500, which is fine, since it is an internal endpoint.
+    db_session.flush()
 
     for item_ids, build in zip(all_item_ids, builds):
         for item_id, index in item_ids:
