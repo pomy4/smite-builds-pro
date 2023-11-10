@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from backend.webapi.exceptions import MyValidationError
-from backend.webapi.post_builds.fix_roles import fix_roles_in_single_game
+from backend.webapi.post_builds.fix_roles import BuildDict, fix_roles_in_single_game
 
 builds_orig = [
     {
@@ -92,13 +92,13 @@ builds_orig = [
 ]
 
 
-def copy_builds() -> list[dict]:
+def copy_builds() -> list[BuildDict]:
     return copy.deepcopy(builds_orig)
 
 
 @dataclasses.dataclass
 class FixRolesParams:
-    builds: list[dict]
+    builds: list[BuildDict]
     val_error: bool = False
     success: bool = True
     mock: list[int] | None = None

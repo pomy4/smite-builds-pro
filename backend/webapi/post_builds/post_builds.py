@@ -10,12 +10,11 @@ import sqlalchemy.exc as sae
 from backend.webapi.exceptions import MyValidationError
 from backend.webapi.get_builds import EVOLVED_PREFIX, GREATER_PREFIX, UPGRADE_SUFFIX
 from backend.webapi.models import Build, BuildItem, Item, db_session
-from backend.webapi.post_builds.auto_fixes_logger import (
-    auto_fixes_logger,
-    log_curr_game,
-)
+from backend.webapi.post_builds.auto_fixes_logger import auto_fixes_logger as logger
+from backend.webapi.post_builds.auto_fixes_logger import log_curr_game
 from backend.webapi.post_builds.fix_gods import fix_gods
 from backend.webapi.post_builds.fix_roles import fix_roles
+from backend.webapi.post_builds.hirez_api import get_god_info
 from backend.webapi.post_builds.images import (
     compress_and_base64_image_or_none,
     get_image_or_none,
@@ -29,16 +28,18 @@ if t.TYPE_CHECKING:
 def post_builds(builds: list[PostBuildRequest]) -> None:
     """Logging wrapper."""
     try:
-        auto_fixes_logger.info("Start")
+        logger.info("Start")
         post_builds_inner(builds)
     except Exception:
-        auto_fixes_logger.info("End (FAIL)")
+        logger.info("End (FAIL)")
         raise
     else:
-        auto_fixes_logger.info("End")
+        logger.info("End")
 
 
 def post_builds_inner(build_models: list["PostBuildRequest"]) -> None:
+    god_info = get_god_info()
+
     # For now just work with dicts.
     build_dicts = [build_model.dict() for build_model in build_models]
 
@@ -74,14 +75,14 @@ def post_builds_inner(build_models: list["PostBuildRequest"]) -> None:
         if image_data is None and (
             backup_image_name := (BACKUP_IMAGE_NAMES).get(image_name)
         ):
-            auto_fixes_logger.info(f"ImageBkp|{image_name} -> {backup_image_name}")
+            logger.info(f"ImageBkp|{image_name} -> {backup_image_name}")
             # image_name is not updated here, so that if HiRez fixes the URL,
             # it will not create a new item in the database
             # (unless HiRez also changes the image).
             image_data = get_image_or_none(backup_image_name)
 
         if image_data is None:
-            auto_fixes_logger.warning(f"Missing image: {image_name}")
+            logger.warning(f"Missing image: {image_name}")
             b64_image_data, was_compressed = None, False
         else:
             (
@@ -156,7 +157,7 @@ def post_builds_inner(build_models: list["PostBuildRequest"]) -> None:
         all_item_ids.append(item_ids)
 
     fix_roles(build_dicts)
-    fix_gods(build_dicts)
+    fix_gods(build_dicts, god_info.newest_god)
 
     builds = [Build(**build_dict) for build_dict in build_dicts]
 
@@ -224,7 +225,7 @@ def fix_image_name(name: str, image_name: str) -> str:
     """
     image_name_split = image_name.rsplit(".", 1)
     if len(image_name_split) == 1:
-        auto_fixes_logger.warning(f"No extension: {image_name}")
+        logger.warning(f"No extension: {image_name}")
         return image_name
     _, ext = image_name_split
 
@@ -232,7 +233,7 @@ def fix_image_name(name: str, image_name: str) -> str:
     fixed_image_name = f"{slug}.{ext}"
 
     if fixed_image_name != image_name:
-        auto_fixes_logger.info(f"Image|{image_name} -> {fixed_image_name}")
+        logger.info(f"Image|{image_name} -> {fixed_image_name}")
 
     return fixed_image_name
 
@@ -249,7 +250,7 @@ def fix_player_name(player_names: dict[str, str], player_name_with_accents: str)
     else:
         existing_player_name = player_names[player_name_upper]
         if player_name != existing_player_name:
-            auto_fixes_logger.info(f"Player|{player_name} -> {existing_player_name}")
+            logger.info(f"Player|{player_name} -> {existing_player_name}")
         return existing_player_name
 
 

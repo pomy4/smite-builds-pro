@@ -1,15 +1,14 @@
 import collections
+import typing as t
 
 import sqlalchemy as sa
 
 from backend.webapi.exceptions import MyValidationError
 from backend.webapi.models import Build, db_session
-from backend.webapi.post_builds.auto_fixes_logger import (
-    auto_fixes_logger,
-    log_curr_game,
-)
+from backend.webapi.post_builds.auto_fixes_logger import auto_fixes_logger as logger
+from backend.webapi.post_builds.auto_fixes_logger import log_curr_game
 
-BuildDict = dict
+BuildDict = dict[str, t.Any]
 
 
 def fix_roles(builds: list[BuildDict]) -> None:
@@ -102,10 +101,10 @@ def fix_roles_in_single_team(
     if not (len(fixable_roles) == 1 and len(unfixable_roles) == 0):
         for role in fixable_roles + unfixable_roles:
             if role == MISSING_ROLE:
-                auto_fixes_logger.info("Missing build")
+                logger.info("Missing build")
             else:
                 role_builds = role_to_builds[role]
-                auto_fixes_logger.warning(f"Wrong role: {role} ({len(role_builds)})")
+                logger.warning(f"Wrong role: {role} ({len(role_builds)})")
         return [], correct_role_to_build
 
     role_to_fix = fixable_roles[0]
@@ -135,10 +134,10 @@ def fix_roles_in_single_team(
             build_to_fix = build2
         else:
             # If both played the same number, we stop here without auto-fixing.
-            auto_fixes_logger.warning(f"Wrong role: {role_to_fix} (2) [{count1}]")
+            logger.warning(f"Wrong role: {role_to_fix} (2) [{count1}]")
             return [], correct_role_to_build
 
-    auto_fixes_logger.info(f"Role|{role_to_fix} -> {missing_role}")
+    logger.info(f"Role|{role_to_fix} -> {missing_role}")
     build_to_fix["role"] = missing_role
     correct_role_to_build[missing_role] = build_to_fix
     return [build_to_fix], correct_role_to_build
@@ -165,7 +164,7 @@ def fix_opp_fields(
             continue
         opp_build = role_to_opp_build[role]
 
-        auto_fixes_logger.info(f"God2|{build['god2']} -> {opp_build['god1']}")
+        logger.info(f"God2|{build['god2']} -> {opp_build['god1']}")
         build["god2"] = opp_build["god1"]
-        auto_fixes_logger.info(f"Player2|{build['player2']} -> {opp_build['player1']}")
+        logger.info(f"Player2|{build['player2']} -> {opp_build['player1']}")
         build["player2"] = opp_build["player1"]

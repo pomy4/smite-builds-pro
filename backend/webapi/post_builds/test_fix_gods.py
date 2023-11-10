@@ -1,11 +1,10 @@
 import copy
 import dataclasses
 import typing as t
-from unittest.mock import Mock, patch
 
 import pytest
 
-from backend.webapi.post_builds.fix_gods import contains_digits, fix_gods
+from backend.webapi.post_builds.fix_gods import BuildDict, contains_digits, fix_gods
 
 contains_digits_params = [
     ("", False),
@@ -38,29 +37,27 @@ builds_orig = [
 
 @dataclasses.dataclass
 class FixGodsParam:
-    builds: list[dict]
-    side_effect: list[str] | Exception
+    builds: list[BuildDict]
+    newest_god: str | None
 
 
-def copy_builds() -> list[dict]:
+def copy_builds() -> list[BuildDict]:
     return copy.deepcopy(builds_orig)
 
 
 def fix_gods_params_gen() -> t.Iterator[FixGodsParam]:
     # Nothing wrong.
     builds = copy_builds()
-    yield FixGodsParam(builds, RuntimeError("Shouldn't be called"))
+    yield FixGodsParam(builds, "god-three")
 
     # Fixable.
     builds = copy_builds()
     builds[0]["god1"] = "god1"
     builds[1]["god2"] = "god1"
-    yield FixGodsParam(builds, ["god-one"])
+    yield FixGodsParam(builds, "god-one")
 
 
 @pytest.mark.parametrize("p", fix_gods_params_gen())
-@patch("backend.webapi.post_builds.fix_gods.get_newest_god")
-def test_fix_gods(mock: Mock, p: FixGodsParam) -> None:
-    mock.side_effect = p.side_effect
-    fix_gods(p.builds)
+def test_fix_gods(p: FixGodsParam) -> None:
+    fix_gods(p.builds, p.newest_god)
     assert p.builds == builds_orig
