@@ -50,6 +50,12 @@
           v-bind:options="options.role"
           label="Role"
         ></MySelect>
+        <MySelect
+          id="basic-god-class"
+          v-model:items="basicControls.godClass.state"
+          v-bind:options="options.god_class"
+          label="Class"
+        ></MySelect>
         <button
           class="button"
           style="margin-left: 2rem"
@@ -161,6 +167,13 @@
           v-model:items="advancedControls.role.state"
           v-bind:options="options.role"
           label="Roles"
+          multiple
+        ></MySelect>
+        <MySelect
+          id="god-clas"
+          v-model:items="advancedControls.godClass.state"
+          v-bind:options="options.god_class"
+          label="Classes"
           multiple
         ></MySelect>
         <MySelect
@@ -314,6 +327,7 @@ const options = ref<Nullable<Options>>({
   deaths: null,
   assists: null,
   role: null,
+  god_class: null,
   team1: null,
   player1: null,
   god1: null,
@@ -363,6 +377,11 @@ interface Control {
 const basicControls = ref({
   god: { state: [], clientUrl: "god~", serverUrl: "god1" } as Control,
   role: { state: [], clientUrl: "role~" } as Control,
+  godClass: {
+    state: [],
+    clientUrl: "god_class~",
+    serverUrl: "god_class",
+  } as Control,
 });
 
 const advancedControls = ref({
@@ -378,6 +397,7 @@ const advancedControls = ref({
   deaths: { state: [] } as Control,
   assists: { state: [] } as Control,
   role: { state: [] } as Control,
+  godClass: { state: [], url: "god_class" } as Control,
   team1: { state: [] } as Control,
   player1: { state: [] } as Control,
   god1: { state: [] } as Control,

@@ -64,6 +64,9 @@ def get_options() -> dict[str, t.Any]:
     res["role"] = db_session.scalars(
         sa.select(Build.role).distinct().order_by(Build.role.asc())
     ).all()
+    res["god_class"] = db_session.scalars(
+        sa.select(Build.god_class).distinct().order_by(Build.god_class.asc())
+    ).all()
     res["team1"] = db_session.scalars(
         sa.select(Build.team1).distinct().order_by(Build.team1.asc())
     ).all()

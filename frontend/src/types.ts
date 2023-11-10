@@ -21,6 +21,7 @@ export interface Options {
   deaths: [number, number];
   assists: [number, number];
   role: string[];
+  god_class: string[];
   team1: string[];
   player1: string[];
   god1: string[];

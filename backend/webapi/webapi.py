@@ -314,6 +314,7 @@ class GetBuildsRequest(pd.BaseModel):
     deaths: t.Annotated[tuple[int, int] | None, WhereStrat.RANGE]
     assists: t.Annotated[tuple[int, int] | None, WhereStrat.RANGE]
     role: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
+    god_class: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
     god1: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
     player1: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
     team1: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
