@@ -300,26 +300,26 @@ else:
 
 class GetBuildsRequest(pd.BaseModel):
     page: tuple[MyInt]
-    season: t.Annotated[list[MyInt] | None, WhereStrat.match]
-    league: t.Annotated[list[MyStr] | None, WhereStrat.match]
-    phase: t.Annotated[list[MyStr] | None, WhereStrat.match]
-    date: t.Annotated[tuple[datetime.date, datetime.date] | None, WhereStrat.range]
-    game_i: t.Annotated[list[MyInt] | None, WhereStrat.match]
+    season: t.Annotated[list[MyInt] | None, WhereStrat.MATCH]
+    league: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
+    phase: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
+    date: t.Annotated[tuple[datetime.date, datetime.date] | None, WhereStrat.RANGE]
+    game_i: t.Annotated[list[MyInt] | None, WhereStrat.MATCH]
     game_length: t.Annotated[
-        tuple[datetime.time, datetime.time] | None, WhereStrat.range
+        tuple[datetime.time, datetime.time] | None, WhereStrat.RANGE
     ]
-    win: t.Annotated[list[bool] | None, WhereStrat.match]
-    kda_ratio: t.Annotated[tuple[float, float] | None, WhereStrat.range]
-    kills: t.Annotated[tuple[int, int] | None, WhereStrat.range]
-    deaths: t.Annotated[tuple[int, int] | None, WhereStrat.range]
-    assists: t.Annotated[tuple[int, int] | None, WhereStrat.range]
-    role: t.Annotated[list[MyStr] | None, WhereStrat.match]
-    player1: t.Annotated[list[MyStr] | None, WhereStrat.match]
-    god1: t.Annotated[list[MyStr] | None, WhereStrat.match]
-    team1: t.Annotated[list[MyStr] | None, WhereStrat.match]
-    player2: t.Annotated[list[MyStr] | None, WhereStrat.match]
-    god2: t.Annotated[list[MyStr] | None, WhereStrat.match]
-    team2: t.Annotated[list[MyStr] | None, WhereStrat.match]
+    win: t.Annotated[list[bool] | None, WhereStrat.MATCH]
+    kda_ratio: t.Annotated[tuple[float, float] | None, WhereStrat.RANGE]
+    kills: t.Annotated[tuple[int, int] | None, WhereStrat.RANGE]
+    deaths: t.Annotated[tuple[int, int] | None, WhereStrat.RANGE]
+    assists: t.Annotated[tuple[int, int] | None, WhereStrat.RANGE]
+    role: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
+    god1: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
+    player1: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
+    team1: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
+    god2: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
+    player2: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
+    team2: t.Annotated[list[MyStr] | None, WhereStrat.MATCH]
     relic: list[MyStr] | None
     item: list[MyStr] | None
 

@@ -1,4 +1,5 @@
 import enum
+import logging
 import typing as t
 
 import sqlalchemy as sa
@@ -10,10 +11,12 @@ from backend.webapi.models import Build, BuildItem, Item, db_session
 if t.TYPE_CHECKING:
     from backend.webapi.webapi import GetBuildsRequest
 
+logger = logging.getLogger(__name__)
+
 
 class WhereStrat(enum.Enum):
-    match = enum.auto()
-    range = enum.auto()
+    MATCH = enum.auto()
+    RANGE = enum.auto()
 
 
 def get_builds(builds_query: "GetBuildsRequest") -> t.Any:
@@ -38,12 +41,14 @@ def get_builds(builds_query: "GetBuildsRequest") -> t.Any:
                 where.append(Build.id.in_(subq))
         else:
             where_strat = t.get_args(types[key])[1]
-            if where_strat == WhereStrat.match:
+            if where_strat == WhereStrat.MATCH:
                 where.append(getattr(Build, key).in_(vals))
-            else:  # where_strat == WhereStrat.range:
+            elif where_strat == WhereStrat.RANGE:
                 tmp = getattr(Build, key)
                 where.append(vals[0] <= tmp)
                 where.append(tmp <= vals[1])
+            else:
+                logger.warning(f"Unknown where_strat: {where_strat}")
 
     if page != 1:
         count = None
