@@ -1,9 +1,6 @@
-import typing as t
-
 from backend.webapi.post_builds.auto_fixes_logger import auto_fixes_logger as logger
+from backend.webapi.post_builds.create_items import BuildDict
 from backend.webapi.post_builds.hirez_api import GodClasses, NewestGod
-
-BuildDict = dict[str, t.Any]
 
 
 def fix_gods(builds: list[BuildDict], newest_god: NewestGod | None) -> None:
@@ -27,10 +24,10 @@ def fix_gods(builds: list[BuildDict], newest_god: NewestGod | None) -> None:
         return
 
     for build_i, old_god in suspicious_gods1:
-        logger.info(f"God1|{old_god} -> {newest_god}")
+        logger.info(f"God1: {old_god} -> {newest_god}")
         builds[build_i]["god1"] = newest_god
     for build_i, old_god in suspicious_gods2:
-        logger.info(f"God2|{old_god} -> {newest_god}")
+        logger.info(f"God2: {old_god} -> {newest_god}")
         builds[build_i]["god2"] = newest_god
 
 

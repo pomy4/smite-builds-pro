@@ -1,3 +1,4 @@
+import ast
 import os
 from pathlib import Path
 
@@ -21,6 +22,10 @@ class WebapiConfig(WebapiUpdaterConfig):
 
         self.smite_dev_id = get_required_env_var("SMITE_DEV_ID")
         self.smite_auth_key = get_required_env_var("SMITE_AUTH_KEY")
+        # If needed, change to a config file.
+        self.backup_item_names = ast.literal_eval(
+            os.environ.get("BACKUP_ITEM_NAMES", "{}")
+        )
 
 
 class UpdaterConfig(WebapiUpdaterConfig):

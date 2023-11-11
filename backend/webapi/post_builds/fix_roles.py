@@ -1,5 +1,4 @@
 import collections
-import typing as t
 
 import sqlalchemy as sa
 
@@ -7,8 +6,7 @@ from backend.webapi.exceptions import MyValidationError
 from backend.webapi.models import Build, db_session
 from backend.webapi.post_builds.auto_fixes_logger import auto_fixes_logger as logger
 from backend.webapi.post_builds.auto_fixes_logger import log_curr_game
-
-BuildDict = dict[str, t.Any]
+from backend.webapi.post_builds.create_items import BuildDict
 
 
 def fix_roles(builds: list[BuildDict]) -> None:
@@ -137,7 +135,7 @@ def fix_roles_in_single_team(
             logger.warning(f"Wrong role: {role_to_fix} (2) [{count1}]")
             return [], correct_role_to_build
 
-    logger.info(f"Role|{role_to_fix} -> {missing_role}")
+    logger.info(f"Role: {role_to_fix} -> {missing_role}")
     build_to_fix["role"] = missing_role
     correct_role_to_build[missing_role] = build_to_fix
     return [build_to_fix], correct_role_to_build
@@ -164,7 +162,7 @@ def fix_opp_fields(
             continue
         opp_build = role_to_opp_build[role]
 
-        logger.info(f"God2|{build['god2']} -> {opp_build['god1']}")
+        logger.info(f"God2: {build['god2']} -> {opp_build['god1']}")
         build["god2"] = opp_build["god1"]
-        logger.info(f"Player2|{build['player2']} -> {opp_build['player1']}")
+        logger.info(f"Player2: {build['player2']} -> {opp_build['player1']}")
         build["player2"] = opp_build["player1"]

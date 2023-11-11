@@ -1,6 +1,4 @@
-import base64
 import io
-import logging
 import time
 import urllib.error
 import urllib.request
@@ -8,21 +6,18 @@ import urllib.request
 import PIL.Image
 
 from backend.shared import IMG_URL, STORAGE_DIR, delay
-from backend.webapi.models import Item
-
-logger = logging.getLogger(__name__)
+from backend.webapi.post_builds.auto_fixes_logger import auto_fixes_logger as logger
 
 
 def get_image_or_none(image_name: str) -> bytes | None:
     start = time.time()
     try:
         ret = get_image(image_name)
-        logger.info(f"Download success: {image_name}")
+        print(f"Download success: {image_name}")
     except urllib.error.URLError:
-        logger.warning(f"Download fail: {image_name}")
         ret = None
-    print(image_name)
-    delay(0.25, start)
+        logger.warning(f"Download fail: {image_name}", exc_info=True)
+    delay(0.20, start)
     return ret
 
 
@@ -34,17 +29,18 @@ def get_image(image_name: str) -> bytes:
         return f.read()
 
 
-def compress_and_base64_image_or_none(
-    image_data: bytes,
-) -> tuple[bytes | None, bool]:
+def compress_image_ignore_errors(
+    image_name: str, image_data: bytes
+) -> tuple[bytes, bool]:
     try:
-        return compress_and_base64_image(image_data)
+        return compress_image(image_data)
     # OSError can be thrown while saving as JPEG.
     except (PIL.UnidentifiedImageError, OSError):
-        return None, False
+        logger.warning(f"Failed to compress: {image_name}", exc_info=True)
+        return image_data, False
 
 
-def compress_and_base64_image(image_data: bytes) -> tuple[bytes, bool]:
+def compress_image(image_data: bytes) -> tuple[bytes, bool]:
     image = PIL.Image.open(io.BytesIO(image_data))
     min_side = min(image.size)
 
@@ -61,10 +57,10 @@ def compress_and_base64_image(image_data: bytes) -> tuple[bytes, bool]:
     else:
         was_compressed = False
 
-    return base64.b64encode(image_data), was_compressed
+    return image_data, was_compressed
 
 
-def save_item_icon_to_archive(item: Item, image_data: bytes) -> None:
+def save_icon_to_archive(image_id: int, image_name: str, image_data: bytes) -> None:
     item_icons_archive_dir = STORAGE_DIR / "item_icons_archive"
-    image_path = item_icons_archive_dir / f"{item.id:0>5}-{item.image_name}"
+    image_path = item_icons_archive_dir / f"{image_id:0>5}-{image_name}"
     image_path.write_bytes(image_data)

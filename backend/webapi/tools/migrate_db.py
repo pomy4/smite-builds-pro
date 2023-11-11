@@ -32,6 +32,7 @@ def migrate_db() -> None:
             add_version_table(version_index)
             switch_to_sqlalchemy(version_index)
             add_god_class(version_index)
+            add_image_table(version_index)
 
             update_last_modified(what_time_is_it())
 
@@ -54,21 +55,28 @@ def migration(db_version: DbVersion) -> t.Callable[[Migration], WrappedMigration
     return outer_wrapper
 
 
-def result_to_dict(result: sa.Result) -> dict[int, dict[str, t.Any]]:
-    return {row_mapping["id"]: dict(row_mapping) for row_mapping in result.mappings()}
+def load_to_dict(table: sa.Table) -> dict[int, dict[str, t.Any]]:
+    return {
+        row_mapping["id"]: dict(row_mapping)
+        for row_mapping in select_all(table).mappings()
+    }
 
 
-def result_to_list(result: sa.Result) -> list[dict[str, t.Any]]:
-    return [dict(row_mapping) for row_mapping in result.mappings()]
+def load_to_list(table: sa.Table) -> list[dict[str, t.Any]]:
+    return [dict(row_mapping) for row_mapping in select_all(table).mappings()]
 
 
-def get_tables(table_names: list[str]) -> list[sa.Table]:
+def select_all(table: sa.Table) -> sa.Result:
+    return db_session.execute(sa.select(table))
+
+
+def get_tables(*table_names: str) -> list[sa.Table]:
     base: sao.DeclarativeBase = sao.declarative_base()
     base.metadata.reflect(bind=db_session.connection())
     return [base.metadata.tables[table_name] for table_name in table_names]
 
 
-def drop_tables(table_names: list[str]) -> None:
+def drop_tables(*table_names: str) -> None:
     for table_name in table_names:
         # Bound parameters don't work for table names.
         db_session.execute(sa.text(f"DROP TABLE {table_name}"))
@@ -92,40 +100,63 @@ def load_json(json_name: str) -> t.Any:
     return result
 
 
+def save_into_tables(**datas: list | dict) -> None:
+    tables = get_tables(*datas.keys())
+    for table, data in zip(tables, datas.values()):
+        if isinstance(data, dict):
+            data = list(data.values())
+        db_session.execute(sa.insert(table), data)
+
+
+@migration(DbVersion.ADD_IMAGE_TABLE)
+def add_image_table() -> None:
+    item_table, *_ = get_tables("item")
+    items = load_to_list(item_table)
+
+    images: dict[bytes, int] = {}
+    for item in sorted(items, key=lambda x: x["id"]):
+        image_data: bytes = item.pop("image_data")
+        image_id = images.get(image_data)
+        if image_id is None:
+            image_id = item["id"]
+            images[image_data] = image_id
+        else:
+            print(f"Duplicate image: {item['id']} {image_id}")
+        item["image_id"] = image_id
+
+    images_final = [
+        {"id": image_id, "data": image_data} for image_data, image_id in images.items()
+    ]
+
+    drop_tables("item")
+    execute_migrations_script("04_add_image_table.sql")
+    save_into_tables(item=items, image=images_final)
+
+
 @migration(DbVersion.ADD_GOD_CLASS)
 def add_god_class() -> None:
-    old_build_table, *_ = get_tables(["build"])
-    builds = result_to_list(db_session.execute(sa.select(old_build_table)))
+    build_table, *_ = get_tables("build")
+    builds = load_to_list(build_table)
     god_classes = load_json("03_god_classes.json")
 
     for build in builds:
         build["god_class"] = god_classes.get(build["god1"])
 
-    drop_tables(["build"])
+    drop_tables("build")
     execute_migrations_script("03_add_god_class.sql")
-    build_table, *_ = get_tables(["build"])
-    db_session.execute(sa.insert(build_table), builds)
+    save_into_tables(build=builds)
 
 
 @migration(DbVersion.SWITCH_TO_SQLALCHEMY)
 def switch_to_sqlalchemy() -> None:
     # get all data
-    old_base: sao.DeclarativeBase = sao.declarative_base()
-    old_base.metadata.reflect(bind=db_session.connection())
-
-    old_last_modified_table = old_base.metadata.tables["last_modified"]
-    old_last_checked_table = old_base.metadata.tables["last_checked"]
-    old_item_table = old_base.metadata.tables["item"]
-    old_build_table = old_base.metadata.tables["build"]
-
-    last_modifieds = result_to_dict(
-        db_session.execute(sa.select(old_last_modified_table))
+    last_modified_table, last_checked_table, item_table, build_table = get_tables(
+        "last_modified", "last_checked", "item", "build"
     )
-    last_checkeds = result_to_dict(
-        db_session.execute(sa.select(old_last_checked_table))
-    )
-    items = result_to_dict(db_session.execute(sa.select(old_item_table)))
-    builds = result_to_list(db_session.execute(sa.select(old_build_table)))
+    last_modifieds = load_to_dict(last_modified_table)
+    last_checkeds = load_to_dict(last_checked_table)
+    items = load_to_dict(item_table)
+    builds = load_to_list(build_table)
 
     # make metadata
     last_modified = last_modifieds[1]["data"]
@@ -176,24 +207,15 @@ def switch_to_sqlalchemy() -> None:
             del build[k]
 
     # drop old data
-    drop_tables(["last_modified", "last_checked", "version", "build", "item"])
+    drop_tables("last_modified", "last_checked", "version", "build", "item")
 
     # make new tables
     execute_migrations_script("02_switch_to_sqlalchemy.sql")
 
     # bulk insert new data
-    base: sao.DeclarativeBase = sao.declarative_base()
-    base.metadata.reflect(bind=db_session.connection())
-
-    metadata_table = base.metadata.tables["metadata"]
-    item_table = base.metadata.tables["item"]
-    build_table = base.metadata.tables["build"]
-    build_item_table = base.metadata.tables["build_item"]
-
-    db_session.execute(sa.insert(metadata_table), metadatas)
-    db_session.execute(sa.insert(item_table), list(items.values()))
-    db_session.execute(sa.insert(build_table), builds)
-    db_session.execute(sa.insert(build_item_table), build_items)
+    save_into_tables(
+        metadata=metadatas, item=items, build=builds, build_items=build_items
+    )
 
 
 @migration(DbVersion.ADD_VERSION_TABLE)

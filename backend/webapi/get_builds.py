@@ -6,7 +6,7 @@ import sqlalchemy as sa
 import sqlalchemy.orm as sao
 
 from backend.shared import league_factory
-from backend.webapi.models import Build, BuildItem, Item, db_session
+from backend.webapi.models import Build, BuildItem, Image, Item, db_session
 
 if t.TYPE_CHECKING:
     from backend.webapi.webapi import GetBuildsRequest
@@ -80,8 +80,9 @@ def get_builds(builds_query: "GetBuildsRequest") -> t.Any:
         .where(Build.id.in_(final_subq))
         .outerjoin(BuildItem, Build.id == BuildItem.build_id)
         .join(Item, BuildItem.item_id == Item.id)
+        .join(Image, Item.image_id == Image.id)
         .order_by(*build_order_by)
-        .options(sao.contains_eager(Build.build_items, BuildItem.item))
+        .options(sao.contains_eager(Build.build_items, BuildItem.item, Item.image))
     ).unique()
 
     build_dicts = []
@@ -100,7 +101,7 @@ def get_builds(builds_query: "GetBuildsRequest") -> t.Any:
             item_dict: dict[str, t.Any] = {}
             item_dict["name"] = unmodify_item_name(item.name, item.name_was_modified)
             item_dict["image_name"] = item.image_name
-            item_dict["image_data"] = item.image_data
+            item_dict["image_data"] = item.image.data if item.image else None
             key = "relics" if item.is_relic else "items"
             build_dict[key][build_item.index] = item_dict
 

@@ -16,6 +16,7 @@ class DbVersion(enum.Enum):
     ADD_VERSION_TABLE = "1.add_version_table"
     SWITCH_TO_SQLALCHEMY = "2.swich_to_sqlalchemy"
     ADD_GOD_CLASS = "3.add_god_class"
+    ADD_IMAGE_TABLE = "4.add_image_table"
 
     def __init__(self, value: str) -> None:
         self.index = int(value.split(".", 1)[0])
@@ -60,6 +61,14 @@ class BuildItem(Base):
     index: sao.Mapped[int] = sao.mapped_column(sa.SmallInteger())
 
 
+class Image(Base):
+    __tablename__ = "image"
+
+    id: sao.Mapped[int] = sao.mapped_column(primary_key=True, init=False)
+    # Uniqueness is enforced on the application side, to save on database size.
+    data: sao.Mapped[bytes] = sao.mapped_column(sa.LargeBinary)
+
+
 class Item(Base):
     __tablename__ = "item"
 
@@ -68,7 +77,8 @@ class Item(Base):
     name: sao.Mapped[str] = sao.mapped_column(sa.String(STR_MAX_LEN))
     name_was_modified: sao.Mapped[int] = sao.mapped_column(sa.SmallInteger())
     image_name: sao.Mapped[str] = sao.mapped_column(sa.String(STR_MAX_LEN))
-    image_data: sao.Mapped[bytes | None] = sao.mapped_column(sa.LargeBinary)
+    image_id: sao.Mapped[int | None] = sao.mapped_column(sa.ForeignKey("image.id"))
+    image: sao.Mapped[Image | None] = sao.relationship(lazy="raise", init=False)
 
 
 class Build(Base):
@@ -107,13 +117,14 @@ class Build(Base):
 indices = [
     sa.Index("ix_build_item_build_id", BuildItem.build_id),
     sa.Index("ix_build_item_item_id", BuildItem.item_id),
+    sa.Index("ix_item_image_id", Item.image_id),
     sa.Index(
         "ix_item_unique",
         Item.is_relic,
         Item.name,
         Item.name_was_modified,
         Item.image_name,
-        Item.image_data,
+        Item.image_id,
         unique=True,
     ),
     sa.Index("ix_build_role", Build.role),
