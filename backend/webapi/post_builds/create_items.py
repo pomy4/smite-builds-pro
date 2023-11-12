@@ -147,7 +147,9 @@ def get_or_create_item(item_wip: ItemWip) -> Item:
         logger.warning(f"Missing image: {item_wip.image_name}")
         image_id = None
     else:
-        image_id = get_or_create_image(item_wip.image_name, item_wip.image_data)
+        image_id, was_new_image = get_or_create_image(
+            item_wip.image_name, item_wip.image_data
+        )
 
     modified_name, name_was_modified = modify_item_name(
         item_wip.key.is_relic, item_wip.key.name
@@ -176,10 +178,21 @@ def get_or_create_item(item_wip: ItemWip) -> Item:
     db_session.add(new_item)
     db_session.flush()
 
+    # Item and image IDs can get out of sync due to image reusal, so this makes sure
+    # that new images have the same IDs as the item that created them (for aesthetic
+    # reasons).
+    if was_new_image and new_item.id != image_id:
+        new_image = db_session.scalars(
+            sa.select(Image).where(Image.id == image_id)
+        ).one()
+        new_image.id = new_item.id
+        new_item.image_id = new_item.id
+        db_session.flush()
+
     return new_item
 
 
-def get_or_create_image(image_name: str, image_data: bytes) -> int:
+def get_or_create_image(image_name: str, image_data: bytes) -> tuple[int, bool]:
     compressed_image_data, was_compressed = compress_image_ignore_errors(
         image_name, image_data
     )
@@ -191,7 +204,7 @@ def get_or_create_image(image_name: str, image_data: bytes) -> int:
     if was_compressed and was_new:
         save_icon_to_archive(image_id, image_name, image_data)
 
-    return image_id
+    return image_id, was_new
 
 
 def get_or_create_image_inner(image_data: bytes) -> tuple[int, bool]:
