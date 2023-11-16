@@ -78,9 +78,11 @@ def get_builds(builds_query: "GetBuildsRequest") -> t.Any:
     builds_iter = db_session.scalars(
         sa.select(Build)
         .where(Build.id.in_(final_subq))
+        # Outer for builds with no items.
         .outerjoin(BuildItem, Build.id == BuildItem.build_id)
         .join(Item, BuildItem.item_id == Item.id)
-        .join(Image, Item.image_id == Image.id)
+        # Outer for items without an image.
+        .outerjoin(Image, Item.image_id == Image.id)
         .order_by(*build_order_by)
         .options(sao.contains_eager(Build.build_items, BuildItem.item, Item.image))
     ).unique()
@@ -100,7 +102,6 @@ def get_builds(builds_query: "GetBuildsRequest") -> t.Any:
             item = build_item.item
             item_dict: dict[str, t.Any] = {}
             item_dict["name"] = unmodify_item_name(item.name, item.name_was_modified)
-            item_dict["image_name"] = item.image_name
             item_dict["image_data"] = item.image.data if item.image else None
             key = "relics" if item.is_relic else "items"
             build_dict[key][build_item.index] = item_dict

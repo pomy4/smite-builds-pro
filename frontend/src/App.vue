@@ -272,7 +272,8 @@ import {
 import MyBuild from "./MyBuild.vue";
 import MySelect from "./MySelect.vue";
 import MySlider from "./MySlider.vue";
-import emptyImageUrl from "/images/empty.png";
+import emptyImageUrl from "/images/empty_image.png";
+import errorImageUrl from "/images/error_image.png";
 
 const fetchOrThrow = async (url: string) => {
   let response = await fetch(url);
@@ -549,11 +550,7 @@ const handleImg = (item: UnparsedItem | null): Item => {
         src: "data:image/png;base64," + item.image_data,
       };
     } else {
-      return {
-        name: item.name,
-        src:
-          "https://webcdn.hirezstudios.com/smite/item-icons/" + item.image_name,
-      };
+      return { name: item.name, src: errorImageUrl };
     }
   } else {
     return { name: "Empty", src: emptyImageUrl };
