@@ -33,6 +33,7 @@ def migrate_db() -> None:
             switch_to_sqlalchemy(version_index)
             add_god_class(version_index)
             add_image_table(version_index)
+            cascade_del_build_items(version_index)
 
             update_last_modified(what_time_is_it())
 
@@ -131,6 +132,15 @@ def add_image_table() -> None:
     drop_tables("item")
     execute_migrations_script("04_add_image_table.sql")
     save_into_tables(item=items, image=images_final)
+
+
+@migration(DbVersion.CASCADE_DEL_BUILD_ITEMS)
+def cascade_del_build_items() -> None:
+    build_item_table, *_ = get_tables("build_item")
+    build_items = load_to_list(build_item_table)
+    drop_tables("build_item")
+    execute_migrations_script("05_cascade_del_build_items.sql")
+    save_into_tables(build_item=build_items)
 
 
 @migration(DbVersion.ADD_GOD_CLASS)

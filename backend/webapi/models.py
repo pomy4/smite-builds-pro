@@ -17,6 +17,7 @@ class DbVersion(enum.Enum):
     SWITCH_TO_SQLALCHEMY = "2.swich_to_sqlalchemy"
     ADD_GOD_CLASS = "3.add_god_class"
     ADD_IMAGE_TABLE = "4.add_image_table"
+    CASCADE_DEL_BUILD_ITEMS = "5.cascade_del_build_items"
 
     def __init__(self, value: str) -> None:
         self.index = int(value.split(".", 1)[0])
@@ -52,7 +53,7 @@ class BuildItem(Base):
     __tablename__ = "build_item"
 
     build_id: sao.Mapped[int] = sao.mapped_column(
-        sa.ForeignKey("build.id"), primary_key=True
+        sa.ForeignKey("build.id", ondelete="CASCADE"), primary_key=True
     )
     item_id: sao.Mapped[int] = sao.mapped_column(
         sa.ForeignKey("item.id"), primary_key=True
@@ -109,8 +110,11 @@ class Build(Base):
     player2: sao.Mapped[str] = sao.mapped_column(sa.String(STR_MAX_LEN))
     team2: sao.Mapped[str] = sao.mapped_column(sa.String(STR_MAX_LEN))
 
+    # When a build is deleted, related build_items are also deleted.
+    # https://docs.sqlalchemy.org/en/20/orm/cascades.html#using-foreign-key-on-delete-cascade-with-orm-relationships
+    # Also https://stackoverflow.com/a/38770040
     build_items: sao.Mapped[list[BuildItem]] = sao.relationship(
-        lazy="raise", init=False
+        lazy="raise", init=False, cascade="all", passive_deletes=True
     )
 
 
