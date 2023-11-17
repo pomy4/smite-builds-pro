@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import dataclasses as dc
 import datetime as dt
+import io
+import math
+import statistics as stat
 import typing as t
 from pathlib import Path
 
 import flask
+import PIL.Image as PI
 import sqlalchemy as sa
 import sqlalchemy.orm as sao
 
@@ -116,6 +121,12 @@ def images() -> t.Any:
     return flask.render_template("index.jinja", all_items=all_items)
 
 
+@flask_app.get("/images2")
+def images2() -> t.Any:
+    all_items = get_items_with_duplicate_names_with_distinct_images()
+    return flask.render_template("index.jinja", all_items=all_items)
+
+
 @flask_app.get("/names")
 def names() -> t.Any:
     all_items = get_items_with_duplicate_names()
@@ -129,7 +140,7 @@ def get_items(id_ranges: list[IdRange]) -> list[ItemPlus]:
         .where(sa.or_(*wheres))
         .join(Image, Item.image_id == Image.id)
         .options(sao.contains_eager(Item.image))
-        .order_by(Item.id.desc())
+        .order_by(Item.id.asc())
     ).all()
     return lst2(items)
 
@@ -148,7 +159,7 @@ def get_items_with_duplicate_images() -> list[list[ItemPlus]]:
             .where(Item.image_id == image_id)
             .join(Image, Item.image_id == Image.id)
             .options(sao.contains_eager(Item.image))
-            .order_by(Item.id.desc())
+            .order_by(Item.id.asc())
         ).all()
         all_items.append(lst2(items))
     return all_items
@@ -169,10 +180,58 @@ def get_items_with_duplicate_names() -> list[list[ItemPlus]]:
             .where(Item.name_was_modified == name_was_modified)
             .join(Image, Item.image_id == Image.id)
             .options(sao.contains_eager(Item.image))
-            .order_by(Item.id.desc())
+            .order_by(Item.id.asc())
         ).all()
         all_items.append(lst2(items))
     return all_items
+
+
+def get_items_with_duplicate_names_with_distinct_images() -> list[list[ItemPlus]]:
+    all_items = get_items_with_duplicate_names()
+    new_all_items = []
+    for items in all_items:
+        images = [get_image(item) for item in items]
+        while True:
+            to_delete = find_similar_images(images)
+            if to_delete is None:
+                break
+            del images[to_delete]
+            del items[to_delete]
+        if len(items) > 1:
+            new_all_items.append(items)
+    return new_all_items
+
+
+def get_image(item: ItemPlus) -> PI.Image:
+    image_obj = item.x.image
+    assert image_obj is not None
+    b64_image_data = image_obj.data
+    image_data = base64.b64decode(b64_image_data)
+    image_file = io.BytesIO(image_data)
+    image = PI.open(image_file)
+    return image
+
+
+def find_similar_images(images: list[PI.Image]) -> int | None:
+    for i in range(len(images)):
+        for j in range(i + 1, len(images)):
+            diff = diff_images(images[i], images[j])
+            # print(diff)
+            if diff < 35:
+                return i
+    return None
+
+
+def diff_images(img1: PI.Image, img2: PI.Image) -> float:
+    if img1.size != img2.size:
+        # print(img1.size, img2.size)
+        return 0
+
+    def impl(img1: PI.Image, img2: PI.Image) -> t.Iterator[float]:
+        for img1_pixel, img2_pixel in zip(img1.getdata(), img2.getdata()):
+            yield math.dist(img1_pixel, img2_pixel)
+
+    return stat.stdev(impl(img1, img2), 0)
 
 
 @dc.dataclass
