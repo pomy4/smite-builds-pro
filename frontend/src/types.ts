@@ -74,6 +74,4 @@ export interface Item {
   src: string;
 }
 
-export type BuildsResponse =
-  | { count: number; builds: UnparsedBuild[] }
-  | UnparsedBuild[];
+export type BuildsResponse = { count: number | null; builds: UnparsedBuild[] };

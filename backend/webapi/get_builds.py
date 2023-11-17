@@ -108,7 +108,7 @@ def get_builds(builds_query: "GetBuildsRequest") -> t.Any:
 
         build_dicts.append(build_dict)
 
-    return {"count": count, "builds": build_dicts} if page == 1 else build_dicts
+    return {"count": count, "builds": build_dicts}
 
 
 EVOLVED_PREFIX = "Evolved "

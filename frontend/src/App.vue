@@ -261,7 +261,6 @@
 import { nextTick, onMounted, ref } from "vue";
 import {
   SliderType,
-  UnparsedBuild,
   UnparsedItem,
   Build,
   Item,
@@ -503,15 +502,11 @@ const updateBuilds = async () => {
     throw e;
   }
 
-  let unparsedBuilds: UnparsedBuild[];
-  if ("count" in buildsResponse) {
+  if (buildsResponse.count !== null) {
     buildCount.value = buildsResponse.count;
-    unparsedBuilds = buildsResponse.builds;
-  } else {
-    unparsedBuilds = buildsResponse;
   }
 
-  const newBuilds = unparsedBuilds.map(
+  const newBuilds = buildsResponse.builds.map(
     (build): Build => ({
       ...build,
       relics: build.relics.map(handleImg),
