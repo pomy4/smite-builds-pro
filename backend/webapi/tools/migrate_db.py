@@ -7,12 +7,7 @@ from pathlib import Path
 import sqlalchemy as sa
 import sqlalchemy.orm as sao
 
-from backend.webapi.models import (
-    CURRENT_DB_VERSION,
-    DbVersion,
-    db_session,
-    disable_foreign_keys,
-)
+from backend.webapi.models import CURRENT_DB_VERSION, DbVersion, db_session
 from backend.webapi.simple_queries import (
     get_version,
     update_last_modified,
@@ -22,20 +17,23 @@ from backend.webapi.webapi import what_time_is_it
 
 
 def migrate_db() -> None:
-    with disable_foreign_keys():
-        with db_session.begin():
-            version_index = get_version().index
+    with db_session.begin():
+        version_index = get_version().index
 
-            if version_index == CURRENT_DB_VERSION.index:
-                return
+        if version_index == CURRENT_DB_VERSION.index:
+            return
 
-            add_version_table(version_index)
-            switch_to_sqlalchemy(version_index)
-            add_god_class(version_index)
-            add_image_table(version_index)
-            cascade_del_build_items(version_index)
+        # Turn off foreign keys until commit.
+        # https://www.sqlite.org/pragma.html#pragma_defer_foreign_keys
+        db_session.execute(sa.text("PRAGMA defer_foreign_keys = ON"))
 
-            update_last_modified(what_time_is_it())
+        add_version_table(version_index)
+        switch_to_sqlalchemy(version_index)
+        add_god_class(version_index)
+        add_image_table(version_index)
+        cascade_del_build_items(version_index)
+
+        update_last_modified(what_time_is_it())
 
 
 Migration = t.Callable[[], None]

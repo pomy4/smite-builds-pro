@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import datetime
 import enum
 import typing as t
@@ -154,19 +153,6 @@ def reorder_indices() -> None:
         ix.create(db_engine)
 
 
-_enforce_foreign_keys = True
-
-
-@contextlib.contextmanager
-def disable_foreign_keys() -> t.Iterator[None]:
-    global _enforce_foreign_keys
-    _enforce_foreign_keys = False
-    try:
-        yield None
-    finally:
-        _enforce_foreign_keys = True
-
-
 @sa.event.listens_for(sa.Engine, "connect")
 def do_connect(dbapi_connection: t.Any, _: t.Any) -> t.Any:
     # Transactional DDL
@@ -176,8 +162,7 @@ def do_connect(dbapi_connection: t.Any, _: t.Any) -> t.Any:
     # This should make SQLite check foreign keys.
     # https://docs.sqlalchemy.org/en/20/dialects/sqlite.html#foreign-key-support
     cursor = dbapi_connection.cursor()
-    value = "ON" if _enforce_foreign_keys else "OFF"
-    cursor.execute(f"PRAGMA foreign_keys={value}")
+    cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
 
 
