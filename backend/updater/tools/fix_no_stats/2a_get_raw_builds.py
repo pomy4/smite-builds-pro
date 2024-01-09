@@ -15,6 +15,7 @@ def main() -> None:
         "SCC|EU Phase 2": 7292,  # 7284,
         "SCC|NA Phase 2": 7293,  # 7284
         "SPL|Summer Masters": 7270,  # 7261,
+        "SPL|SWC: Group Stage": 7348,  # 7316
     }
 
     with open("1_empty_matches.json", "r", encoding="utf8") as f:

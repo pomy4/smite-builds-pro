@@ -38,6 +38,7 @@ def main() -> None:
                 other_teams = {team1: team2, team2: team1}
                 teams: dict = {team1: {}, team2: {}}
                 for player in game["players"]:
+                    player["role"] = fix_role(player["role"])
                     teams[player["team"]][player["role"]] = (
                         player["name"],
                         player["god"],
@@ -45,7 +46,6 @@ def main() -> None:
                 for player in game["players"]:
                     team, role = player["team"], player["role"]
                     other_team = other_teams[team]
-                    role = fix_role(role)
                     if role in teams[other_team]:
                         player2, god2 = teams[other_team][role]
                     else:
@@ -88,7 +88,7 @@ def main() -> None:
     with open("3_builds.json", "w", encoding="utf8") as f:
         json.dump(builds, f, indent=2, ensure_ascii=False)
     builds_log = [
-        f"|INFO|Build scraped|{json.dumps(build, ensure_ascii=False)}"
+        f"|INFO|__main__|Build scraped|{json.dumps(build, ensure_ascii=False)}"
         for build in builds
     ]
     with open("3_builds.log", "w", encoding="utf8") as f:
