@@ -19,6 +19,7 @@ from backend.shared import (
     IMG_URL,
     SCC,
     SPL,
+    STORAGE_DIR,
     League,
     delay,
     raise_for_status_with_detail,
@@ -348,6 +349,9 @@ def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
         delay(0.5, start)
 
     if not builds_all:
+        # For debugging in case it is not reproducible.
+        debug_file = STORAGE_DIR / "zero_builds.html"
+        debug_file.write_text(driver.page_source, encoding="utf8")
         raise RuntimeError("Scraped zero builds")
 
     return builds_all
