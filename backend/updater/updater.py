@@ -220,9 +220,10 @@ def scrape_matches(driver: WebDriver, matches: list[Match]) -> list[dict]:
 def scrape_match(driver: WebDriver, match: Match) -> list[dict]:
     builds_all: list[dict] = []
     games: list[WebElement] = []
-    match_url_retries = 3
-    for _ in range(match_url_retries):
-        driver.get(match.url)
+
+    driver.get(match.url)
+    for _ in range(3):
+        time.sleep(5)
 
         # Sometimes the match page is just a single h1 element saying there are no
         # stats, so this code attempts to idenfity this situation to avoid a false
