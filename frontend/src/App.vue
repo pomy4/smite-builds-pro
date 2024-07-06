@@ -16,8 +16,8 @@
             {{ antiSpam }}
           </a>
           <br />
-          <a href="https://github.com/NAZADOTH/smite-builds-pro">
-            https://github.com/NAZADOTH/smite-builds-pro
+          <a href="https://github.com/pomy4/smite-builds-pro">
+            https://github.com/pomy4/smite-builds-pro
           </a>
         </div>
       </div>
