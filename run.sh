@@ -11,6 +11,12 @@ function start {
     gunicorn --bind 127.0.0.1:4000 backend.webapi.gunicorn:app
 }
 
+function start_docker {
+    python -m backend.webapi.tools.create_db || return
+    python -m backend.webapi.tools.migrate_db || return
+    exec gunicorn --bind 0.0.0.0:4000 backend.webapi.gunicorn:app
+}
+
 function updater {
     python -m backend.updater.updater
 }
@@ -26,6 +32,15 @@ function item_viewer {
 function tests {
     # Without 'python -m' fails, probably due to no __init__.py files.
     python -m pytest backend
+}
+
+function build {
+    (cd frontend && npm run build) || return
+}
+
+function deploy {
+    build || return
+    vps_deploy.sh code static
 }
 
 function options {
