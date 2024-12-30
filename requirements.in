@@ -4,6 +4,7 @@
 python-dotenv
 
 # Backend
+gunicorn
 bottle
 sqlalchemy
 pydantic
