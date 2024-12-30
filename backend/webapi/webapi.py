@@ -84,9 +84,7 @@ def log_access() -> None:
     """
     req, resp = bottle.request, bottle.response
 
-    # REMOTE_ADDR is always the address of a PythonAnywhere load balancer,
-    # but bottle.request.remote_addr also checks HTTP_X_FORWARDED_FOR,
-    # so we don't have to do anything extra here.
+    # bottle.request.remote_addr checks both REMOTE_ADDR and HTTP_X_FORWARDED_FOR.
     host = req.remote_addr or "-"
 
     identity = user = "-"

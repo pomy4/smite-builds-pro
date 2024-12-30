@@ -1,28 +1,29 @@
 # smite-builds-pro
-Source code for https://www.smitebuilds.pro
+Source code for https://smitebuilds.pomy.dev (previously https://www.smitebuilds.pro)
 
 [SMITE](https://www.smitegame.com) is a popular video game developed by [Titan Forge Games](https://www.titanforgegames.com/), in which one has to choose a sequence of items to buy - a so-called build. This website shows builds used by professional players in the SMITE Pro League (SPL) and in the SMITE Challenger Circuit (SCC). These builds can also be filtered by god/role/player/date/item etc.
 
 As this data is not available in the [SMITE API](https://webcdn.hirezstudios.com/hirez-studios/legal/smite-api-developer-guide.pdf), it is obtained by web scraping the following official websites:
-- SPL https://www.smiteproleague.com/schedule
-- SCC https://scc.smiteproleague.com/schedule
+- SPL - https://www.smiteproleague.com/schedule
+- SCC - https://scc.smiteproleague.com/schedule
 
+Update: Titan Forge Games has paused the smite league after the announcement of SMITE 2. Support for SMITE 2 is not planned, so this website has turned into an archive (for seasons 8-10).
 
 ## Technologies used
 - Backend - Python, bottle (web framework), SQLite, SQLAlchemy (ORM), Selenium
 - Frontend - TypeScript, Vue 3, Bulma, vite
 
 ## Hosting
-The website is hosted using [PythonAnywhere](https://www.pythonanywhere.com). The deployment and maintenance scripts are (at least for now) in a different (private) repo.
+The website is hosted on a VPS. Previously it was hosted using [PythonAnywhere](https://www.pythonanywhere.com). The deployment and maintenance scripts are not public.
 
 ## Alternatives
-- [Blues' spreadsheet](https://docs.google.com/spreadsheets/d/1W9mQkedMvYLUMt9sPs8zwRr75aaOUNf02FeoRFvoDao/edit#gid=385314662) (this link goes to the Season 10 version)
+- [Blues' spreadsheet](https://docs.google.com/spreadsheets/d/1W9mQkedMvYLUMt9sPs8zwRr75aaOUNf02FeoRFvoDao/edit#gid=385314662) (this link goes to the season 10 version)
 - https://prosmitebuilds.com
 
 ## Running locally
 
 ### Backend
-Minimal required version of Python is 3.10.
+Code is developed on Python 3.12, but lower versions would probably work too.
 
 Setup consists of:
 1. Installing the required packages - e.g. (on linux):
