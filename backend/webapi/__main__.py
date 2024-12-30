@@ -11,7 +11,7 @@ migrate_db()
 
 load_webapi_config()
 setup_webapi_logging()
-host, port = "localhost", 8080
+host, port = "localhost", 4000
 
 if not os.environ.get("BOTTLE_CHILD"):
     logger.info(f"Starting server: http://{host}:{port}/")

@@ -44,6 +44,8 @@ flask==3.0.0
     # via -r requirements.in
 greenlet==3.1.1
     # via sqlalchemy
+gunicorn==23.0.0
+    # via -r requirements.in
 h11==0.14.0
     # via
     #   httpcore
@@ -83,7 +85,9 @@ mypy-extensions==1.0.0
 outcome==1.2.0
     # via trio
 packaging==23.1
-    # via pytest
+    # via
+    #   gunicorn
+    #   pytest
 pathspec==0.10.3
     # via black
 pillow==10.4.0

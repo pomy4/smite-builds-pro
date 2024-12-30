@@ -1,10 +1,14 @@
-#! /usr/bin/env bash
-# Inspiration https://github.com/adriancooney/Taskfile
+#!/bin/bash
+# https://github.com/adriancooney/Taskfile
 
-function webapi {
-    # bottle reloader doesn't support -m.
-    # python -m backend.webapi "$@"
+function dev {
+    # runs backend.webapi.__main__
+    # PYTHONPATH because bottle reloader doesn't support -m
     PYTHONPATH="." python backend/webapi "$@"
+}
+
+function start {
+    gunicorn --bind 127.0.0.1:4000 backend.webapi.gunicorn:app
 }
 
 function updater {
