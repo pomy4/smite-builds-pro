@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 Then the `run.sh` script can be used:
 - `./run.sh dev` - runs the web api for development purposes. Also creates the SQLite database (`storage/backend.db`), if it doesn't exist yet.
-- `./run.sh tests` - runs the unit tests.
+- `./run.sh test` - runs the unit tests.
 - `./run.sh updater` - runs the webscraping script.
 - `./run.sh log_manager` - parses logs for warnings and errors and sends what it found to a https://ntfy.sh/ topic. Also rotates and archives logs, and makes a database backup.
 - There are also some additional small helper scripts in the `backend/webapi/tools` and `backend/updater/tools` folders.

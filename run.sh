@@ -8,13 +8,13 @@ function dev {
 }
 
 function start {
-    gunicorn --bind 127.0.0.1:4000 backend.webapi.gunicorn:app
+    gunicorn --bind 127.0.0.1:4000 backend.webapi.gunicorn:application
 }
 
 function start_docker {
     python -m backend.webapi.tools.create_db || return
     python -m backend.webapi.tools.migrate_db || return
-    exec gunicorn --bind 0.0.0.0:4000 backend.webapi.gunicorn:app
+    exec gunicorn --bind 0.0.0.0:4000 backend.webapi.gunicorn:application
 }
 
 function updater {
@@ -29,7 +29,16 @@ function item_viewer {
     python -m backend.item_viewer.item_viewer "$@"
 }
 
-function tests {
+function lint {
+    black . --check || return
+    isort . --check-only || return
+    flake8 . || return
+    mypy . || return
+    (cd frontend && npm run format-check) || return
+    (cd frontend && npm run lint-check)
+}
+
+function test {
     # Without 'python -m' fails, probably due to no __init__.py files.
     python -m pytest backend
 }
@@ -39,6 +48,8 @@ function build {
 }
 
 function deploy {
+    lint || return
+    test || return
     build || return
     vps_deploy.sh code static
 }
