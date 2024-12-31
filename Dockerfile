@@ -8,7 +8,6 @@ RUN pip install --requirement requirements.txt --root-user-action ignore
 
 ENV PYTHONUNBUFFERED=1 \
     TZ=Europe/Prague
-
 RUN mkdir storage storage/logs storage/logs_archive storage/item_icons_archive \
     && chown --recursive guest:guest storage
 COPY run.sh ./
