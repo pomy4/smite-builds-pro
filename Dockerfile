@@ -15,4 +15,4 @@ COPY backend backend
 COPY static static
 USER guest
 
-CMD ["./run.sh", "start_docker"]
+CMD ["./run.sh", "start_docker_full"]
