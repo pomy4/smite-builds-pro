@@ -4,6 +4,7 @@ import hmac
 import json
 import logging
 import math
+import sys
 import time
 import typing as t
 
@@ -42,7 +43,7 @@ class NoStats(Exception):
 
 def main() -> None:
     load_updater_config()
-    setup_logging("updater", level=logging.DEBUG, console_level=logging.INFO)
+    setup_logging(logging.INFO if len(sys.argv) < 2 else logging.DEBUG)
 
     try:
         options = make_webdriver_options()

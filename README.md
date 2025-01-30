@@ -37,16 +37,17 @@ pip install -r requirements.txt
 
 Then the `run.sh` script can be used:
 - `./run.sh dev` - runs the web api for development purposes. Also creates the SQLite database (`storage/backend.db`), if it doesn't exist yet.
+- `./run.sh lint` - runs the linters.
 - `./run.sh test` - runs the unit tests.
 - `./run.sh updater` - runs the webscraping script.
-- `./run.sh log_manager` - parses logs for warnings and errors and sends what it found to a https://ntfy.sh/ topic. Also rotates and archives logs, and makes a database backup.
+- `./run.sh item_viewer` - runs a helper tool for finding duplicate items in the database.
 - There are also some additional small helper scripts in the `backend/webapi/tools` and `backend/updater/tools` folders.
 
 Used enviroment variables:
 - `HMAC_KEY_HEX` - key used to authenticate the webscraping script with the web api, in hexadecimal.
 - `SMITE_DEV_ID` & `SMITE_AUTH_KEY` - credentials for the [SMITE API](https://webcdn.hirezstudios.com/hirez-studios/legal/smite-api-developer-guide.pdf). This api is currently used only for getting the name of a new god, when their name is misprinted on the SPL website.
+- `BACKUP_ITEM_NAMES` (optional) - python dictionary with manual fixes for mangled item image names.
 - `BACKEND_URL` - web api url for the webscraping script.
-- `NTFY_TOPIC` - the topic to which notifications are sent.
 - `MATCHES_WITH_NO_STATS` (optional) - match IDs separated by commas, which are not warned about, when they have no stats.
 
 Created files (the SQLite database, logs, etc.) are stored in the `storage` folder, in the root of the project.

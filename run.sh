@@ -25,10 +25,6 @@ function updater {
     python -m backend.updater.updater
 }
 
-function log_manager {
-    python -m backend.log_manager.log_manager
-}
-
 function item_viewer {
     python -m backend.item_viewer.item_viewer "$@"
 }

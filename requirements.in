@@ -16,10 +16,6 @@ selenium
 requests
 tqdm
 
-# Log manager
-requests
-msgspec
-
 # Item viewer
 flask
 

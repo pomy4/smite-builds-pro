@@ -5,7 +5,7 @@ import urllib.request
 
 import PIL.Image
 
-from backend.shared import IMG_URL, STORAGE_DIR, delay
+from backend.shared import IMG_URL, ITEM_ICONS_ARCHIVE_DIR, delay
 from backend.webapi.post_builds.auto_fixes_logger import auto_fixes_logger as logger
 
 
@@ -61,6 +61,9 @@ def compress_image(image_data: bytes) -> tuple[bytes, bool]:
 
 
 def save_icon_to_archive(image_id: int, image_name: str, image_data: bytes) -> None:
-    item_icons_archive_dir = STORAGE_DIR / "item_icons_archive"
-    image_path = item_icons_archive_dir / f"{image_id:0>5}-{image_name}"
-    image_path.write_bytes(image_data)
+    image_filename = f"{image_id:0>5}-{image_name}"
+    tmp_image_path = ITEM_ICONS_ARCHIVE_DIR / f"{image_filename}~"
+    image_path = ITEM_ICONS_ARCHIVE_DIR / image_filename
+    # First create and then move to account for rsync --remove-source-files.
+    tmp_image_path.write_bytes(image_data)
+    tmp_image_path.rename(image_path)

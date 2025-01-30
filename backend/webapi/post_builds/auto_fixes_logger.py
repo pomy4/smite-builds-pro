@@ -3,7 +3,7 @@ import logging
 import typing as t
 from contextvars import ContextVar
 
-from backend.shared import setup_logging
+from backend.shared import setup_side_logger
 
 AUTO_FIXES_LOG_NAME = "auto_fixes"
 auto_fixes_logger = logging.getLogger(AUTO_FIXES_LOG_NAME)
@@ -26,10 +26,9 @@ def setup_auto_fixes_logging() -> None:
         record.game = auto_fixes_game_context.get()
         return True
 
-    setup_logging(
+    setup_side_logger(
         AUTO_FIXES_LOG_NAME,
-        is_root=False,
-        format_maybe=auto_fixes_log_format,
+        format_=auto_fixes_log_format,
         filter_=add_game_filter,
     )
 
