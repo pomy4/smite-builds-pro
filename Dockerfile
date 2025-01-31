@@ -6,8 +6,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --requirement requirements.txt --root-user-action ignore
 
-ENV PYTHONUNBUFFERED=1 \
-    TZ=Europe/Prague
+ENV PYTHONUNBUFFERED=1
 RUN mkdir storage storage/logs storage/logs_archive storage/item_icons_archive \
     && chown --recursive guest:guest storage
 COPY run.sh ./
@@ -15,4 +14,4 @@ COPY backend backend
 COPY static static
 USER guest
 
-CMD ["./run.sh", "start_docker"]
+CMD ["./run.sh", "start_docker_full"]

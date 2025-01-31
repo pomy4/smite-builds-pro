@@ -5,11 +5,11 @@ from pathlib import Path
 import dotenv
 
 
-class WebapiUpdaterLogManagerConfig:
+class BaseConfig:
     pass
 
 
-class WebapiUpdaterConfig(WebapiUpdaterLogManagerConfig):
+class WebapiUpdaterConfig(BaseConfig):
     def __init__(self) -> None:
         super().__init__()
 
@@ -38,13 +38,6 @@ class UpdaterConfig(WebapiUpdaterConfig):
         )
 
 
-class LogManagerConfig(WebapiUpdaterLogManagerConfig):
-    def __init__(self) -> None:
-        super().__init__()
-
-        self.ntfy_topic = get_required_env_var("NTFY_TOPIC")
-
-
 def get_required_env_var(key: str) -> str:
     if key not in os.environ:
         raise RuntimeError(f"Environment variable is unset: {key}")
@@ -56,7 +49,7 @@ def get_required_env_var(key: str) -> str:
     return value
 
 
-_config: None | WebapiUpdaterLogManagerConfig = None
+_config: None | BaseConfig = None
 
 
 def load_webapi_config() -> None:
@@ -69,12 +62,6 @@ def load_updater_config() -> None:
     global _config
     load_dotenv()
     _config = UpdaterConfig()
-
-
-def load_log_manager_config() -> None:
-    global _config
-    load_dotenv()
-    _config = LogManagerConfig()
 
 
 def load_dotenv() -> None:
@@ -104,16 +91,6 @@ def get_updater_config() -> UpdaterConfig:
         raise RuntimeError("load_config was not called")
 
     if not isinstance(_config, UpdaterConfig):
-        raise RuntimeError("Different load_config was called")
-
-    return _config
-
-
-def get_log_manager_config() -> LogManagerConfig:
-    if _config is None:
-        raise RuntimeError("load_config was not called")
-
-    if not isinstance(_config, LogManagerConfig):
         raise RuntimeError("Different load_config was called")
 
     return _config

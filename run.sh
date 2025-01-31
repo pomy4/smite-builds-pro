@@ -8,21 +8,21 @@ function dev {
 }
 
 function start {
-    gunicorn --bind 127.0.0.1:4000 backend.webapi.gunicorn:application
+    ( start_docker )
 }
 
 function start_docker {
+    exec gunicorn --bind 0.0.0.0:4000 backend.webapi.gunicorn:application
+}
+
+function start_docker_full {
     python -m backend.webapi.tools.create_db || return
     python -m backend.webapi.tools.migrate_db || return
-    exec gunicorn --bind 0.0.0.0:4000 backend.webapi.gunicorn:application
+    start_docker
 }
 
 function updater {
     python -m backend.updater.updater
-}
-
-function log_manager {
-    python -m backend.log_manager.log_manager
 }
 
 function item_viewer {

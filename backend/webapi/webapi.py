@@ -5,7 +5,6 @@ import hashlib
 import hmac
 import json
 import logging
-import sys
 import typing as t
 
 import bottle
@@ -37,13 +36,10 @@ app = bottle.Bottle()
 app.config["json.enable"] = False
 
 logger = logging.getLogger(__name__)
-ACCESS_LOG_NAME = "access"
-access_logger = logging.getLogger(ACCESS_LOG_NAME)
 
 
 def setup_webapi_logging() -> None:
-    setup_logging("webapi")
-    setup_logging(ACCESS_LOG_NAME, is_root=False)
+    setup_logging()
     setup_auto_fixes_logging()
 
 
@@ -56,71 +52,6 @@ def setup_webapi_logging() -> None:
 def after() -> None:
     # Also calls close, which also calls rollback.
     db_session.remove()
-    log_access()
-
-
-def log_access() -> None:
-    """
-    Logs accesess to the access log using the Apache Combined Log Format.
-
-    Bottle doesn't provide an easy way to log accesses. It does log accesses to stderr
-    using something in the standard library, but I think it does that only in the case
-    when the run method is used.
-
-    This means the cleanest solution would be to write/use a WSGI middleware, but using
-    the after_request hook should be less work, though it has a few disadvantages.
-
-    One of them is that bottle does some sort of unicode check on the path of the
-    request in the Bottle._handle() method, and if the request doesn't pass it, it will
-    not be even started, and thus it will not be logged here.
-
-    Some more issues are described in the comments of this method.
-
-    Another option would be to write a Bottle plugin, but the outcome would be almost
-    the same as the after_request hook, except 404 Not Found and 405 Invalid Method
-    responses would also not be logged, since these are checked in route.match(), which
-    is called before route.call() in Bottle._handle(), and plugins are basically
-    decorators around route.call().
-    """
-    req, resp = bottle.request, bottle.response
-
-    # bottle.request.remote_addr checks both REMOTE_ADDR and HTTP_X_FORWARDED_FOR.
-    host = req.remote_addr or "-"
-
-    identity = user = "-"
-
-    now = datetime.datetime.now().astimezone()
-    now_str = now.strftime("%d/%b/%Y:%H:%M:%S %z")
-
-    protocol = req.environ.get("SERVER_PROTOCOL", "-")
-    method_url_and_protocol = f"{req.method} {req.url} {protocol}"
-
-    # Slightly hackish way to get response status code:
-    _, e, _ = sys.exc_info()
-    if e is None:
-        # The route ended without an exception, hence the status
-        # code can be retrieved from the global response object.
-        status_code = resp.status_code
-    else:
-        # The route has ended with an exception - bottle updates the global response
-        # object with the status code from the exception, if it is a bottle specific
-        # exception, or with a 500, if it is not, but it does this right after this
-        # hook finishes, so here we have to do it ourselves.
-        if isinstance(e, bottle.HTTPResponse):
-            status_code = e.status_code
-        else:
-            status_code = 500
-
-    # Bottle computes content-length after this hook, so we have no easy way to get it.
-    size = "-"
-
-    referer = req.headers.get("Referer", "-")
-
-    user_agent = req.headers.get("User-Agent", "-")
-
-    msg1 = f'{host} {identity} {user} [{now_str}] "{method_url_and_protocol}"'
-    msg2 = f' {status_code} {size} "{referer}" "{user_agent}"'
-    access_logger.info(msg1 + msg2)
 
 
 @app.error(500)
@@ -130,24 +61,17 @@ def error500(error: bottle.HTTPError) -> str:
     return f"{error.body}\n{error.traceback}" if bottle.DEBUG else error.body
 
 
-def log_errors(func: t.Callable) -> t.Callable:
+# errors are logged by bottle
+def log_warnings(func: t.Callable) -> t.Callable:
     @functools.wraps(func)
     def wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
-        try:
-            ret = func(*args, **kwargs)
-            if bottle.response.status_code >= 400:
-                logger.warning(ret)
-                # All expected errors return plain strings,
-                # so this decorator is also used to fix the Content-Type.
-                bottle.response.content_type = "text/plain"
-            return ret
-        except Exception:
-            logger.exception("Internal Server Error")
-            # And also to remove caching from 500 responses
-            # (not sure if they can even be cached, but just to make sure).
-            if "Last-Modified" in bottle.response.headers:
-                del bottle.response.headers["Last-Modified"]
-            raise
+        result = func(*args, **kwargs)
+        if bottle.response.status_code >= 400:
+            logger.warning(result)
+            # All expected errors return plain strings,
+            # so this decorator is also used to fix the Content-Type.
+            bottle.response.content_type = "text/plain"
+        return result
 
     return wrapper
 
@@ -271,7 +195,7 @@ class BytesEncoder(json.JSONEncoder):
 
 
 @app.get("/api/options")
-@log_errors
+@log_warnings
 @cache_with_last_modified
 @jsonify
 def get_options_endpoint() -> dict:
@@ -279,7 +203,7 @@ def get_options_endpoint() -> dict:
 
 
 @app.get("/api/last_check")
-@log_errors
+@log_warnings
 @jsonify
 def get_last_check_endpoint() -> dict:
     value, tooltip = get_last_checked()
@@ -324,7 +248,7 @@ class GetBuildsRequest(pd.BaseModel):
 
 
 @app.get("/api/builds")
-@log_errors
+@log_warnings
 @cache_with_last_modified
 @jsonify
 def get_builds_endpoint() -> t.Any:
@@ -350,7 +274,7 @@ class PhasesRequest(pd.BaseModel):
 
 
 @app.post("/api/phases")
-@log_errors
+@log_warnings
 @validate_request_body(PhasesRequest)
 @jsonify
 def post_phases_endpoint(phases: list[MyStr]) -> list[list[int]]:
@@ -400,7 +324,7 @@ class PostBuildsRequest(pd.BaseModel):
 
 
 @app.post("/api/builds")
-@log_errors
+@log_warnings
 @verify_integrity
 @validate_request_body(PostBuildsRequest)
 def post_builds_endpoint(request: PostBuildsRequest) -> str | None:

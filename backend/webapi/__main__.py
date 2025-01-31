@@ -18,4 +18,4 @@ if not os.environ.get("BOTTLE_CHILD"):
 else:
     logger.info("Reloader detected")
 
-app.run(host=host, port=port, reloader=len(sys.argv) < 2, quiet=True, debug=True)
+app.run(host=host, port=port, reloader=len(sys.argv) < 2, debug=True)

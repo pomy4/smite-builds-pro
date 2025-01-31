@@ -9,9 +9,7 @@ __pycache__/
 # Project specific.
 .env
 /static/
-/storage/**
-!/storage/**/
-!/storage/**/.gitkeep
+/storage/
 /backend/webapi/tools/fix_hirez.py
 /backend/updater/tools/**/*.log
 /backend/updater/tools/**/*.json
