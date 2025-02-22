@@ -2,11 +2,11 @@ import os
 import sys
 
 from backend.config import load_webapi_config
-from backend.webapi.tools.create_db import create_db
 from backend.webapi.tools.migrate_db import migrate_db
+from backend.webapi.tools.prepare_storage import prepare_storage
 from backend.webapi.webapi import app, logger, setup_webapi_logging
 
-create_db()
+prepare_storage()
 migrate_db()
 
 load_webapi_config()

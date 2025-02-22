@@ -10,7 +10,6 @@ from backend.config import get_project_root_dir
 
 STORAGE_DIR = get_project_root_dir() / "storage"
 ITEM_ICONS_ARCHIVE_DIR = STORAGE_DIR / "item_icons_archive"
-STORAGE_DIRS = [STORAGE_DIR, ITEM_ICONS_ARCHIVE_DIR]
 
 ROOT_LOG_FORMAT = "%(asctime)s|%(levelname)s|%(name)s|%(message)s"
 

@@ -16,7 +16,7 @@ function start_docker {
 }
 
 function start_docker_full {
-    python -m backend.webapi.tools.create_db || return
+    python -m backend.webapi.tools.prepare_storage || return
     python -m backend.webapi.tools.migrate_db || return
     start_docker
 }
