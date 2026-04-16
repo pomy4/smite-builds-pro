@@ -139,6 +139,7 @@ def create_archive_schema(archive_connection: sqlite3.Connection) -> None:
 
         CREATE TABLE image (
             id INTEGER PRIMARY KEY,
+            mime_type TEXT NOT NULL,
             data TEXT NOT NULL
         );
 
@@ -247,11 +248,11 @@ def copy_images(
 ) -> None:
     image_rows = source_connection.execute("SELECT id, data FROM image ORDER BY id")
     archive_connection.executemany(
-        "INSERT INTO image (id, data) VALUES (?, ?)",
+        "INSERT INTO image (id, mime_type, data) VALUES (?, ?, ?)",
         (
             (
                 row["id"],
-                base64.b64encode(t.cast(bytes, row["data"])).decode("ascii"),
+                *normalize_image_data(t.cast(bytes, row["data"])),
             )
             for row in image_rows
         ),
@@ -505,6 +506,35 @@ def get_display_name(search_name: str, name_was_modified: int) -> str:
     elif name_was_modified == 3:
         return "Greater " + search_name
     return search_name
+
+
+def normalize_image_data(data: bytes) -> tuple[str, str]:
+    try:
+        base64_data = data.decode("ascii")
+    except UnicodeDecodeError:
+        mime_type = get_image_mime_type(data)
+        return mime_type, base64.b64encode(data).decode("ascii")
+
+    try:
+        decoded_data = base64.b64decode(base64_data, validate=True)
+    except ValueError:
+        mime_type = get_image_mime_type(data)
+        return mime_type, base64.b64encode(data).decode("ascii")
+
+    mime_type = get_image_mime_type(decoded_data)
+    return mime_type, base64_data
+
+
+def get_image_mime_type(data: bytes) -> str:
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    elif data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    elif data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+        return "image/gif"
+    elif data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+        return "image/webp"
+    raise RuntimeError(f"Unknown image format, first bytes: {data[:16]!r}")
 
 
 def write_json_file(path: Path, data: t.Any) -> None:

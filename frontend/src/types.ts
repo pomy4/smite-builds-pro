@@ -72,6 +72,7 @@ export type Build = Omit<UnparsedBuild, "relics" | "items"> & {
 export interface UnparsedItem {
   name: string;
   image_data: string | null;
+  image_mime_type: string | null;
 }
 
 export interface Item {

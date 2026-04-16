@@ -44,6 +44,14 @@ def test_export_archive(tmp_path: Path) -> None:
         page_size = connection.execute("PRAGMA page_size").fetchone()[0]
         assert page_size == 1024
 
+        image_rows = connection.execute(
+            "SELECT id, mime_type, data FROM image ORDER BY id"
+        ).fetchall()
+        assert image_rows == [
+            (1, "image/jpeg", "/9j/"),
+            (2, "image/png", "iVBORw0KGgo="),
+        ]
+
 
 def create_source_db(source_path: Path) -> None:
     with sqlite3.connect(source_path) as connection:
@@ -151,7 +159,7 @@ def create_source_db(source_path: Path) -> None:
         )
         connection.executemany(
             "INSERT INTO image (id, data) VALUES (?, ?)",
-            [(1, b"relic-image"), (2, b"item-image")],
+            [(1, b"/9j/"), (2, b"\x89PNG\r\n\x1a\n")],
         )
         connection.executemany(
             """

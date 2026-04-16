@@ -528,10 +528,10 @@ let observer = new IntersectionObserver((entries) => {
 
 const handleImg = (item: UnparsedItem | null): Item => {
   if (item) {
-    if (item.image_data) {
+    if (item.image_data && item.image_mime_type) {
       return {
         name: item.name,
-        src: "data:image/png;base64," + item.image_data,
+        src: `data:${item.image_mime_type};base64,` + item.image_data,
       };
     } else {
       return { name: item.name, src: errorImageUrl };

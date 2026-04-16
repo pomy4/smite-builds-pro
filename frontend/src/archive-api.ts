@@ -44,6 +44,7 @@ interface ArchiveBuildItemRow {
   is_relic: number;
   slot_index: number;
   name: string;
+  image_mime_type: string | null;
   image_data: string | null;
 }
 
@@ -173,6 +174,7 @@ const getBuildItemsByBuildId = async (
       build_item.is_relic,
       build_item.slot_index,
       build_item.display_name AS name,
+      image.mime_type AS image_mime_type,
       image.data AS image_data
     FROM build_item
     LEFT JOIN image ON image.id = build_item.image_id
@@ -191,6 +193,7 @@ const getBuildItemsByBuildId = async (
       buildItemsByBuildId.get(row.build_id) ?? createEmptyBuildItems();
     const item = {
       name: row.name,
+      image_mime_type: row.image_mime_type,
       image_data: row.image_data,
     };
     if (row.is_relic) {
