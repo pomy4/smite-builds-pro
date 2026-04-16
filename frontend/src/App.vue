@@ -280,7 +280,7 @@ const lastCheck = ref<LastCheck>({
   value: "loading ...",
   tooltip: "Loading ..",
 });
-const startMsg = "Press Find builds to start";
+const startMsg = "";
 let hasStartedSearch = false;
 
 (async () => {
