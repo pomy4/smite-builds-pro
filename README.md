@@ -39,7 +39,7 @@ Then the `run.sh` script can be used:
 - `./run.sh dev` - runs the web api for development purposes. Also creates the SQLite database (`storage/backend.db`), if it doesn't exist yet.
 - `./run.sh lint` - runs the linters.
 - `./run.sh test` - runs the unit tests.
-- `./run.sh archive` - exports the static archive assets used by the frontend into `frontend/public/archive`.
+- `./run.sh archive` - exports the static archive assets used by the frontend into `frontend/public/archive`, including `builds.sqlite3` and `builds.sqlite3.br`.
 - `./run.sh updater` - runs the webscraping script.
 - `./run.sh item_viewer` - runs a helper tool for finding duplicate items in the database.
 - There are also some additional small helper scripts in the `backend/webapi/tools` and `backend/updater/tools` folders.
@@ -66,3 +66,5 @@ Then:
 - `cd frontend && npm run dev` - starts the development server for the static archive UI.
 - `./run.sh build` - exports the archive assets and builds the static site into `static/`.
 - `cd frontend && npm run serve` - previews the already-built frontend bundle.
+
+The frontend now waits until the first **Find builds** click before downloading the full SQLite archive. The exported archive includes both an uncompressed database for local development and a Brotli-compressed copy for production servers that can serve it transparently.

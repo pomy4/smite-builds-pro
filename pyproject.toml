@@ -15,5 +15,6 @@ disallow_untyped_defs = true
 [[tool.mypy.overrides]]
 module = [
     "bottle.*",
+    "brotli",
 ]
 ignore_missing_imports = true

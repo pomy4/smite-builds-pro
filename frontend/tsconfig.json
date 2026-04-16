@@ -5,6 +5,8 @@
     "moduleResolution": "node", // Otherwise complains about libraries.
     "outDir": "dist", // Otherwise complains: Cannot write file 'vite.config.js' because it would overwrite input file.
     "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "strict": true
   }
 }

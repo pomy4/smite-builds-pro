@@ -13,7 +13,7 @@
     "bulma": "^0.9.4",
     "bulmaswatch": "^0.8.1",
     "nouislider": "^15.6.1",
-    "sql.js-httpvfs": "^0.8.12",
+    "sql.js": "^1.14.1",
     "tom-select": "2.0.3",
     "vue": "^3.2.41"
   },
@@ -30,6 +30,7 @@
     "vite": "Build system."
   },
   "devDependencies": {
+    "@types/sql.js": "^1.4.11",
     "@typescript-eslint/eslint-plugin": "^5.42.0",
     "@typescript-eslint/parser": "^5.42.0",
     "@vitejs/plugin-vue": "^3.2.0",

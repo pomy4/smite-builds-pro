@@ -280,6 +280,8 @@ const lastCheck = ref<LastCheck>({
   value: "loading ...",
   tooltip: "Loading ..",
 });
+const startMsg = "Press Find builds to start";
+let hasStartedSearch = false;
 
 (async () => {
   lastCheck.value = await getLastCheck();
@@ -352,10 +354,10 @@ onMounted(async () => {
 
   // Wait for options to get initialized in child components.
   await nextTick();
+  await syncControlsFromUrl();
 
-  window.addEventListener("popstate", () => refresh(false));
-
-  refresh(false);
+  bottomText.value = startMsg;
+  window.addEventListener("popstate", onPopstate);
 });
 
 interface Control {
@@ -404,13 +406,33 @@ const refresh = async (promptedByButtonClick: boolean) => {
   if (promptedByButtonClick) {
     controlsToClientUrl();
   } else {
-    clientUrlToControls();
-    // Wait for the controls to get validated in child components.
-    await nextTick();
+    await syncControlsFromUrl();
+    if (!hasStartedSearch) {
+      resetBuilds();
+      bottomText.value = startMsg;
+      return;
+    }
   }
   resetBuilds();
   controlsToBuildsSearchParams();
-  updateBuilds();
+  await updateBuilds();
+  hasStartedSearch = true;
+};
+
+const syncControlsFromUrl = async () => {
+  clientUrlToControls();
+  // Wait for the controls to get validated in child components.
+  await nextTick();
+};
+
+const onPopstate = async () => {
+  if (hasStartedSearch) {
+    await refresh(false);
+  } else {
+    await syncControlsFromUrl();
+    resetBuilds();
+    bottomText.value = startMsg;
+  }
 };
 
 const controlsToClientUrl = () => {

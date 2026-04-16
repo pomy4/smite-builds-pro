@@ -1,20 +1,19 @@
-import { createDbWorker, type WorkerHttpvfs } from "sql.js-httpvfs";
-import sqliteWorkerUrl from "sql.js-httpvfs/dist/sqlite.worker.js?url";
-import sqlWasmUrl from "sql.js-httpvfs/dist/sql-wasm.wasm?url";
+import initSqlJs from "sql.js";
+import sqlWasmUrl from "sql.js/dist/sql-wasm.wasm?url";
+import { Database, SqlJsStatic, QueryExecResult } from "sql.js";
 
 import {
   BuildsResponse,
   LastCheck,
+  Options,
   UnparsedBuild,
   UnparsedItem,
-  Options,
 } from "./types";
 
 const ARCHIVE_DB_URL = "/archive/builds.sqlite3";
 const LAST_CHECK_URL = "/archive/last-check.json";
 const OPTIONS_URL = "/archive/options.json";
 const PAGE_SIZE = 10;
-const REQUEST_CHUNK_SIZE = 1024;
 
 interface ArchiveBuildRow {
   id: number;
@@ -63,20 +62,22 @@ export const getBuilds = async (
   searchParams: URLSearchParams,
   page: number
 ): Promise<BuildsResponse> => {
-  const { db } = await getArchiveDb();
+  const db = await getArchiveDb();
   const queryParts = getQueryParts(searchParams);
   const whereSql = getWhereSql(queryParts);
 
   let count: number | null = null;
   if (page === 1) {
-    const countRows = (await db.query(
+    const countRows = queryDatabase<{ count: number }>(
+      db,
       `SELECT COUNT(*) AS count FROM build ${whereSql}`,
       queryParts.params
-    )) as Array<{ count: number }>;
+    );
     count = countRows[0]?.count ?? 0;
   }
 
-  const buildRows = (await db.query(
+  const buildRows = queryDatabase<ArchiveBuildRow>(
+    db,
     `
     SELECT
       id,
@@ -105,14 +106,14 @@ export const getBuilds = async (
     LIMIT ? OFFSET ?
     `,
     [...queryParts.params, PAGE_SIZE, (page - 1) * PAGE_SIZE]
-  )) as ArchiveBuildRow[];
+  );
 
   if (buildRows.length === 0) {
     return { count, builds: [] };
   }
 
   const buildIds = buildRows.map((row) => row.id);
-  const buildItemsByBuildId = await getBuildItemsByBuildId(db, buildIds);
+  const buildItemsByBuildId = getBuildItemsByBuildId(db, buildIds);
   const builds = buildRows.map((row): UnparsedBuild => {
     const buildItems = buildItemsByBuildId.get(row.id);
     return {
@@ -135,39 +136,50 @@ const fetchArchiveJson = async <T>(url: string): Promise<T> => {
   return response.json();
 };
 
-let archiveDbFuture: Promise<WorkerHttpvfs> | null = null;
+let archiveDbFuture: Promise<Database> | null = null;
+let sqlJsFuture: Promise<SqlJsStatic> | null = null;
 
-const getArchiveDb = async (): Promise<WorkerHttpvfs> => {
+const getArchiveDb = async (): Promise<Database> => {
   if (archiveDbFuture === null) {
-    archiveDbFuture = createDbWorker(
-      [
-        {
-          from: "inline",
-          config: {
-            serverMode: "full",
-            url: ARCHIVE_DB_URL,
-            requestChunkSize: REQUEST_CHUNK_SIZE,
-          },
-        },
-      ],
-      sqliteWorkerUrl,
-      sqlWasmUrl
-    );
+    archiveDbFuture = loadArchiveDb();
   }
   return archiveDbFuture;
 };
 
-const getBuildItemsByBuildId = async (
-  db: WorkerHttpvfs["db"],
+const getSqlJs = async (): Promise<SqlJsStatic> => {
+  if (sqlJsFuture === null) {
+    sqlJsFuture = initSqlJs({
+      locateFile: () => sqlWasmUrl,
+    });
+  }
+  return sqlJsFuture;
+};
+
+const loadArchiveDb = async (): Promise<Database> => {
+  const [SQL, response] = await Promise.all([
+    getSqlJs(),
+    fetch(ARCHIVE_DB_URL),
+  ]);
+  if (!response.ok) {
+    throw Error(
+      `HTTP error! Status: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const databaseBytes = new Uint8Array(await response.arrayBuffer());
+  return new SQL.Database(databaseBytes);
+};
+
+const getBuildItemsByBuildId = (
+  db: Database,
   buildIds: number[]
-): Promise<
-  Map<
-    number,
-    { relics: Array<UnparsedItem | null>; items: Array<UnparsedItem | null> }
-  >
+): Map<
+  number,
+  { relics: Array<UnparsedItem | null>; items: Array<UnparsedItem | null> }
 > => {
   const placeholders = buildIds.map(() => "?").join(", ");
-  const buildItemRows = (await db.query(
+  const buildItemRows = queryDatabase<ArchiveBuildItemRow>(
+    db,
     `
     SELECT
       build_item.build_id,
@@ -182,7 +194,7 @@ const getBuildItemsByBuildId = async (
     ORDER BY build_item.build_id ASC, build_item.is_relic DESC, build_item.slot_index ASC
     `,
     buildIds
-  )) as ArchiveBuildItemRow[];
+  );
 
   const buildItemsByBuildId = new Map<
     number,
@@ -210,6 +222,23 @@ const createEmptyBuildItems = () => ({
   relics: [null, null] as Array<UnparsedItem | null>,
   items: [null, null, null, null, null, null] as Array<UnparsedItem | null>,
 });
+
+const queryDatabase = <T>(
+  db: Database,
+  sql: string,
+  params: Array<number | string>
+): T[] => toObjects<T>(db.exec(sql, params));
+
+const toObjects = <T>(results: QueryExecResult[]): T[] =>
+  results.flatMap((result) =>
+    result.values.map((values) => {
+      const row: Record<string, unknown> = {};
+      for (let i = 0; i < result.columns.length; i += 1) {
+        row[result.columns[i]] = values[i];
+      }
+      return row as T;
+    })
+  );
 
 const getQueryParts = (searchParams: URLSearchParams): QueryParts => {
   const queryParts: QueryParts = { clauses: [], params: [] };
@@ -245,8 +274,8 @@ const getQueryParts = (searchParams: URLSearchParams): QueryParts => {
   addInClause(queryParts, "god2", searchParams.getAll("god2"));
   addInClause(queryParts, "player2", searchParams.getAll("player2"));
   addInClause(queryParts, "team2", searchParams.getAll("team2"));
-  addItemClauses(queryParts, "relic", true, searchParams.getAll("relic"));
-  addItemClauses(queryParts, "item", false, searchParams.getAll("item"));
+  addItemClauses(queryParts, true, searchParams.getAll("relic"));
+  addItemClauses(queryParts, false, searchParams.getAll("item"));
 
   return queryParts;
 };
@@ -279,7 +308,6 @@ const addRangeClause = (
 
 const addItemClauses = (
   queryParts: QueryParts,
-  _label: string,
   isRelic: boolean,
   names: string[]
 ) => {

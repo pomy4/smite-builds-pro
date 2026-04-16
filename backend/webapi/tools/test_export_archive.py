@@ -2,7 +2,13 @@ import json
 import sqlite3
 from pathlib import Path
 
-from backend.webapi.tools.export_archive import ARCHIVE_DB_NAME, export_archive
+import brotli
+
+from backend.webapi.tools.export_archive import (
+    ARCHIVE_DB_BROTLI_NAME,
+    ARCHIVE_DB_NAME,
+    export_archive,
+)
 
 
 def test_export_archive(tmp_path: Path) -> None:
@@ -22,6 +28,7 @@ def test_export_archive(tmp_path: Path) -> None:
     assert last_check == {"value": "15 Apr 2026", "tooltip": "Manual export"}
 
     archive_db_path = archive_dir / ARCHIVE_DB_NAME
+    archive_db_brotli_path = archive_dir / ARCHIVE_DB_BROTLI_NAME
     with sqlite3.connect(archive_db_path) as connection:
         build_row = connection.execute("SELECT season, match_url FROM build").fetchone()
         assert build_row == (
@@ -41,9 +48,6 @@ def test_export_archive(tmp_path: Path) -> None:
             (0, "Bancroft's Talon", "Evolved Bancroft's Talon", 2),
         ]
 
-        page_size = connection.execute("PRAGMA page_size").fetchone()[0]
-        assert page_size == 1024
-
         image_rows = connection.execute(
             "SELECT id, mime_type, data FROM image ORDER BY id"
         ).fetchall()
@@ -51,6 +55,11 @@ def test_export_archive(tmp_path: Path) -> None:
             (1, "image/jpeg", "/9j/"),
             (2, "image/png", "iVBORw0KGgo="),
         ]
+
+    assert (
+        brotli.decompress(archive_db_brotli_path.read_bytes())
+        == archive_db_path.read_bytes()
+    )
 
 
 def create_source_db(source_path: Path) -> None:

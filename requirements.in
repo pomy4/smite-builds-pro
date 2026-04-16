@@ -2,6 +2,7 @@
 
 # Shared
 python-dotenv
+brotli
 
 # Backend
 gunicorn

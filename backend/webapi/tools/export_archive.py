@@ -9,14 +9,17 @@ import sqlite3
 import typing as t
 from pathlib import Path
 
+import brotli
+
 from backend.config import get_project_root_dir
 from backend.shared import STORAGE_DIR
 
-REQUEST_CHUNK_SIZE = 1024
 ARCHIVE_DIR = get_project_root_dir() / "frontend" / "public" / "archive"
 ARCHIVE_DB_NAME = "builds.sqlite3"
+ARCHIVE_DB_BROTLI_NAME = "builds.sqlite3.br"
 OPTIONS_JSON_NAME = "options.json"
 LAST_CHECK_JSON_NAME = "last-check.json"
+BROTLI_QUALITY = 11
 BUILD_FILTER_COLUMNS = [
     "season",
     "league",
@@ -83,6 +86,7 @@ def export_archive(source_path: Path, archive_dir: Path) -> None:
     temp_archive_db_path.replace(archive_db_path)
     write_json_file(archive_dir / OPTIONS_JSON_NAME, options)
     write_json_file(archive_dir / LAST_CHECK_JSON_NAME, last_check)
+    write_brotli_file(archive_db_path, archive_dir / ARCHIVE_DB_BROTLI_NAME)
 
 
 def open_source_db(source_path: Path) -> sqlite3.Connection:
@@ -96,7 +100,6 @@ def write_archive_db(
 ) -> None:
     with contextlib.closing(sqlite3.connect(archive_db_path)) as archive_connection:
         archive_connection.execute("PRAGMA journal_mode = DELETE")
-        archive_connection.execute(f"PRAGMA page_size = {REQUEST_CHUNK_SIZE}")
         archive_connection.execute("PRAGMA synchronous = OFF")
         create_archive_schema(archive_connection)
         copy_builds(source_connection, archive_connection)
@@ -539,6 +542,11 @@ def get_image_mime_type(data: bytes) -> str:
 
 def write_json_file(path: Path, data: t.Any) -> None:
     path.write_text(json.dumps(data, indent=2), encoding="utf8")
+
+
+def write_brotli_file(source_path: Path, target_path: Path) -> None:
+    source_bytes = source_path.read_bytes()
+    target_path.write_bytes(brotli.compress(source_bytes, quality=BROTLI_QUALITY))
 
 
 if __name__ == "__main__":
