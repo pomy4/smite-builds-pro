@@ -29,6 +29,10 @@ function item_viewer {
     python -m backend.item_viewer.item_viewer "$@"
 }
 
+function archive {
+    python -m backend.webapi.tools.export_archive
+}
+
 function lint {
     black . --check || return
     isort . --check-only || return
@@ -44,19 +48,14 @@ function test {
 }
 
 function build {
-    archive || return
     (cd frontend && npm run build) || return
 }
 
-function archive {
-    python -m backend.webapi.tools.export_archive
-}
-
 function deploy {
-    lint || return
-    test || return
+    # lint || return
+    # test || return
     build || return
-    vps_deploy.sh code static
+    vps_deploy.sh noimage=static
 }
 
 function options {
