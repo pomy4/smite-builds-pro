@@ -9,7 +9,7 @@ export const enum SliderType {
 }
 
 export interface Options {
-  season: string[];
+  season: number[];
   league: string[];
   phase: string[];
   date: [string, string];
@@ -34,9 +34,14 @@ export interface Options {
 
 export type Nullable<T> = { [K in keyof T]: T[K] | null };
 
+export interface LastCheck {
+  value: string;
+  tooltip: string;
+}
+
 export interface UnparsedBuild {
   id: number;
-  season: string;
+  season: number;
   league: string;
   phase: string;
   date: string;

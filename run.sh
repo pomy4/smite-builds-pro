@@ -44,7 +44,12 @@ function test {
 }
 
 function build {
+    archive || return
     (cd frontend && npm run build) || return
+}
+
+function archive {
+    python -m backend.webapi.tools.export_archive
 }
 
 function deploy {

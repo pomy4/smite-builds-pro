@@ -39,6 +39,7 @@ Then the `run.sh` script can be used:
 - `./run.sh dev` - runs the web api for development purposes. Also creates the SQLite database (`storage/backend.db`), if it doesn't exist yet.
 - `./run.sh lint` - runs the linters.
 - `./run.sh test` - runs the unit tests.
+- `./run.sh archive` - exports the static archive assets used by the frontend into `frontend/public/archive`.
 - `./run.sh updater` - runs the webscraping script.
 - `./run.sh item_viewer` - runs a helper tool for finding duplicate items in the database.
 - There are also some additional small helper scripts in the `backend/webapi/tools` and `backend/updater/tools` folders.
@@ -53,4 +54,15 @@ Used enviroment variables:
 Created files (the SQLite database, logs, etc.) are stored in the `storage` folder, in the root of the project.
 
 ### Frontend
-CD to the frontend directory and install the required packages: `cd fe && npm ci`. The development server can then be started with `npm run dev`, the static files can be built with `npm run build` and these can be previewed with `npm run serve`.
+CD to the frontend directory and install the required packages: `cd frontend && npm ci`.
+
+The frontend is now a static archive. Before running it locally, export the browser assets from `storage/backend.db`:
+
+```sh
+./run.sh archive
+```
+
+Then:
+- `cd frontend && npm run dev` - starts the development server for the static archive UI.
+- `./run.sh build` - exports the archive assets and builds the static site into `static/`.
+- `cd frontend && npm run serve` - previews the already-built frontend bundle.

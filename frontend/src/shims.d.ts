@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 // Without this TypeScript complained about not being able to find empty.png.
 // Taken from some StackOverflow answer.
 declare module "*.png" {

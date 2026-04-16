@@ -267,28 +267,22 @@ import {
   BuildsResponse,
   Options,
   Nullable,
+  LastCheck,
 } from "./types";
+import { getBuilds, getLastCheck, getOptions } from "./archive-api";
 import MyBuild from "./MyBuild.vue";
 import MySelect from "./MySelect.vue";
 import MySlider from "./MySlider.vue";
 import emptyImageUrl from "/images/empty_image.png";
 import errorImageUrl from "/images/error_image.png";
 
-const fetchOrThrow = async (url: string) => {
-  let response = await fetch(url);
-  if (!response.ok) {
-    throw Error(
-      `HTTP error! Status: ${response.status} ${response.statusText}`
-    );
-  }
-  return response;
-};
-
-const lastCheck = ref({ value: "loading ...", tooltip: "Loading .." });
+const lastCheck = ref<LastCheck>({
+  value: "loading ...",
+  tooltip: "Loading ..",
+});
 
 (async () => {
-  const lastCheckResponse = await fetchOrThrow("/api/last_check");
-  lastCheck.value = await lastCheckResponse.json();
+  lastCheck.value = await getLastCheck();
 })();
 
 const antiSpam = (
@@ -338,10 +332,7 @@ const options = ref<Nullable<Options>>({
   item: null,
 });
 
-const optionsFuture = (async (): Promise<Options> => {
-  const optionsResponse = await fetchOrThrow("/api/options");
-  return optionsResponse.json();
-})();
+const optionsFuture = getOptions();
 
 const errMsg = (thing: string) =>
   `Failed to load ${thing}! Please refresh the page, ` +
@@ -492,11 +483,9 @@ const updateBuilds = async () => {
     throw Error("Illegal state");
   }
 
-  const url = `/api/builds?page=${nextPage}&` + buildsSearchParams;
   let buildsResponse: BuildsResponse;
   try {
-    let response = await fetchOrThrow(url);
-    buildsResponse = await response.json();
+    buildsResponse = await getBuilds(buildsSearchParams, nextPage);
   } catch (e) {
     bottomText.value = errMsg("builds");
     throw e;
